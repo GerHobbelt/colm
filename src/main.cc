@@ -30,6 +30,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <iostream>
+#include <string>
+#include <sstream>
 
 #include "debug.h"
 #include "pcheck.h"
@@ -464,62 +466,44 @@ void compileOutput()
 	if ( cflags == 0 )
 		cflags = "";
 
-	int length = 1024 + strlen( compiler ) + strlen( cflags ) + 
-			strlen( intermedFn ) + strlen( binaryFn );
-	for ( ArgsVector::Iter af = additionalCodeFiles; af.lte(); af++ )
-		length += strlen( *af ) + 2;
-	for ( ArgsVector::Iter ip = includePaths; ip.lte(); ip++ )
-		length += strlen( *ip ) + 3;
-	for ( ArgsVector::Iter lp = libraryPaths; lp.lte(); lp++ )
-		length += strlen( *lp ) + 3;
-	if ( fromBuildDir != 0 )
-		length += strlen( fromBuildDir ) * 3;
-#define COMPILE_COMMAND_STRING "%s -Wall -Wwrite-strings" \
-		" -g %s" \
-		" -o %s" \
-		" %s"
-	char *command = new char[length];
+	std::ostringstream command;
+	
 	if ( fromBuildDir != 0 ) {
-		sprintf( command,
-				"%s/libtool --tag=CC --mode=link "
-				COMPILE_COMMAND_STRING
-				" -I%s/src/include"
-				" -static"
-				" %s/src/libcolm.la",
-				fromBuildDir, compiler, cflags,
-				binaryFn, intermedFn,
-				fromBuildDir, fromBuildDir );
+		command << fromBuildDir << "/libtool --tag=CC --mode=link "
+		        << compiler << " -Wall -Wwrite-strings"
+		        << " -g " << cflags
+		        << " -o " << binaryFn
+		        << " " << intermedFn
+		        << " -I" << fromBuildDir << "/src/include"
+		        << " -static"
+		        << " " << fromBuildDir << "/src/libcolm.la";
 	}
 	else {
-		sprintf( command,
-				COMPILE_COMMAND_STRING
-				" -I" INCLUDEDIR
-				" -L" LIBDIR
-				" -Wl,-rpath," LIBDIR,
-				compiler, cflags,
-				binaryFn, intermedFn );
+		command << compiler << " -Wall -Wwrite-strings"
+		        << " -g " << cflags
+		        << " -o " << binaryFn
+		        << " " << intermedFn
+		        << " -I" << INCLUDEDIR
+		        << " -L" << LIBDIR
+		        << " -Wl,-rpath," << LIBDIR;
 	}
-#undef COMPILE_COMMAND_STRING
+	
 	for ( ArgsVector::Iter af = additionalCodeFiles; af.lte(); af++ ) {
-		strcat( command, " " );
-		strcat( command, *af );
+		command << " " << *af;
 	}
 	for ( ArgsVector::Iter ip = includePaths; ip.lte(); ip++ ) {
-		strcat( command, " -I" );
-		strcat( command, *ip );
+		command << " -I" << *ip;
 	}
 	for ( ArgsVector::Iter lp = libraryPaths; lp.lte(); lp++ ) {
-		strcat( command, " -L" );
-		strcat( command, *lp );
+		command << " -L" << *lp;
 	}
 
 	if ( fromBuildDir == 0 )
-		strcat( command, " -lcolm" );
+		command << " -lcolm";
 
-	if( !compileOutputCommand( command ) && run )
+	std::string commandStr = command.str();
+	if( !compileOutputCommand( commandStr.c_str() ) && run )
 		runOutputProgram();
-
-	delete[] command;
 }
 
 void processArgs( int argc, const char **argv )
