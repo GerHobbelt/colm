@@ -20,35 +20,35 @@ runtests: runtests.in Makefile
 
 CLEANFILES = subject.mk subject.sh
 
-cgil-c$(EXEEXT): $(top_srcdir)/src/cgil/rlhc-c.lm $(top_srcdir)/src/cgil/ril.lm
-	$(SUBJ_COLM_BIN) -I ../ -o $@ $<
+cgil-c$(EXEEXT): $(top_srcdir)/src/cgil/rlhc-c.lm $(top_srcdir)/src/cgil/ril.lm $(SUBJ_COLM_BIN) 
+	$(SUBJ_COLM_BIN) -B '$(top_builddir)' -I .. -o $@ $<
 
-cgil-crack$(EXEEXT): $(top_srcdir)/src/cgil/rlhc-crack.lm $(top_srcdir)/src/cgil/ril.lm
-	$(SUBJ_COLM_BIN) -I ../ -o $@ $<
+cgil-crack$(EXEEXT): $(top_srcdir)/src/cgil/rlhc-crack.lm $(top_srcdir)/src/cgil/ril.lm $(SUBJ_COLM_BIN) 
+	$(SUBJ_COLM_BIN) -B '$(top_builddir)' -I .. -o $@ $<
 
-cgil-csharp$(EXEEXT): $(top_srcdir)/src/cgil/rlhc-csharp.lm $(top_srcdir)/src/cgil/ril.lm
-	$(SUBJ_COLM_BIN) -I ../ -o $@ $<
+cgil-csharp$(EXEEXT): $(top_srcdir)/src/cgil/rlhc-csharp.lm $(top_srcdir)/src/cgil/ril.lm $(SUBJ_COLM_BIN)
+	$(SUBJ_COLM_BIN) -B '$(top_builddir)' -I .. -o $@ $<
 
-cgil-d$(EXEEXT): $(top_srcdir)/src/cgil/rlhc-d.lm $(top_srcdir)/src/cgil/ril.lm
-	$(SUBJ_COLM_BIN) -I ../ -o $@ $<
+cgil-d$(EXEEXT): $(top_srcdir)/src/cgil/rlhc-d.lm $(top_srcdir)/src/cgil/ril.lm $(SUBJ_COLM_BIN)
+	$(SUBJ_COLM_BIN) -B '$(top_builddir)' -I .. -o $@ $<
 
-cgil-go$(EXEEXT): $(top_srcdir)/src/cgil/rlhc-go.lm $(top_srcdir)/src/cgil/ril.lm
-	$(SUBJ_COLM_BIN) -I ../ -o $@ $<
+cgil-go$(EXEEXT): $(top_srcdir)/src/cgil/rlhc-go.lm $(top_srcdir)/src/cgil/ril.lm $(SUBJ_COLM_BIN)
+	$(SUBJ_COLM_BIN) -B '$(top_builddir)' -I .. -o $@ $<
 
-cgil-java$(EXEEXT): $(top_srcdir)/src/cgil/rlhc-java.lm $(top_srcdir)/src/cgil/ril.lm
-	$(SUBJ_COLM_BIN) -I ../ -o $@ $<
+cgil-java$(EXEEXT): $(top_srcdir)/src/cgil/rlhc-java.lm $(top_srcdir)/src/cgil/ril.lm $(SUBJ_COLM_BIN)
+	$(SUBJ_COLM_BIN) -B '$(top_builddir)' -I .. -o $@ $<
 
-cgil-js$(EXEEXT): $(top_srcdir)/src/cgil/rlhc-js.lm $(top_srcdir)/src/cgil/ril.lm
-	$(SUBJ_COLM_BIN) -I ../ -o $@ $<
+cgil-js$(EXEEXT): $(top_srcdir)/src/cgil/rlhc-js.lm $(top_srcdir)/src/cgil/ril.lm $(SUBJ_COLM_BIN)
+	$(SUBJ_COLM_BIN) -B '$(top_builddir)' -I .. -o $@ $<
 
-cgil-julia$(EXEEXT): $(top_srcdir)/src/cgil/rlhc-julia.lm $(top_srcdir)/src/cgil/ril.lm
-	$(SUBJ_COLM_BIN) -I ../ -o $@ $<
+cgil-julia$(EXEEXT): $(top_srcdir)/src/cgil/rlhc-julia.lm $(top_srcdir)/src/cgil/ril.lm $(SUBJ_COLM_BIN)
+	$(SUBJ_COLM_BIN) -B '$(top_builddir)' -I .. -o $@ $<
 
-cgil-ocaml$(EXEEXT): $(top_srcdir)/src/cgil/rlhc-ocaml.lm $(top_srcdir)/src/cgil/ril.lm
-	$(SUBJ_COLM_BIN) -I ../ -o $@ $<
+cgil-ocaml$(EXEEXT): $(top_srcdir)/src/cgil/rlhc-ocaml.lm $(top_srcdir)/src/cgil/ril.lm $(SUBJ_COLM_BIN)
+	$(SUBJ_COLM_BIN) -B '$(top_builddir)' -I .. -o $@ $<
 
-cgil-ruby$(EXEEXT): $(top_srcdir)/src/cgil/rlhc-ruby.lm $(top_srcdir)/src/cgil/ril.lm
-	$(SUBJ_COLM_BIN) -I ../ -o $@ $<
+cgil-ruby$(EXEEXT): $(top_srcdir)/src/cgil/rlhc-ruby.lm $(top_srcdir)/src/cgil/ril.lm $(SUBJ_COLM_BIN)
+	$(SUBJ_COLM_BIN) -B '$(top_builddir)' -I .. -o $@ $<
 
-cgil-rust$(EXEEXT): $(top_srcdir)/src/cgil/rlhc-rust.lm $(top_srcdir)/src/cgil/ril.lm
-	$(SUBJ_COLM_BIN) -I ../ -o $@ $<
+cgil-rust$(EXEEXT): $(top_srcdir)/src/cgil/rlhc-rust.lm $(top_srcdir)/src/cgil/ril.lm $(SUBJ_COLM_BIN)
+	$(SUBJ_COLM_BIN) -B '$(top_builddir)' -I .. -o $@ $<
