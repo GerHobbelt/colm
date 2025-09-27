@@ -340,7 +340,7 @@ Aapl 2.5.0 -- Jun 22, 2002
   Table, Double Ended Queue, Merge Sort.
 
   Autil is: A library of simple utility classes that are easy to come by.
-  Autil contains paramater parser, byte ordering facilities, character
+  Autil contains parameter parser, byte ordering facilities, character
   classes.
 
   Reglang FSM is: A template library of algorithms and data structures for
@@ -491,7 +491,7 @@ Aapl 2.0.0 -- Feb 17, 2002
  up into many different classes, each with thier own 'flavour' of the data
  structure. This split is accomplished using preprocessor defines so there
  is no code duplication. Classes now have shorter names and only required
- template paramaters. This dramatically cuts down on long symbols and
+ template parameters. This dramatically cuts down on long symbols and
  eliminates compiler warnings on platforms that restrict symbol lengths.
 
  -Made all data member names consistent with general coding style: constant

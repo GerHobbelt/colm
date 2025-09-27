@@ -960,7 +960,7 @@ ObjectField **LangVarRef::evaluateArgs( Compiler *pd, CodeVect &code,
 	if ( args == 0 )
 		return paramRefs;
 
-	/* We use this only if there is a paramter list. */
+	/* We use this only if there is a parameter list. */
 	ParameterList::Iter p;
 	long size = 0;
 	long tempPops = 0;
