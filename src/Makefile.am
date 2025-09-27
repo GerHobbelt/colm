@@ -101,7 +101,7 @@ AM_LDFLAGS = -L.
 # data structure constructors. It produces a program that can parse a grammar
 # using limited features. No code is supported.
 bootstrap0_CXXFLAGS = $(common_CFLAGS) -DCONS_INIT
-bootstrap0_SOURCES = consinit.cc consinit.h main.cc version.h
+bootstrap0_SOURCES = consinit.cc consinit.h main.cc builddir.cc version.h
 bootstrap0_LDADD = libprog.a libcolm.la
 
 #
@@ -127,7 +127,7 @@ gen/if1.cc: gen/bootstrap1.pack gen/if1.h
 
 bootstrap1_CXXFLAGS = $(common_CFLAGS) -DLOAD_INIT
 bootstrap1_CFLAGS = $(common_CFLAGS)
-bootstrap1_SOURCES = version.h loadinit.h loadinit.cc main.cc
+bootstrap1_SOURCES = version.h loadinit.h loadinit.cc main.cc builddir.cc
 nodist_bootstrap1_SOURCES = gen/if1.h gen/if1.cc gen/parse1.c
 bootstrap1_LDADD = libprog.a libcolm.la
 
@@ -154,7 +154,7 @@ gen/if2.cc: gen/bootstrap2.pack gen/if2.h
 
 bootstrap2_CXXFLAGS = $(common_CFLAGS) -DLOAD_COLM
 bootstrap2_CFLAGS = $(common_CFLAGS)
-bootstrap2_SOURCES = main.cc loadboot2.cc loadfinal.h version.h
+bootstrap2_SOURCES = main.cc builddir.cc loadboot2.cc loadfinal.h version.h
 nodist_bootstrap2_SOURCES = gen/if2.h gen/if2.cc gen/parse2.c
 bootstrap2_LDADD = libprog.a libcolm.la
 
@@ -176,7 +176,7 @@ gen/if3.cc: gen/bootstrap3.pack gen/if3.h
 
 colm_CXXFLAGS = $(common_CFLAGS) -DLOAD_COLM
 colm_CFLAGS = $(common_CFLAGS)
-colm_SOURCES = main.cc loadcolm.cc loadfinal.h version.h
+colm_SOURCES = main.cc builddir.cc loadcolm.cc loadfinal.h version.h
 nodist_colm_SOURCES = gen/if3.h gen/if3.cc gen/parse3.c
 colm_LDADD = libprog.a libcolm.la
 

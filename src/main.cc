@@ -30,6 +30,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <iostream>
+#include <string>
+#include <sstream>
 
 #include "debug.h"
 #include "pcheck.h"
@@ -78,7 +80,7 @@ const char *binaryFn = 0;
 const char *exportHeaderFn = 0;
 const char *exportCodeFn = 0;
 const char *commitCodeFn = 0;
-const char *buildDir = 0;
+const char *fromBuildDir = 0;
 const char *objectName = "colm_object";
 bool exportCode = false;
 bool hostAdapters = true;
@@ -103,6 +105,11 @@ void version();
 
 /* Total error count. */
 int gblErrorCount = 0;
+
+// Provides a default for -B by detecting if we are running from the build
+// location in the source tree. This will dictate compiler and linker args for
+// compiling colm programs.
+const char *defaultBuildDir();
 
 /*
  * Alphabet Type for the parsing machinery. The trees/strings of parsed data
@@ -206,6 +213,13 @@ void usage()
 "   -c                   compile only (don't produce binary)\n"
 "   -V                   print dot format (graphiz)\n"
 "   -d                   print verbose debug information\n"
+"   -B <path>\n"
+"       Run Colm from the build directory. Use this when building from source\n"
+"       and using the resulting binary without installing it. Colm will attempt\n"
+"       to detect when it is run from the build directory. This flag lets the\n"
+"       user be expliclit about it. The detection method is specific to the OS\n"
+"       and can fail. The path given should be the root of the build directory,\n"
+"       eg what would be returned by ABS_TOP_BUILDDIR (directory where src is).\n"
 #if DEBUG
 "   -D <tag>             print more information about <tag>\n"
 "                        (BYTECODE|PARSE|MATCH|COMPILE|POOL|PRINT|INPUT|SCAN\n"
@@ -452,62 +466,44 @@ void compileOutput()
 	if ( cflags == 0 )
 		cflags = "";
 
-	int length = 1024 + strlen( compiler ) + strlen( cflags ) + 
-			strlen( intermedFn ) + strlen( binaryFn );
-	for ( ArgsVector::Iter af = additionalCodeFiles; af.lte(); af++ )
-		length += strlen( *af ) + 2;
-	for ( ArgsVector::Iter ip = includePaths; ip.lte(); ip++ )
-		length += strlen( *ip ) + 3;
-	for ( ArgsVector::Iter lp = libraryPaths; lp.lte(); lp++ )
-		length += strlen( *lp ) + 3;
-	if ( buildDir != 0 )
-		length += strlen( buildDir ) * 3;
-#define COMPILE_COMMAND_STRING "%s -Wall -Wwrite-strings" \
-		" -g %s" \
-		" -o %s" \
-		" %s"
-	char *command = new char[length];
-	if ( buildDir != 0 ) {
-		sprintf( command,
-				"%s/libtool --tag=CC --mode=link "
-				COMPILE_COMMAND_STRING
-				" -I%s/src/include"
-				" -static"
-				" %s/src/libcolm.la",
-				buildDir, compiler, cflags,
-				binaryFn, intermedFn,
-				buildDir, buildDir );
+	std::ostringstream command;
+	
+	if ( fromBuildDir != 0 ) {
+		command << fromBuildDir << "/libtool --tag=CC --mode=link "
+		        << compiler << " -Wall -Wwrite-strings"
+		        << " -g " << cflags
+		        << " -o " << binaryFn
+		        << " " << intermedFn
+		        << " -I" << fromBuildDir << "/src/include"
+		        << " -static"
+		        << " " << fromBuildDir << "/src/libcolm.la";
 	}
 	else {
-		sprintf( command,
-				COMPILE_COMMAND_STRING
-				" -I" INCLUDEDIR
-				" -L" LIBDIR
-				" -Wl,-rpath," LIBDIR,
-				compiler, cflags,
-				binaryFn, intermedFn );
+		command << compiler << " -Wall -Wwrite-strings"
+		        << " -g " << cflags
+		        << " -o " << binaryFn
+		        << " " << intermedFn
+		        << " -I" << INCLUDEDIR
+		        << " -L" << LIBDIR
+		        << " -Wl,-rpath," << LIBDIR;
 	}
-#undef COMPILE_COMMAND_STRING
+	
 	for ( ArgsVector::Iter af = additionalCodeFiles; af.lte(); af++ ) {
-		strcat( command, " " );
-		strcat( command, *af );
+		command << " " << *af;
 	}
 	for ( ArgsVector::Iter ip = includePaths; ip.lte(); ip++ ) {
-		strcat( command, " -I" );
-		strcat( command, *ip );
+		command << " -I" << *ip;
 	}
 	for ( ArgsVector::Iter lp = libraryPaths; lp.lte(); lp++ ) {
-		strcat( command, " -L" );
-		strcat( command, *lp );
+		command << " -L" << *lp;
 	}
 
-	if ( buildDir == 0 )
-		strcat( command, " -lcolm" );
+	if ( fromBuildDir == 0 )
+		command << " -lcolm";
 
-	if( !compileOutputCommand( command ) && run )
+	std::string commandStr = command.str();
+	if( !compileOutputCommand( commandStr.c_str() ) && run )
 		runOutputProgram();
-
-	delete[] command;
 }
 
 void processArgs( int argc, const char **argv )
@@ -605,7 +601,7 @@ void processArgs( int argc, const char **argv )
 				commitCodeFn = pc.parameterArg;
 				break;
 			case 'B':
-				buildDir = pc.parameterArg;
+				fromBuildDir = pc.parameterArg;
 				break;
 
 			case 'E': {
@@ -683,38 +679,13 @@ bool readCheck( const char *fn )
 	return result;
 }
 
-void defaultBuildDir()
-{
-	if ( buildDir != 0 )
-		return;
-
-	struct stat self;
-	if ( stat( "/proc/self/exe", &self ) == 0 )
-	{
-		struct stat colm;
-
-		if ( stat ( ABS_BUILDDIR "/" LT_OBJDIR "colm", &colm ) == 0 &&
-				self.st_dev == colm.st_dev && self.st_ino == colm.st_ino )
-		{
-			buildDir = ABS_TOP_BUILDDIR;
-			return;
-		}
-
-		if ( stat ( ABS_BUILDDIR "/colm", &colm ) == 0 &&
-				self.st_dev == colm.st_dev && self.st_ino == colm.st_ino )
-		{
-			buildDir = ABS_TOP_BUILDDIR;
-			return;
-		}
-	}
-}
-    
 /* Main, process args and call yyparse to start scanning input. */
 int main(int argc, const char **argv)
 {
 	processArgs( argc, argv );
 
-	defaultBuildDir();
+	if ( fromBuildDir == 0 )
+		fromBuildDir = defaultBuildDir();
 
 	if ( verbose )
 		gblActiveRealm = 0xffffffff;
