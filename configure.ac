@@ -424,6 +424,22 @@ dnl Wrap up.
 dnl
 
 AC_SUBST(SED_SUBST)
+
+dnl
+dnl Ragel build configuration - use local colm components
+dnl
+COLM='$(abs_top_builddir)/src/colm'
+COLM_WRAP='$(abs_top_builddir)/src/colm-wrap'
+COLM_SHARE='$(abs_top_srcdir)/src/cgil'
+LIBCOLM_LA='$(abs_top_builddir)/src/libcolm.la'
+LIBFSM_LA='$(abs_top_builddir)/src/libfsm/libfsm.la'
+
+AC_SUBST(COLM)
+AC_SUBST(COLM_WRAP)
+AC_SUBST(COLM_SHARE)
+AC_SUBST(LIBCOLM_LA)
+AC_SUBST(LIBFSM_LA)
+
 AC_CONFIG_HEADERS([src/config.h src/defs.h src/version.h])
 m4_foreach_w([header],
 	[
@@ -460,6 +476,19 @@ AC_CONFIG_FILES([
 	test/trans.d/Makefile
 	doc/Makefile
 	doc/colm/Makefile
+	src/ragel/Makefile
+	src/ragel/host-asm/Makefile
+	src/ragel/host-c/Makefile
+	src/ragel/host-crack/Makefile
+	src/ragel/host-csharp/Makefile
+	src/ragel/host-d/Makefile
+	src/ragel/host-go/Makefile
+	src/ragel/host-java/Makefile
+	src/ragel/host-js/Makefile
+	src/ragel/host-julia/Makefile
+	src/ragel/host-ocaml/Makefile
+	src/ragel/host-ruby/Makefile
+	src/ragel/host-rust/Makefile
 ])
 AC_OUTPUT
 

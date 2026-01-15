@@ -1,6 +1,6 @@
 bin_PROGRAMS = ragel-ocaml
 
-ragel_ocaml_CPPFLAGS = -I$(top_srcdir)/aapl -I$(top_srcdir)/ragel -I$(top_srcdir)/colm/include
+ragel_ocaml_CPPFLAGS = -I$(top_srcdir)/src/aapl -I$(top_srcdir)/src/ragel -I$(top_srcdir)/src/include
 
 dist_ragel_ocaml_SOURCES = main.cc rlhc.c
 

@@ -1,6 +1,6 @@
 bin_PROGRAMS = ragel-rust
 
-ragel_rust_CPPFLAGS = -I$(top_srcdir)/aapl -I$(top_srcdir)/ragel -I$(top_srcdir)/colm/include
+ragel_rust_CPPFLAGS = -I$(top_srcdir)/src/aapl -I$(top_srcdir)/src/ragel -I$(top_srcdir)/src/include
 
 dist_ragel_rust_SOURCES = main.cc rlhc.c
 

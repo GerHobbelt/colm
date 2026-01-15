@@ -1,6 +1,6 @@
 bin_PROGRAMS = ragel-csharp
 
-ragel_csharp_CPPFLAGS = -I$(top_srcdir)/aapl -I$(top_srcdir)/ragel -I$(top_srcdir)/colm/include
+ragel_csharp_CPPFLAGS = -I$(top_srcdir)/src/aapl -I$(top_srcdir)/src/ragel -I$(top_srcdir)/src/include
 
 dist_ragel_csharp_SOURCES = main.cc rlhc.c
 

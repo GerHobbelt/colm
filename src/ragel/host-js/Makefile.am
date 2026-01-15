@@ -1,6 +1,6 @@
 bin_PROGRAMS = ragel-js
 
-ragel_js_CPPFLAGS = -I$(top_srcdir)/aapl -I$(top_srcdir)/ragel -I$(top_srcdir)/colm/include
+ragel_js_CPPFLAGS = -I$(top_srcdir)/src/aapl -I$(top_srcdir)/src/ragel -I$(top_srcdir)/src/include
 
 dist_ragel_js_SOURCES = main.cc rlhc.c
 
