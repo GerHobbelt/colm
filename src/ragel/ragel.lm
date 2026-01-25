@@ -825,7 +825,7 @@ namespace ragel
 		[word] :Word
 
 	def machine_name
-		[`machine mn_word `;] :MachineName
+		[`machine mn_word `;] :MachineName commit
 
 	def open_inc
 		[`%%--{] :OpenInc
