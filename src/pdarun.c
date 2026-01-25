@@ -842,6 +842,54 @@ static head_t *peek_match( program_t *prg, struct pda_run *pda_run, struct input
 	return head;
 }
 
+#define DEBUG_ESC_BUF    256
+#define DEBUG_ESC_CHAR   4      /* worst case: \xNN */
+#define DEBUG_ESC_TAIL   3      /* chars to show after ... */
+#define DEBUG_ESC_SUFFIX (3 + DEBUG_ESC_TAIL * DEBUG_ESC_CHAR + 1)  /* 16 bytes */
+
+/* Write escaped char to buffer, return bytes written */
+static int write_escaped_char( char *p, unsigned char c )
+{
+	switch ( c ) {
+		case '\n': p[0] = '\\'; p[1] = 'n'; return 2;
+		case '\t': p[0] = '\\'; p[1] = 't'; return 2;
+		case '\r': p[0] = '\\'; p[1] = 'r'; return 2;
+		case ' ':  p[0] = '\\'; p[1] = 's'; return 2;
+		case '\\': p[0] = '\\'; p[1] = '\\'; return 2;
+		default:
+			if ( c < 32 || c >= 127 )
+				return sprintf( p, "\\x%02x", c );
+			p[0] = c;
+			return 1;
+	}
+}
+
+static void escape_string( const char *data, long len, char *buf, int buf_size )
+{
+	char *p = buf;
+	char *end = buf + buf_size;
+	long i;
+
+	for ( i = 0; i < len && p + DEBUG_ESC_CHAR < end; i++ ) {
+		p += write_escaped_char( p, (unsigned char)data[i] );
+	}
+
+	if ( i < len ) {
+		p = buf + buf_size - DEBUG_ESC_SUFFIX;
+		*p++ = '.';
+		*p++ = '.';
+		*p++ = '.';
+
+		long start = len - DEBUG_ESC_TAIL;
+		if ( start < 0 )
+			start = 0;
+		for ( long j = start; j < len; j++ ) {
+			p += write_escaped_char( p, (unsigned char)data[j] );
+		}
+	}
+
+	*p = '\0';
+}
 
 static void send_ignore( program_t *prg, tree_t **sp,
 		struct pda_run *pda_run, struct input_impl *is, long id )
@@ -855,7 +903,13 @@ static void send_ignore( program_t *prg, tree_t **sp,
 		/* Make the ignore string. */
 		head_t *ignore_str = extract_match( prg, sp, pda_run, is );
 
-		debug( prg, REALM_PARSE, "ignoring: %.*s\n", ignore_str->length, ignore_str->data );
+#ifdef DEBUG
+		{
+			char escaped[DEBUG_ESC_BUF];
+			escape_string( ignore_str->data, ignore_str->length, escaped, sizeof(escaped) );
+			debug( prg, REALM_PARSE, "ignoring: %s\n", escaped );
+		}
+#endif
 
 		tree_t *tree = tree_allocate( prg );
 		tree->refs = 1;
@@ -891,9 +945,14 @@ static void send_token( program_t *prg, tree_t **sp,
 			break;
 	}
 
-	debug( prg, REALM_PARSE, "token: %s  text: %.*s\n",
-		prg->rtd->lel_info[id].name,
-		string_length(tokdata), string_data(tokdata) );
+#ifdef DEBUG
+	{
+		char escaped[DEBUG_ESC_BUF];
+		escape_string( string_data(tokdata), string_length(tokdata), escaped, sizeof(escaped) );
+		debug( prg, REALM_PARSE, "token: %s  text: %s\n",
+			prg->rtd->lel_info[id].name, escaped );
+	}
+#endif
 
 	kid_t *input = make_token_with_data( prg, pda_run, is, id, tokdata );
 
@@ -945,9 +1004,14 @@ static void send_collect_ignore( program_t *prg, tree_t **sp,
 	tokdata->location = location_allocate( prg );
 	is->funcs->transfer_loc( prg, tokdata->location, is );
 
-	debug( prg, REALM_PARSE, "token: %s  text: %.*s\n",
-		prg->rtd->lel_info[id].name,
-		string_length(tokdata), string_data(tokdata) );
+#ifdef DEBUG
+	{
+		char escaped[DEBUG_ESC_BUF];
+		escape_string( string_data(tokdata), string_length(tokdata), escaped, sizeof(escaped) );
+		debug( prg, REALM_PARSE, "token: %s  text: %s\n",
+			prg->rtd->lel_info[id].name, escaped );
+	}
+#endif
 
 	kid_t *input = make_token_with_data( prg, pda_run, is, id, tokdata );
 
