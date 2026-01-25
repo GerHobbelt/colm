@@ -868,7 +868,7 @@ static void escape_string( const char *data, long len, char *buf, int buf_size )
 {
 	char *p = buf;
 	char *end = buf + buf_size;
-	long i;
+	long i, j, start;
 
 	for ( i = 0; i < len && p + DEBUG_ESC_CHAR < end; i++ ) {
 		p += write_escaped_char( p, (unsigned char)data[i] );
@@ -880,10 +880,10 @@ static void escape_string( const char *data, long len, char *buf, int buf_size )
 		*p++ = '.';
 		*p++ = '.';
 
-		long start = len - DEBUG_ESC_TAIL;
+		start = len - DEBUG_ESC_TAIL;
 		if ( start < 0 )
 			start = 0;
-		for ( long j = start; j < len; j++ ) {
+		for ( j = start; j < len; j++ ) {
 			p += write_escaped_char( p, (unsigned char)data[j] );
 		}
 	}
