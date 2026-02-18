@@ -1,0 +1,13 @@
+/Makefile.in
+/Makefile
+/.deps
+/.libs
+/ragel-ruby
+/ragel-ruby.exe
+/rlparse.pack
+/rlparse.c
+/rlreduce.cc
+/rlhc.c
+
+/CMakeFiles
+/cmake_install.cmake
