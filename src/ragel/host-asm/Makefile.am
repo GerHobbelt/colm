@@ -1,6 +1,6 @@
 bin_PROGRAMS = ragel-asm
 
-ragel_asm_CPPFLAGS = -I$(top_srcdir)/aapl -I$(top_srcdir)/ragel -I$(top_srcdir)/colm/include
+ragel_asm_CPPFLAGS = -I$(top_srcdir)/src/aapl -I$(top_srcdir)/src/ragel -I$(top_srcdir)/src/include
 
 dist_ragel_asm_SOURCES = main.cc
 
