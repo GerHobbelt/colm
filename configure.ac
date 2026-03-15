@@ -194,22 +194,22 @@ AC_ARG_WITH(subject,
 		SUBJ_COLM_CPPFLAGS='-I$(abs_top_builddir)/src/include'
 		SUBJ_COLM_LDFLAGS='-L$(abs_top_builddir)/src/.libs -Wl,-rpath,${abs_top_builddir}/src/.libs'
 
-		SUBJ_RAGEL_BIN='$(abs_top_builddir)/ragel/ragel'
-		SUBJ_RAGEL_CPPFLAGS='-I$(abs_top_builddir)/ragel/include -I$(abs_top_builddir)/src/aapl'
-		SUBJ_RAGEL_LDFLAGS='-L$(abs_top_builddir)/ragel/.libs -Wl,-rpath,$(abs_top_builddir)/ragel/.libs'
-		SUBJ_RAGEL_LM='$(abs_top_builddir)/ragel'
+		SUBJ_RAGEL_BIN='$(abs_top_builddir)/src/ragel/ragel'
+		SUBJ_RAGEL_CPPFLAGS='-I$(abs_top_builddir)/src/ragel/include -I$(abs_top_builddir)/src/aapl'
+		SUBJ_RAGEL_LDFLAGS='-L$(abs_top_builddir)/src/ragel/.libs -Wl,-rpath,$(abs_top_builddir)/src/ragel/.libs'
+		SUBJ_RAGEL_LM='$(abs_top_builddir)/src/ragel'
 
-		SUBJ_RAGEL_C_BIN='$(abs_top_builddir)/ragel/host-c/ragel-c'
-		SUBJ_RAGEL_D_BIN='$(abs_top_builddir)/ragel/host-d/ragel-d'
-		SUBJ_RAGEL_JAVA_BIN='$(abs_top_builddir)/ragel/host-java/ragel-java'
-		SUBJ_RAGEL_RUBY_BIN='$(abs_top_builddir)/ragel/host-ruby/ragel-ruby'
-		SUBJ_RAGEL_CSHARP_BIN='$(abs_top_builddir)/ragel/host-csharp/ragel-csharp'
-		SUBJ_RAGEL_GO_BIN='$(abs_top_builddir)/ragel/host-go/ragel-go'
-		SUBJ_RAGEL_OCAML_BIN='$(abs_top_builddir)/ragel/host-ocaml/ragel-ocaml'
-		SUBJ_RAGEL_ASM_BIN='$(abs_top_builddir)/ragel/host-asm/ragel-asm'
-		SUBJ_RAGEL_RUST_BIN='$(abs_top_builddir)/ragel/host-rust/ragel-rust'
-		SUBJ_RAGEL_CRACK_BIN='$(abs_top_builddir)/ragel/host-crack/ragel-crack'
-		SUBJ_RAGEL_JULIA_BIN='$(abs_top_builddir)/ragel/host-julia/ragel-julia'
+		SUBJ_RAGEL_C_BIN='$(abs_top_builddir)/src/ragel/host-c/ragel-c'
+		SUBJ_RAGEL_D_BIN='$(abs_top_builddir)/src/ragel/host-d/ragel-d'
+		SUBJ_RAGEL_JAVA_BIN='$(abs_top_builddir)/src/ragel/host-java/ragel-java'
+		SUBJ_RAGEL_RUBY_BIN='$(abs_top_builddir)/src/ragel/host-ruby/ragel-ruby'
+		SUBJ_RAGEL_CSHARP_BIN='$(abs_top_builddir)/src/ragel/host-csharp/ragel-csharp'
+		SUBJ_RAGEL_GO_BIN='$(abs_top_builddir)/src/ragel/host-go/ragel-go'
+		SUBJ_RAGEL_OCAML_BIN='$(abs_top_builddir)/src/ragel/host-ocaml/ragel-ocaml'
+		SUBJ_RAGEL_ASM_BIN='$(abs_top_builddir)/src/ragel/host-asm/ragel-asm'
+		SUBJ_RAGEL_RUST_BIN='$(abs_top_builddir)/src/ragel/host-rust/ragel-rust'
+		SUBJ_RAGEL_CRACK_BIN='$(abs_top_builddir)/src/ragel/host-crack/ragel-crack'
+		SUBJ_RAGEL_JULIA_BIN='$(abs_top_builddir)/src/ragel/host-julia/ragel-julia'
 	]
 )
 
@@ -426,8 +426,14 @@ dnl
 AC_SUBST(SED_SUBST)
 
 dnl
-dnl Ragel build configuration - use local colm components
+dnl Ragel build configuration
 dnl
+RAGEL_VERSION="7.0.4"
+RAGEL_PUBDATE="February 2021"
+AC_SUBST(RAGEL_VERSION)
+AC_SUBST(RAGEL_PUBDATE)
+
+dnl Use local colm components
 COLM='$(abs_top_builddir)/src/colm'
 COLM_WRAP='$(abs_top_builddir)/src/colm-wrap'
 COLM_SHARE='$(abs_top_srcdir)/src/cgil'
@@ -474,8 +480,10 @@ AC_CONFIG_FILES([
 	test/rlhc.d/Makefile
 	test/rlparse.d/Makefile
 	test/trans.d/Makefile
+	test/ragel.d/Makefile
 	doc/Makefile
 	doc/colm/Makefile
+	doc/ragel/Makefile
 	src/ragel/Makefile
 	src/ragel/host-asm/Makefile
 	src/ragel/host-c/Makefile
