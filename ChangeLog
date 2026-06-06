@@ -1,3 +1,26 @@
+Ragel 6.11 - Jun 6, 2026
+========================
+ -Decide the signedness of the char alphabet type at compile time using
+  CHAR_MIN, rather than fixing it to signed char. This aligns char with the
+  host platform; previously char was treated as signed even where it is
+  unsigned, such as on ARM.
+ -Go: test P vs PE in goto/call/ret statements issued from EOF actions before
+  re-entering, re-issuing the EOF test at the end of the input block. This is
+  the Go version of the 6.10 C change and prevents overrunning the buffer when
+  control flow is issued in an EOF action without first issuing an fhold.
+ -Generate a correct fbreak in EOF actions for the -G2 code generator in C, D
+  and Go. This was already correct for C#.
+ -Prune condSet expansions that don't alter the condSpace. These were being
+  recorded and breaking the expander.
+ -Go: emit a newline before "goto _again" so Go's automatic semicolon
+  insertion does not produce uncompilable code. (from Aleskey Ozhigov)
+ -C/D: use C-style comments to mark intentional case fall-through, satisfying
+  GCC's -Wimplicit-fallthrough diagnostic.
+ -Note in the manual that cntrl matches 127 in addition to 0..31. (caught by
+  Rinat Ibragimov)
+ -Don't hard-code gcc, and make the ragel and kelbt binaries configurable.
+ -Documentation updates.
+
 Ragel 6.10 - Mar 24, 2017
 =========================
  -C codegen: test P vs PE in goto/call/ret statements in EOF actions, just
