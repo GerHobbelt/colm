@@ -1064,7 +1064,7 @@ void FsmAp::pruneExpansions( ExpansionList &expList )
 		if ( exp->fromCondSpace == exp->toCondSpace ) {
 			Expansion *next = exp->next;
 			expList.detach( exp );
-			delete next;
+			delete exp;
 			exp = next;
 		}
 		else {
