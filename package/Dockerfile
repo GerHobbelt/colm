@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 #
 # Self-contained, multi-stage build for a Ragel 6.x release. Regenerates the
-# parser from source (bootstrap ragel + kelbt), builds the guide, and writes to
-# the --output dir:
+# parser from source (bootstrap ragel + kelbt), runs the C/C++/Go test suite,
+# builds the guide, and writes to the --output dir:
 #   ragel-<ver>.tar.gz     source dist; bundles the PDF and pre-generated parser
 #                          sources (end users need neither kelbt nor pdflatex)
 #   ragel-guide-<ver>.pdf  the guide
@@ -78,6 +78,13 @@ RUN set -eux; \
         || apt-get install -y --no-install-recommends transfig; \
     rm -rf /var/lib/apt/lists/*
 
+# Test toolchain for the gating suite: Go (C/C++ are already in base; the suite
+# auto-skips any language whose compiler is absent).
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends golang-go; \
+    rm -rf /var/lib/apt/lists/*
+
 COPY --from=kelbt /usr/local/ /usr/local/
 RUN ldconfig
 
@@ -97,15 +104,23 @@ RUN if [ -n "$RAGEL_VERSION" ]; then \
         sed -i "s/^PUBDATE=.*/PUBDATE=\"${PUBDATE}\"/" configure.ac; \
     fi
 
-# Regenerate configure, build (parser via kelbt+ragel, ragel, PDF), roll tarball.
+# Regenerate configure and build the parser (kelbt+ragel), the ragel binary,
+# and the guide PDF.
 RUN chmod +x autogen.sh \
     && ./autogen.sh \
     && ./configure \
-    && make \
-    && make dist
+    && make
 
-# Collect the publishable artifacts.
+# Gate: run the C/C++/Go test suite before producing any artifacts; any failure
+# fails the build. -C covers C/C++ (and obj-C, which skips with no compiler
+# installed), -Z is Go; the full -T0..-G2 x -n/-m/-l/-e matrix is exercised per
+# case. D is excluded: gdc 8.x rejects the 2009-era D test sources and codegen
+# (pre-existing language drift, unrelated to the 6.11 changes).
+RUN cd test && ./runtests -C -Z
+
+# Roll the tarball and collect the publishable artifacts.
 RUN set -eu; \
+    make dist; \
     mkdir -p /artifacts; \
     cp ragel-*.tar.gz /artifacts/; \
     ver="$(ls ragel-*.tar.gz | sed -n 's/^ragel-\(.*\)\.tar\.gz$/\1/p')"; \
