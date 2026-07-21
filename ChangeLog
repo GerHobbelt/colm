@@ -1,5 +1,5 @@
-Ragel 6.11 - Jun 6, 2026
-========================
+Ragel 6.11 - Jul 20, 2026
+=========================
  -Decide the signedness of the char alphabet type at compile time using
   CHAR_MIN, rather than fixing it to signed char. This aligns char with the
   host platform; previously char was treated as signed even where it is
