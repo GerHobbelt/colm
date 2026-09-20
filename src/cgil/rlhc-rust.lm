@@ -144,11 +144,6 @@ namespace rust_gen
 			embedded_host( E1 )
 			expr_factor( E2 )
 		}
-		case [`cast `( T: type `) E: expr_factor]
-		{
-			send Parser
-				"( [expr_factor( E )] ) as [type(T)]"
-		}
 		case [I: ident `[ E: expr `] `. F: ident] {
 			send Parser
 				[^I '_' ^F '[' expr(E) ' as usize]']
@@ -200,6 +195,11 @@ namespace rust_gen
 		{
 			send Parser
 				"![expr_factor_op( EFO )]
+		}
+		case [`cast `( T: type `) E: expr_factor_op]
+		{
+			send Parser
+				"( [expr_factor_op( E )] ) as [type(T)]"
 		}
 		case [expr_factor]
 		{

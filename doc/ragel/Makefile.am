@@ -34,7 +34,7 @@ EXTRA_DIST = ragel-guide.txt ragel.1.in \
 	bmrange.fig conds2.fig exconcat.fig exor.fig exstar.fig lines1.fig \
 	opstar.fig
 
-ragel.1: ragel.1.in
+ragel.1: ragel.1.in Makefile
 	@$(top_srcdir)/sedsubst $< $@ -w,+x $(SED_SUBST)
 
 if BUILD_MANUAL

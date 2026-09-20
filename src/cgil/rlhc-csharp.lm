@@ -142,13 +142,6 @@ namespace csharp_gen
 			embedded_host( E1 )
 			expr_factor( E2 )
 		}
-		case [`cast Open: `( Type: type Close: `) expr_factor]
-		{
-			send Parser [Open]
-			type( Type )
-			send Parser [Close]
-			expr_factor( ExprFactor._expr_factor )
-		}
 		default {
 			# Catches cases not specified
 			send Parser [ExprFactor]
@@ -190,6 +183,13 @@ namespace csharp_gen
 		case [T: `~ expr_factor_op]
 		{
 			send Parser [T]
+			expr_factor_op( ExprFactorOp._expr_factor_op )
+		}
+		case [`cast Open: `( Type: type Close: `) expr_factor_op]
+		{
+			send Parser [Open]
+			type( Type )
+			send Parser [Close]
 			expr_factor_op( ExprFactorOp._expr_factor_op )
 		}
 		case [expr_factor]

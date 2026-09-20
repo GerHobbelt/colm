@@ -6,8 +6,8 @@ namespace julia_out
 
 	lex
 		token comment /
-			'//' any* :> '\n' |
-			'/*' any* :>> '*/'
+			'#=' any* :>> '=#' |
+			'#' any* :> '\n'
 		/
 
 		literal `function `end `while `if `else `elseif
@@ -20,7 +20,7 @@ namespace julia_out
 		/
 
 		token symbol /
-			'!' | '#' | '$' | '%' | '&' | '(' | ')' | '*' |
+			'!' | '$' | '%' | '&' | '(' | ')' | '*' |
 			'+' | ',' | '-' | '.' | '/' | ':' | ';' | '<' |
 			'=' | '>' | '?' | '@' | '[' | ']' | '^' | '|' |
 			'~' /
@@ -157,11 +157,6 @@ namespace julia_gen
 			embedded_host( E1 )
 			expr_factor( E2 )
 		}
-		case [`cast `( T: type `) F: expr_factor]
-		{
-			send Parser 
-				"convert([type( T )], [expr_factor( F )] )"
-		}
 		case [I: ident `[ E: expr `] `. F: ident] {
 			send Parser
 				[^I '_' ^F '[1+(' expr(E) ')]']
@@ -213,6 +208,11 @@ namespace julia_gen
 		{
 			send Parser [T]
 			expr_factor_op( ExprFactorOp._expr_factor_op )
+		}
+		case [`cast `( T: type `) F: expr_factor_op]
+		{
+			send Parser
+				"convert([type( T )], [expr_factor_op( F )] )"
 		}
 		case [expr_factor]
 		{

@@ -1,0 +1,9 @@
+array s8 _offsets( 0, 1 ) = { 0, 0, 1, 0 };
+
+{
+	uint _trans = 0;
+	int cs = 0;
+	_trans = cast(uint)_offsets[cs];
+	_trans = cast(uint)_offsets[cs][0];
+	_trans = cast(uint)!cs;
+}

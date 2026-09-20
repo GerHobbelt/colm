@@ -264,17 +264,17 @@ void julia( Output: stream )
 	}
 
 	send Output
-		"//
-		"// @LANG: julia
-		"// @GENERATED: true
+		"#
+		"# @LANG: julia
+		"# @GENERATED: true
 
 	if ProhibitGenflags {
 		send Output
-			"// @PROHIBIT_GENFLAGS:[ProhibitGenflags]
+			"# @PROHIBIT_GENFLAGS:[ProhibitGenflags]
 	}
 
 	send Output
-		"//
+		"#
 		"
 
 

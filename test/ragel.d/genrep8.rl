@@ -10,8 +10,6 @@
 #include <string.h>
 #include <stdio.h>
 
-const char s[4096];
-
 struct nfa_stack
 {
 	void *data;
@@ -25,6 +23,8 @@ struct nfa_bp_rec
 	long popTrans;
 	long q_2;
 };
+
+static struct nfa_bp_rec s[128];
 
 %%{
 	machine genrep;
@@ -76,7 +76,7 @@ int test( const char *p )
 	const char *eof = pe;
 	int cs;
 
-	struct nfa_bp_rec *nfa_bp = (struct nfa_bp_rec*) s;
+	struct nfa_bp_rec *nfa_bp = s;
 	long nfa_len = 0;
 	long nfa_count = 0;
 

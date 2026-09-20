@@ -153,13 +153,6 @@ void expr_factor( ExprFactor: expr_factor )
 		embedded_host( E1 )
 		expr_factor( E2 )
 	}
-	case [`cast Open: `( Type: type Close: `) expr_factor]
-	{
-		#send Parser [Open]
-		#type( Type )
-		#send Parser [Close]
-		expr_factor( ExprFactor._expr_factor )
-	}
 	case [I: ident `[ E: expr `] `. F: ident] {
 		send Parser
 			[^I '_' ^F '[' E ']']
@@ -209,6 +202,10 @@ void expr_factor_op( ExprFactorOp: expr_factor_op )
 	case [T: `~ expr_factor_op]
 	{
 		send Parser [T]
+		expr_factor_op( ExprFactorOp._expr_factor_op )
+	}
+	case [`cast `( type `) expr_factor_op]
+	{
 		expr_factor_op( ExprFactorOp._expr_factor_op )
 	}
 	case [expr_factor]

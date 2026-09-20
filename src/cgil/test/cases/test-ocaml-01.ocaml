@@ -1,0 +1,10 @@
+let _offsets : int array = [|
+0; 0; 1; 0 ; 
+|]
+begin
+	let _trans  : int  ref = ref ( 0 ) in
+	let cs  : int  ref = ref ( 0 ) in
+	_trans  := _offsets.(cs.contents);
+	cs  := _stack.[top.contents];
+	
+end;

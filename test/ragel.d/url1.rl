@@ -119,7 +119,7 @@ let parse_authority u data =
 		action mark      { mark := !p                             }
 		action str_start { Buffer.reset buf                       }
 		action str_char  { Buffer.add_char buf data.[p.contents]                }
-		action str_lower { Buffer.add_char buf (Char.lowercase data.[p.contents])}
+		action str_lower { Buffer.add_char buf (Char.lowercase_ascii data.[p.contents])}
 		action hex_hi    { hex := unhex data.[p.contents] * 16                   }
 		action hex_lo    { Buffer.add_char buf (Char.chr (!hex + unhex data.[p.contents])) }
 		action copy_b1     { b1 := Buffer.contents buf; Buffer.clear buf }
@@ -260,7 +260,7 @@ let url_parse data =
 		action mark      { mark := !p                             }
 		action str_start { Buffer.reset buf                       }
 		action str_char  { Buffer.add_char buf data.[p.contents]                 }
-		action str_lower { Buffer.add_char buf (Char.lowercase data.[p.contents])}
+		action str_lower { Buffer.add_char buf (Char.lowercase_ascii data.[p.contents])}
 		action hex_hi    { hex := unhex data.[p.contents] * 16                   }
 		action hex_lo    { Buffer.add_char buf (Char.chr (!hex + unhex data.[p.contents])) }
 		action scheme    { u := { !u with scheme = Buffer.contents buf } }

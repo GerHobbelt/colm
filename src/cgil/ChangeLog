@@ -1,0 +1,10 @@
+cgil 1.0.0 - Aug 19, 2026
+-------------------------
+	* First independently versioned release. CGIL is the code generation
+	  intermediate language: the ril grammar plus the per-host-language rlhc
+	  translators (c, asm, crack, c#, d, go, java, js, julia, ocaml, ruby,
+	  rust, zig) that turn ragel's intermediate output into host code. The
+	  files install to the package data directory, PREFIX/share/colm-suite.
+	* The version tracks the intermediate language contract between ragel's
+	  front ends and the rlhc translators. An incompatible change to the ril
+	  grammar bumps the major.

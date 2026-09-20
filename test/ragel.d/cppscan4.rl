@@ -234,36 +234,36 @@ void test(const(char)[] buf)
 int main()
 {
 	test(
-		"/*\n"
-		" *  Copyright \n"
-		" */\n"
-		"\n"
-		"RedTransAp *RedFsmAp::reduceTrans( TransAp *trans )\n"
-		"{\n"
-		"	RedAction *action = 0;\n"
-		"	if ( trans->actionTable.length() > 0 ) {\n"
-		"		if ( actionMap.insert( trans->actionTable, &action ) )\n"
-		"			action->id = nextActionId++;\n"
-		"	}\n"
-		"	\n"
-		"	RedStateAp *targ = (RedStateAp*)trans->toState;\n"
-		"	if ( action == 0 ) {\n"
-		"		delete trans;\n"
-		"		return 0;\n"
-		"	}\n"
-		"\n"
-		"	trans->~TransAp();\n"
-		"	inDict = new(trans) RedTransAp( targ, action, nextTransId++ );\n"
-		"	transSet.insert( inDict );\n"
+		"/*\n" ~
+		" *  Copyright \n" ~
+		" */\n" ~
+		"\n" ~
+		"RedTransAp *RedFsmAp::reduceTrans( TransAp *trans )\n" ~
+		"{\n" ~
+		"	RedAction *action = 0;\n" ~
+		"	if ( trans->actionTable.length() > 0 ) {\n" ~
+		"		if ( actionMap.insert( trans->actionTable, &action ) )\n" ~
+		"			action->id = nextActionId++;\n" ~
+		"	}\n" ~
+		"	\n" ~
+		"	RedStateAp *targ = (RedStateAp*)trans->toState;\n" ~
+		"	if ( action == 0 ) {\n" ~
+		"		delete trans;\n" ~
+		"		return 0;\n" ~
+		"	}\n" ~
+		"\n" ~
+		"	trans->~TransAp();\n" ~
+		"	inDict = new(trans) RedTransAp( targ, action, nextTransId++ );\n" ~
+		"	transSet.insert( inDict );\n" ~
 		"}\n"
 	);
 
 	test(
-		"->*\n"
-		".*\n"
-		"/*\"*/\n"
-		"\"/*\"\n"
-		"L'\"'\n"
+		"->*\n" ~
+		".*\n" ~
+		"/*\"*/\n" ~
+		"\"/*\"\n" ~
+		"L'\"'\n" ~
 		"L\"'\"\n"
 	);
 

@@ -163,7 +163,7 @@ class Scanner
 
 static const int BUFSIZE = 12;
 
-void test( const(char) buf[] )
+void test( const(char)[] buf )
 {
 	Scanner scanner = new Scanner();
 	scanner.init();
@@ -179,31 +179,31 @@ void test( const(char) buf[] )
 int main()
 {
 	test(
-		"\"\\\"hi\" /*\n"
-		"*/\n"
-		"44 .44\n"
-		"44. 44\n"
-		"44 . 44\n"
-		"44.44\n"
+		"\"\\\"hi\" /*\n" ~
+		"*/\n" ~
+		"44 .44\n" ~
+		"44. 44\n" ~
+		"44 . 44\n" ~
+		"44.44\n" ~
 		"_hithere22"
 	);
 
 	test(
-		"'\\''\"\\n\\d'\\\"\"\n"
-		"hi\n"
-		"99\n"
-		".99\n"
-		"99e-4\n"
-		"->*\n"
-		"||\n"
-		"0x98\n"
-		"0x\n"
-		"//\n"
+		"'\\''\"\\n\\d'\\\"\"\n" ~
+		"hi\n" ~
+		"99\n" ~
+		".99\n" ~
+		"99e-4\n" ~
+		"->*\n" ~
+		"||\n" ~
+		"0x98\n" ~
+		"0x\n" ~
+		"//\n" ~
 		"/* * */"
 	);
 
 	test(
-		"'\n"
+		"'\n" ~
 		"'\n"
 	);
 

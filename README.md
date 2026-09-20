@@ -13,6 +13,14 @@ repository simplifies development and building. The significant links are:
 - The **code generation intermediate language** (`src/cgil/`) -- written in Colm, used by both projects for target language code generation.
 - Ragel's **frontend is written in Colm** (`src/ragel/*.lm`), so Colm must build first to bootstrap Ragel.
 
+## Versioning
+
+Every shipped component is versioned independently: colm, ragel, libfsm,
+cgil and aapl each carry their own number, declared in `configure.ac`.
+Suite releases are calendar-versioned snapshots of the components:
+`colm-suite-YYYY.MM`, zero padded, with a micro appended for fixup
+releases (`2026.08`, then `2026.08.1`).
+
 
 ## Colm
 

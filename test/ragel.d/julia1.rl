@@ -1,4 +1,4 @@
-// @LANG: julia 
+# @LANG: julia
 
 %%{
 	machine atoi;

@@ -131,10 +131,6 @@ namespace go_gen
 			embedded_host(embedded_host)
 			expr_factor(_expr_factor)
 		}
-		case Cast
-		{
-			<<	[type(type) '( ' expr_factor(_expr_factor) ' )' ]
-		}
 		default {
 			# Catches cases not specified
 			<<	[ExprFactor]
@@ -173,6 +169,10 @@ namespace go_gen
 		case [T: `~ expr_factor_op]
 		{
 			<<	['^ ' expr_factor_op( _expr_factor_op )]
+		}
+		case [`cast `( T: type `) F: expr_factor_op]
+		{
+			<<	[type(T) '( ' expr_factor_op(F) ' )' ]
 		}
 		case [expr_factor]
 		{

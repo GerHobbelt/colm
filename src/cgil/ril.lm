@@ -98,7 +98,6 @@ def expr_factor
 |	[string]     :String
 |	[embedded_host `-> expr_factor] :Access
 |	[`( expr `)] :Paren
-|	[`cast `( type `) expr_factor] :Cast
 
 def lvalue
 	[embedded_host]
@@ -110,6 +109,7 @@ def lvalue
 def expr_factor_op
 	[`! expr_factor_op]
 |	[`~ expr_factor_op]
+|	[`cast `( type `) expr_factor_op]
 |	[expr_factor]
 
 def expr_bitwise

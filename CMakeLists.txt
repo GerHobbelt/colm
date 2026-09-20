@@ -54,11 +54,23 @@ if(NOT _configure_ac MATCHES "[\r\n]COLM_PUBDATE=\"([^\"]*)\"")
 endif()
 set(COLM_PUBDATE "${CMAKE_MATCH_1}")
 
-# Ragel names the suite, so configure.ac derives these rather than repeating
-# them. There is nothing to parse.
-set(RAGEL_VERSION "${SUITE_VERSION}")
-set(RAGEL_VERSION_NUMERIC "${SUITE_VERSION_NUMERIC}")
-set(RAGEL_PUBDATE "${SUITE_PUBDATE}")
+if(NOT _configure_ac MATCHES "[\r\n]RAGEL_VERSION=\"([^\"]*)\"")
+	message(FATAL_ERROR "could not read RAGEL_VERSION from configure.ac")
+endif()
+set(RAGEL_VERSION "${CMAKE_MATCH_1}")
+string(REGEX MATCH "^[0-9]+(\\.[0-9]+)*" RAGEL_VERSION_NUMERIC "${RAGEL_VERSION}")
+
+if(NOT _configure_ac MATCHES "[\r\n]RAGEL_PUBDATE=\"([^\"]*)\"")
+	message(FATAL_ERROR "could not read RAGEL_PUBDATE from configure.ac")
+endif()
+set(RAGEL_PUBDATE "${CMAKE_MATCH_1}")
+
+if(NOT _configure_ac MATCHES "[\r\n]LIBFSM_VERSION=\"([^\"]*)\"")
+	message(FATAL_ERROR "could not read LIBFSM_VERSION from configure.ac")
+endif()
+set(LIBFSM_VERSION "${CMAKE_MATCH_1}")
+string(REGEX MATCH "^[0-9]+(\\.[0-9]+)*" LIBFSM_VERSION_NUMERIC "${LIBFSM_VERSION}")
+string(REGEX MATCH "^[0-9]+" LIBFSM_VERSION_MAJOR "${LIBFSM_VERSION_NUMERIC}")
 
 project(colm-suite
 	VERSION ${SUITE_VERSION_NUMERIC}
@@ -66,7 +78,8 @@ project(colm-suite
 
 message(STATUS "colm-suite ${SUITE_VERSION} (${SUITE_PUBDATE}): "
 	"colm ${COLM_VERSION} (${COLM_PUBDATE}), "
-	"ragel ${RAGEL_VERSION} (${RAGEL_PUBDATE})")
+	"ragel ${RAGEL_VERSION} (${RAGEL_PUBDATE}), "
+	"libfsm ${LIBFSM_VERSION}")
 
 #
 # Options.

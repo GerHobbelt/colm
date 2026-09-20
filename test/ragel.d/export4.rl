@@ -24,7 +24,7 @@ import std.string;
 %% write exports;
 %% write data;
 
-int test( char data[] )
+int test( char[] data )
 {
 	int cs = test_en_commands;
 	char *p = data.ptr, pe = data.ptr + data.length;
@@ -39,7 +39,7 @@ int test( char data[] )
 	return 0;
 }
 
-char data[] = [ 
+char[] data = [ 
 	test_ex_c1, '1', '2', '\n', 
 	test_ex_c2, 'a', 'b', '\n', 
 	test_ex_c3, '.', '.', '\n'

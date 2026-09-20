@@ -194,44 +194,44 @@ void test( const char[] buf )
 int main()
 {
 	test( 
-		"999 0xaAFF99 99.99 /*\n"
-		"*/ 'lksdj' //\n"
-		"\"\n"
-		"\n"
-		"literal\n"
-		"\n"
-		"\n"
+		"999 0xaAFF99 99.99 /*\n" ~
+		"*/ 'lksdj' //\n" ~
+		"\"\n" ~
+		"\n" ~
+		"literal\n" ~
+		"\n" ~
+		"\n" ~
 		"\"0x00aba foobardd.ddsf 0x0.9\n" );
 
 	test( 
-		"wordwithnum00asdf\n"
-		"000wordfollowsnum,makes new symbol\n"
-		"\n"
+		"wordwithnum00asdf\n" ~
+		"000wordfollowsnum,makes new symbol\n" ~
+		"\n" ~
 		"finishing early /* unfinished ...\n" );
 
 	test( 
-		"/*\n"
-		" *  Copyright\n"
-		" */\n"
-		"\n"
-		"/*  Aapl.\n"
-		" */\n"
-		"\n"
-		"#define _AAPL_RESIZE_H\n"
-		"\n"
-		"#include <assert.h>\n"
-		"\n"
-		"#ifdef AAPL_NAMESPACE\n"
-		"namespace Aapl {\n"
-		"#endif\n"
-		"#define LIN_DEFAULT_STEP 256\n"
-		"#define EXPN_UP( existing, needed ) \\\n"
-		"		need > eng ? (ned<<1) : eing\n"
-		"	\n"
-		"\n"
-		"/*@}*/\n"
-		"#undef EXPN_UP\n"
-		"#ifdef AAPL_NAMESPACE\n"
+		"/*\n" ~
+		" *  Copyright\n" ~
+		" */\n" ~
+		"\n" ~
+		"/*  Aapl.\n" ~
+		" */\n" ~
+		"\n" ~
+		"#define _AAPL_RESIZE_H\n" ~
+		"\n" ~
+		"#include <assert.h>\n" ~
+		"\n" ~
+		"#ifdef AAPL_NAMESPACE\n" ~
+		"namespace Aapl {\n" ~
+		"#endif\n" ~
+		"#define LIN_DEFAULT_STEP 256\n" ~
+		"#define EXPN_UP( existing, needed ) \\\n" ~
+		"		need > eng ? (ned<<1) : eing\n" ~
+		"	\n" ~
+		"\n" ~
+		"/*@}*/\n" ~
+		"#undef EXPN_UP\n" ~
+		"#ifdef AAPL_NAMESPACE\n" ~
 		"#endif /* _AAPL_RESIZE_H */\n" );
 	return 0;
 }

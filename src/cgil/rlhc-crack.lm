@@ -149,11 +149,6 @@ namespace crack_gen
 			embedded_host( E1 )
 			expr_factor( E2 )
 		}
-		case [`cast `( T: type `) F: expr_factor]
-		{
-			send Parser 
-				"[type( T )] ( [expr_factor( F )] )"
-		}
 		case [I: ident `[ E: expr `] `. F: ident] {
 			send Parser
 				[^I '_' ^F '[' E ']']
@@ -205,6 +200,11 @@ namespace crack_gen
 		{
 			send Parser [T]
 			expr_factor_op( ExprFactorOp._expr_factor_op )
+		}
+		case [`cast `( T: type `) F: expr_factor_op]
+		{
+			send Parser
+				"[type( T )] ( [expr_factor_op( F )] )"
 		}
 		case [expr_factor]
 		{

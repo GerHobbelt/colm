@@ -140,10 +140,6 @@ namespace c_gen
 			embedded_host( E1 )
 			expr_factor( E2 )
 		}
-		case [`cast `( T: type `) F: expr_factor]
-		{
-			<<	"( [type( T )] ) [expr_factor( F )]"
-		}
 		default {
 			# Catches cases not specified
 			<<	[ExprFactor]
@@ -187,6 +183,10 @@ namespace c_gen
 		case [T: `~ expr_factor_op]
 		{
 			<<	['~' expr_factor_op( _expr_factor_op )]
+		}
+		case [`cast `( T: type `) F: expr_factor_op]
+		{
+			<<	"( [type( T )] ) [expr_factor_op( F )]"
 		}
 		case [expr_factor]
 		{

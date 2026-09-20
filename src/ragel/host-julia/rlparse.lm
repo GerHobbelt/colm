@@ -21,6 +21,9 @@ rl c_comment
 rl cpp_comment
 	/ '//' [^\n]* NL /
 
+rl julia_comment
+	/ '#=' ( any | NL )* :>> '=#' | '#' [^\n]* NL /
+
 rl s_literal
 	/ "'" ([^'\\\n] | '\\' (any | NL))* "'" /
 
@@ -39,7 +42,7 @@ namespace inline
 		token dec_number /'0x' [0-9a-fA-F]+/
 
 		token comment
-			/ c_comment | cpp_comment /
+			/ julia_comment /
 
 		token string
 			/ s_literal | d_literal /
@@ -113,7 +116,7 @@ namespace host
 		token hex_number /'0x' [0-9a-fA-F]+/
 
 		token comment
-			/ c_comment | cpp_comment /
+			/ julia_comment /
 
 		token string
 			/ s_literal | d_literal /

@@ -45,7 +45,7 @@ dist_libfsm_la_SOURCES = \
 	dot.cc asm.cc
 
 if INSTALL_RAGEL
-libfsm_la_LDFLAGS = -release $(VERSION) -no-undefined
+libfsm_la_LDFLAGS = -release ${LIBFSM_VERSION} -no-undefined
 
 if LINKER_NO_UNDEFINED
 libfsm_la_LDFLAGS += -Wl,--no-undefined

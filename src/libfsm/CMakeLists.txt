@@ -38,10 +38,12 @@ target_include_directories(libfsm
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/aapl>
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/libfsm>)
 
+# libfsm carries its own version, independent of the suite's. This mirrors
+# the libtool -release string in Makefile.am.
 set_target_properties(libfsm PROPERTIES
 	OUTPUT_NAME fsm
-	VERSION ${PROJECT_VERSION}
-	SOVERSION ${PROJECT_VERSION_MAJOR})
+	VERSION ${LIBFSM_VERSION_NUMERIC}
+	SOVERSION ${LIBFSM_VERSION_MAJOR})
 
 add_library(ragel::libfsm ALIAS libfsm)
 

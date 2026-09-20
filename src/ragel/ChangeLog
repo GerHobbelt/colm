@@ -6,8 +6,12 @@ Ragel 7.1.0 - Aug 19, 2026
   tarball. Ragel's front end is written in Colm, so earlier ragel 7 releases
   required a separately installed colm of an exactly matching version and
   refused to configure without it. There is no longer a version to match.
- -Ragel carries its own version number, independent of Colm's. The suite
-  tarball is named for the highest version it contains, which is Ragel's.
+ -Ragel carries its own version number, independent of Colm's. Every
+  shipped component is versioned on its own: ragel, colm, libfsm, cgil and
+  aapl. Suite releases are calendar-named snapshots of them,
+  colm-suite-YYYY.MM, with a micro appended for fixup releases.
+ -The libfsm library carries its own version and installs as
+  libfsm-1.0.0.so, no longer named after another component's number.
  -Either half of the suite can be installed on its own, with
   --disable-install-colm or --disable-install-ragel. The whole tree is built
   in both cases, only the install step is narrowed.
@@ -31,6 +35,9 @@ Ragel 7.1.0 - Aug 19, 2026
   the size of the signed types.
  -Host language comments are retained across the intermediate language and
   now survive into the generated code.
+ -Julia: the host lexer now recognizes julia comments, # and #= =#, in place
+  of the C forms // and /* */ it wrongly inherited. Julia host code that
+  relied on ragel consuming C-style comments must switch to julia syntax.
  -Rust: permit the apostrophe in output, and improved lexing of character
   literals and identifiers, including lifetimes, in the host scanner.
  -Intermediate language: allow an expression as the base of a deref or

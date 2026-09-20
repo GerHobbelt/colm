@@ -20,17 +20,23 @@ dnl LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM
 dnl OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 dnl SOFTWARE.
   
-dnl The suite version is the highest of the versions contained in it, which is
-dnl ragel's. Colm carries its own, lower version number in COLM_VERSION below.
-AC_INIT([colm-suite],[7.1.0-pre.1])
-PUBDATE="April 2026"
+dnl The suite is a calendar-versioned distribution: YYYY.MM, zero padded,
+dnl with an optional micro for fixups (2026.08, then 2026.08.1) and -pre.N
+dnl for pre-releases. Each component carries its own version, declared below.
+AC_INIT([colm-suite],[2026.08-pre.1])
+PUBDATE="August 2026"
 
 dnl
-dnl Colm build configuration. Colm versions independently of the suite, so it
-dnl cannot use the AC_INIT version.
+dnl Component versions. Every shipped component is versioned independently
+dnl of the suite: colm and ragel continue their own lines, aapl resumes the
+dnl line that ended at 2.14 in 2006, libfsm and cgil start their own.
 dnl
 COLM_VERSION="0.15.0-pre.1"
 COLM_PUBDATE="April 2026"
+
+AAPL_VERSION="2.15.0"
+LIBFSM_VERSION="1.0.0"
+CGIL_VERSION="1.0.0"
 
 AM_INIT_AUTOMAKE([foreign])
 
@@ -44,6 +50,9 @@ AC_DEFINE_UNQUOTED([PUBDATE], ["$PUBDATE"], [publication date])
 
 AC_SUBST(COLM_VERSION)
 AC_SUBST(COLM_PUBDATE)
+AC_SUBST(AAPL_VERSION)
+AC_SUBST(LIBFSM_VERSION)
+AC_SUBST(CGIL_VERSION)
 AC_DEFINE_UNQUOTED([COLM_VERSION], ["$COLM_VERSION"], [colm version])
 AC_DEFINE_UNQUOTED([COLM_PUBDATE], ["$COLM_PUBDATE"], [colm publication date])
 
@@ -400,13 +409,13 @@ main:
 EOF
 
 AC_MSG_CHECKING([checking if ragel ASM tests will build ... ])
-if sh -c "$ASM_BIN -o conftest.bin conftest.s" >>config.log 2>&1; then
+if sh -c "$ASM_BIN -no-pie -o conftest.bin conftest.s" >>config.log 2>&1; then
 	AC_MSG_RESULT([yes])
 else
 	AC_MSG_RESULT([no])
 	ASM_BIN=""
 fi
-rm -f conftest.s
+rm -f conftest.s conftest.bin
 
 SED_SUBST="$SED_SUBST -e 's|@D_BIN@|${D_BIN}|g'"
 SED_SUBST="$SED_SUBST -e 's|@JAVAC_BIN@|${JAVAC_BIN}|g'"
@@ -480,10 +489,8 @@ AC_SUBST(SED_SUBST)
 dnl
 dnl Ragel build configuration
 dnl
-dnl Ragel is the highest-versioned component, so the suite is named after it.
-dnl Derived rather than repeated, to keep the version in one place.
-RAGEL_VERSION="$PACKAGE_VERSION"
-RAGEL_PUBDATE="$PUBDATE"
+RAGEL_VERSION="7.1.0-pre.1"
+RAGEL_PUBDATE="April 2026"
 AC_SUBST(RAGEL_VERSION)
 AC_SUBST(RAGEL_PUBDATE)
 

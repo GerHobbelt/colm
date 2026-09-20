@@ -136,21 +136,9 @@ namespace zig_gen
 		}
 		case [Base: expr_factor `[ Sub: expr `]]
 		{
-			# RIL is written with C precedence, where 'cast(uint)a[i]'
-			# casts the element. The grammar here is left recursive on the
-			# subscript, so it binds as '(cast(uint)a)[i]' instead. Undo
-			# that, otherwise we would be casting the array itself.
-			#
 			# Zig indexes with usize. Narrower unsigned types widen
 			# implicitly but signed ones do not, so cast every subscript.
-			if match Base [`cast `( T: type `) Inner: expr_factor] {
-				<<	["@as( " type(T) ", @intCast( "
-						expr_factor(Inner) '\[@intCast( ' expr( Sub ) ' )\]'
-						" ) )"]
-			}
-			else {
-				<<	[expr_factor(Base) '\[@intCast( ' expr( Sub ) ' )\]']
-			}
+			<<	[expr_factor(Base) '\[@intCast( ' expr( Sub ) ' )\]']
 		}
 		case ArraySubField
 		{
@@ -182,10 +170,6 @@ namespace zig_gen
 		{
 			embedded_host(embedded_host)
 			expr_factor(_expr_factor)
-		}
-		case Cast
-		{
-			<<	["@as( " type(type) ", @intCast( " expr_factor(_expr_factor) " ) )" ]
 		}
 		default {
 			<<	[ExprFactor]
@@ -228,6 +212,10 @@ namespace zig_gen
 		{
 			# Zig needs comptime_int width for bitwise NOT; cast to i32.
 			<<	['~@as( i32, @intCast( ' expr_factor_op( _expr_factor_op ) ' ) )']
+		}
+		case [`cast `( T: type `) F: expr_factor_op]
+		{
+			<<	["@as( " type(T) ", @intCast( " expr_factor_op(F) " ) )" ]
 		}
 		case [expr_factor]
 		{

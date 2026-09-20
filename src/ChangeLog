@@ -3,8 +3,10 @@ colm 0.15.0 - Aug 19, 2026
 	* Colm and ragel are distributed together, in a single colm-suite tarball.
 	  Ragel's front end is written in colm, and earlier ragel 7 releases
 	  required a separately installed colm of an exactly matching version.
-	* Colm carries its own version number, independent of ragel's. The tarball
-	  is named for the highest version it contains, which is ragel's.
+	* Colm carries its own version number, independent of ragel's. Every
+	  shipped component is versioned on its own: colm, ragel, libfsm, cgil
+	  and aapl. Suite releases are calendar-named snapshots of them,
+	  colm-suite-YYYY.MM, with a micro appended for fixup releases.
 	* Either half of the suite can be installed on its own, with
 	  --disable-install-colm or --disable-install-ragel. The whole tree is
 	  built in both cases; only the install step is narrowed.
