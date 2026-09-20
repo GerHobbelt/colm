@@ -32,7 +32,8 @@ void enumerateCgil( const Config &config, const Selection &sel, JobList &jobs )
 	std::string caseDir = joinPath( src, "case" );
 
 	std::vector<std::string> names;
-	listDir( caseDir, names );
+	if ( !listCaseDir( suite, caseDir, names, jobs ) )
+		return;
 
 	for ( size_t i = 0; i < names.size(); i++ ) {
 		if ( !hasSuffix( names[i], ".ri" ) )
@@ -61,8 +62,10 @@ void enumerateCgil( const Config &config, const Selection &sel, JobList &jobs )
 		argv.push_back( joinPath( config.cgilDir, "cgil-" + lang ) );
 		argv.push_back( joinPath( caseDir, names[i] ) );
 		argv.push_back( "/dev/stdout" );
+		/* A translator that fails must say so in its exit status. The old
+		 * runtests ran under set -e and relied on that. */
 		job->steps.push_back( Step::exec( Step::Run, argv, build )
-				.capture( CaptureOutput ).exit( -1 ) );
+				.capture( CaptureOutput ).exit( 0 ) );
 		job->steps.push_back( Step::compare( expected, "" ) );
 	}
 }
