@@ -27,6 +27,7 @@ export RAGEL_GO_BIN="@SUBJ_RAGEL_GO_BIN@"
 export RAGEL_OCAML_BIN="@SUBJ_RAGEL_OCAML_BIN@"
 export RAGEL_ASM_BIN="@SUBJ_RAGEL_ASM_BIN@"
 export RAGEL_RUST_BIN="@SUBJ_RAGEL_RUST_BIN@"
+export RAGEL_ZIG_BIN="@SUBJ_RAGEL_ZIG_BIN@"
 export RAGEL_CRACK_BIN="@SUBJ_RAGEL_CRACK_BIN@"
 export RAGEL_JULIA_BIN="@SUBJ_RAGEL_JULIA_BIN@"
 
@@ -44,7 +45,7 @@ wk=working
 test -d $wk || mkdir $wk
 echo $wk/* | xargs rm -Rf
 
-while getopts "gcnmleT:F:W:G:P:CDJRAZOUKY-:" opt; do
+while getopts "gcnmleT:F:W:G:P:CDJRAZOUKYB-:" opt; do
 	case $opt in
 		T|F|W|G|P)
 			genflags="$genflags -$opt$OPTARG"
@@ -61,7 +62,7 @@ while getopts "gcnmleT:F:W:G:P:CDJRAZOUKY-:" opt; do
 		g) 
 			allow_generated="true"
 		;;
-		C|D|J|R|A|Z|O|R|K|Y|U)
+		C|D|J|R|A|Z|O|R|K|Y|U|B)
 			langflags="$langflags -$opt"
 		;;
 		-)
@@ -86,7 +87,7 @@ while getopts "gcnmleT:F:W:G:P:CDJRAZOUKY-:" opt; do
 	esac
 done
 
-[ -z "$langflags" ]   && langflags="-C --asm -R -Y -O -U -J -Z -D -A -K"
+[ -z "$langflags" ]   && langflags="-C --asm -R -Y -O -U -J -Z -D -A -K -B"
 [ -z "$genflags" ]    && genflags="-T0 -T1 -F0 -F1 -W0 -W1 -G0 -G1 -G2 -n -m -e --string-tables"
 
 shift $((OPTIND - 1));
@@ -105,6 +106,7 @@ csharp_compiler="@CSHARP_BIN@"
 go_compiler="@GO_BIN@"
 ocaml_compiler="@OCAML_BIN@"
 rust_compiler="@RUST_BIN@"
+zig_compiler="@ZIG_BIN@"
 crack_interpreter="@CRACK_BIN@"
 julia_interpreter="@JULIA_BIN@"
 gnustep_config="@GNUSTEP_CONFIG@"
@@ -278,6 +280,16 @@ function lang_opts()
 			libs=""
 			prohibit_flags="-G0 -G1 -G2 --string-tables"
 		;;
+		zig)
+			lang_opt="-B"
+			code_suffix=zig
+			interpreted=false
+			compiler=$zig_compiler
+			host_ragel=$RAGEL_ZIG_BIN
+			flags="build-exe"
+			libs=""
+			prohibit_flags="--string-tables"
+		;;
 		crack)
 			lang_opt="-K"
 			code_suffix=crk
@@ -334,6 +346,7 @@ function run_test()
 	out_args=""
 	[ $lang != java ] && out_args="-o $binary";
 	[ $lang == csharp ] && out_args="-out:$binary";
+	[ $lang == zig ] && out_args="-femit-bin=$binary";
 
 	# Some langs are just interpreted.
 	if [ $interpreted != "true" ]; then
@@ -441,7 +454,7 @@ function run_translate()
 	cases=""
 
 	if [ $lang == indep ]; then
-		for lang in c cg cv asm d csharp go java ruby ocaml rust crack julia; do
+		for lang in c cg cv asm d csharp go java ruby ocaml rust crack julia zig; do
 			case $lang in 
 				c) lf="-C" ;;
 				cg) lf="-C" ;;
@@ -456,6 +469,7 @@ function run_translate()
 				rust) lf="-U" ;;
 				crack) lf="-K" ;;
 				julia) lf="-Y" ;;
+				zig) lf="-B" ;;
 			esac
 
 			echo "$prohibit_languages" | grep -q "\<$lang\>" && continue;

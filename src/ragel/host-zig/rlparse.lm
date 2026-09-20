@@ -1,0 +1,207 @@
+include 'ragel.lm'
+include 'rlreduce.lm'
+
+# Zig identifiers with optional '@' prefix for builtins.
+rl ident
+	/ '@'? ( alpha | '_' ) ( alpha | digit | '_' )* /
+
+rl number
+	/ digit ( digit | '_' )* /
+
+rl hex_number
+	/ '0x' [0-9a-fA-F_]+ /
+
+rl NL / '\n' /
+
+# Zig has line comments only, no block comments.
+rl line_comment
+	/ '//' [^\n]* NL /
+
+rl char_literal
+	/ "'" ([^'\\\n] | '\\' (any | NL)) "'" /
+
+rl string_literal
+	/ '"' ([^"\\\n] | '\\' (any | NL))* '"' /
+
+# Multiline strings with '\\'; treat as atomic to skip brace scanning.
+rl ml_string
+	/ '\\\\' [^\n]* NL /
+
+# Quoted identifier @"...".
+rl quoted_ident
+	/ '@"' ([^"\\\n] | '\\' (any | NL))* '"' /
+
+namespace inline
+	lex
+		literal `fpc `fc  `fcurs `ftargs
+			`fentry `fhold `fexec `fgoto `fnext
+			`fcall `fret `fbreak `fncall `fnret `fnbreak
+
+		token quoted_ident /quoted_ident/
+		token ident /ident/
+		token number /number/
+		token hex_number /hex_number/
+
+		token comment
+			/ line_comment /
+
+		token string
+			/ char_literal | string_literal | ml_string /
+
+		token whitespace
+			/ ( [ \t] | NL )+ /
+
+		literal
+			`{ `} `:: `* `, `( `) `;
+
+		token var_ref
+			/ "$" [a-zA-Z_][a-zA-Z_0-9]* /
+			{
+				if GblActionParams
+				{
+					input->push( make_token(
+							typeid<var_ref>, input->pull( match_length ) ) )
+				}
+				else
+				{
+					# Pull only one char to preserve keywords.
+					input->push( make_token(
+							typeid<c_any>, input->pull( 1 ) ) )
+				}
+			}
+
+		token c_any
+			/ any /
+	end
+
+end
+
+namespace host
+	lex
+		literal `%%{
+
+		token close_inc /'}--%%'/
+		{
+			input->push( make_token( typeid<close_inc>, input->pull( match_length ) ) )
+			restoreGlobals()
+		}
+
+		token close_imp /'}++%%'/
+		{
+			input->push( make_token( typeid<close_imp>, input->pull( match_length ) ) )
+			restoreGlobals()
+		}
+
+		token slr / '%%' [^{] [^\n]* '\n' /
+		{
+			# Convert single-line Ragel block to multi-line format.
+			input->pull( 2 )
+			R: str = input->pull( match_length - 3 )
+			input->push( "}%%" )
+			input->push( R )
+			input->push( "%%{" )
+		}
+
+		rl NL / '\n' /
+
+		literal `define `=
+
+		token quoted_ident /quoted_ident/
+		token ident /ident/
+		token number /number/
+		token hex_number /hex_number/
+
+		token comment
+			/ line_comment /
+
+		token string
+			/ char_literal | string_literal | ml_string /
+
+		token whitespace
+			/ ( [ \t] | NL )+ /
+
+		token c_any / any /
+	end
+
+	def tok
+		[`define whitespace ident whitespace? number]  :ImportDefNum
+	|	[`define whitespace ident whitespace? string]  :ImportDefStr
+	|	[ident whitespace? `= whitespace? number]      :ImportAssignNum
+	|	[ident whitespace? `= whitespace? string]      :ImportAssignStr
+	|	[`define]              :Def
+	|	[`=]                   :Eq
+	|	[quoted_ident] :QuotedIdent
+	|	[ident] :Ident
+	|	[number] :Number
+	|	[hex_number] :HexNumber
+	|	[comment] :Comment
+	|	[string] :String
+	|	[whitespace] :Whitespace
+	|	[c_any] :Any
+end
+
+reduction TopLevel
+
+	host::tok  :ImportDefNum
+	{
+		if ( isImport )
+		{
+			Literal *lit = new Literal( @number,
+					false /* $number->neg */, $number->data,
+					$number->length, Literal::Number );
+
+			string name( $ident->data, $ident->length );
+			import( @ident, name, lit );
+		}
+	}
+	host::tok  :ImportDefStr
+	{
+		if ( isImport )
+		{
+			Literal *lit = new Literal( @string, false,
+					$string->data, $string->length, Literal::LitString );
+			string name( $ident->data, $ident->length );
+			import( @ident, name, lit );
+		}
+	}
+	host::tok  :ImportAssignNum
+	{
+		if ( isImport )
+		{
+			Literal *lit = new Literal( @number,
+					false /*$number->neg */, $number->data,
+					$number->length, Literal::Number );
+			string name( $ident->data, $ident->length );
+			import( @ident, name, lit );
+		}
+	}
+	host::tok  :ImportAssignStr
+	{
+		if ( isImport )
+		{
+			Literal *lit = new Literal( @string, false,
+					$string->data, $string->length, Literal::LitString );
+
+			string name( $ident->data, $ident->length );
+			import( @ident, name, lit );
+		}
+	}
+
+end
+
+export RagelError: str
+
+# File name. The open is expected to succeed. It is tested before the colm
+# program is called.
+A: list_el<str> = argv->pop_head_el()
+GblFileName = A->value
+
+# Remaining items are include paths.
+while ( argv->length > 0 ) {
+	A = argv->pop_head_el()
+	GblIncludePaths->push_tail_el( A )
+}
+
+Stream: stream = open( GblFileName, "r" )
+reduce TopLevel start[ Stream ]
+RagelError = error

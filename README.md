@@ -123,7 +123,8 @@ machines. The generated code can be output in a variety of host languages.
 
 ### Supported target languages
 
-C, C++, D, Java, Ruby, C#, Go, OCaml, Rust, Julia, JavaScript, GNU ASM x86-64, and Crack.
+C, C++, D, Java, Ruby, C#, Go, OCaml, Rust, Julia, Zig, JavaScript, GNU ASM x86-64, and
+Crack.
 
 ### Code generation backends
 
@@ -133,7 +134,8 @@ C, C++, D, Java, Ruby, C#, Go, OCaml, Rust, Julia, JavaScript, GNU ASM x86-64, a
 | `-F0`, `-F1` | Flat table-driven |
 | `-G0`, `-G1`, `-G2` | Goto-driven |
 
-Language-specific binaries are also available: `ragel-c`, `ragel-go`, `ragel-rust`, etc.
+Language-specific binaries are also available: `ragel-c`, `ragel-go`, `ragel-rust`,
+`ragel-zig`, etc.
 
 See the [`examples/`](examples/) directory for sample Ragel programs.
 

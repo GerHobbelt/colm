@@ -46,7 +46,7 @@ regular expression. The single-expression model affords concise and elegant
 descriptions of languages and the generation of very simple, fast and robust
 code. Ragel compiles executable finite state machines from a high level regular
 language notation. Ragel targets C, C++, Objective-C, D, Go, GNU ASM x86-64,
-Java, Ruby, C#, OCaml, Crack, Rust, Julia and JavaScript
+Java, Ruby, C#, OCaml, Crack, Rust, Julia, Zig and JavaScript
 
 In addition to building state machines from regular expressions, Ragel allows
 the programmer to directly specify state machines with state charts. These two
@@ -112,7 +112,7 @@ machine representation and vice versa, the terms regular language and state
 machine (or just machine) will be used interchangeably in this document.
 
 Ragel outputs machines to C, C++, Objective-C, D, Go, GNU ASM x86-64, Java,
-Ruby, C#, OCaml, Crack, Rust, Julia and JavaScript code. The output is
+Ruby, C#, OCaml, Crack, Rust, Julia, Zig and JavaScript code. The output is
 designed to be generic and is not bound to any particular input or processing
 method. A Ragel machine expects to have data passed to it in buffer blocks.
 When there is no more input, the machine can be queried for acceptance.  In
@@ -2778,7 +2778,8 @@ language. The host-language options are:
 * `-A` for C# code.
 * `-O` for OCaml code.
 * `-U` for Rust
-* `-Y` for Julia 
+* `-B` for Zig
+* `-Y` for Julia
 * `-K` for Crack
 * `-P` for JavaScript
 
@@ -2860,6 +2861,7 @@ host languages. The following table shows what is supported.
 | Ruby       | `-T0 -T1 -F0 -F1`
 | OCaml      | `-T0 -T1 -F0 -F1`
 | Rust       | `-T0 -T1 -F0 -F1`
+| Zig        | `-T0 -T1 -F0 -F1 -G0 -G1 -G2`
 | Julia      | `-T0 -T1 -F0 -F1`
 | Crack      | `-T0 -T1 -F0 -F1`
 | JavaScript | `-T0 -T1 -F0 -F1`

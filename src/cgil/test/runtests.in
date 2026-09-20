@@ -4,7 +4,7 @@ set -x -e
 
 shopt -s nullglob
 
-LANGUAGES="c crack csharp d go java js julia ocaml ruby rust"
+LANGUAGES="c crack csharp d go java js julia ocaml ruby rust zig"
 
 for LANG in $LANGUAGES; do
 	for RI in cases/test-$LANG-??.ri; do

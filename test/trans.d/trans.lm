@@ -300,6 +300,7 @@ include 'trans-ocaml.lm'
 include 'trans-rust.lm'
 include 'trans-julia.lm'
 include 'trans-crack.lm'
+include 'trans-zig.lm'
 
 str argvPop()
 {
@@ -361,6 +362,8 @@ elsif ( Lang == 'julia' )
 	trans_julia::julia( Output )
 elsif ( Lang == 'crack' )
 	trans_crack::crack( Output )
+elsif ( Lang == 'zig' )
+	trans_zig::zig( Output )
 else {
 	print( 'trans: unrecognized language: ', Lang, '\n' )
 }

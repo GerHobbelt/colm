@@ -145,6 +145,9 @@ The host language is OCaml.
 .B -U
 The host language is Rust.
 .TP
+.B -B
+The host language is Zig.
+.TP
 .B -Y
 The host language is Julia.
 .TP

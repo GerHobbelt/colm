@@ -1,0 +1,668 @@
+include 'ril.lm'
+
+# Zig multiline strings with '\\' require special handling.
+namespace zig_out
+	token _IN_ /''/
+	token _EX_ /''/
+
+	lex
+		token comment /
+			'//' any* :> '\n'
+		/
+
+		token ml_string /
+			'\\\\' [^\n]* '\n'
+		/
+
+		token id
+			/[a-zA-Z_][a-zA-Z_0-9]*/
+
+		token number /
+			[0-9]+
+		/
+
+		token symbol /
+			'!' | '#' | '$' | '%' | '&' | '(' | ')' | '*' |
+			'+' | ',' | '-' | '.' | '/' | ':' | ';' | '<' |
+			'=' | '>' | '?' | '@' | '[' | ']' | '^' | '|' |
+			'~' /
+
+		literal `{ `}
+
+		token string /
+				'"' ( [^"\\] | '\\' any ) * '"' |
+				"'" ( [^'\\] | '\\' any ) * "'"
+			/
+
+		ignore
+			/[ \t\v\r\n]+/
+	end
+
+	def item
+		[comment]
+	|	[ml_string]
+	|	[id]
+	|	[number]
+	|	[symbol]
+	|	[string]
+	|	[`{ _IN_ item* _EX_ `} ]
+
+	def zig_out
+		[_IN_ _EX_ item*]
+end
+
+
+namespace zig_gen
+
+	global _: parser<zig_out::zig_out>
+
+	# Lower goto to labeled switch: 'goto L' becomes 'continue :_sw<n> <id>'.
+	# LabelSw: label -> switch name. LabelId: label -> prong. Scoped by nesting depth.
+	global LabelSw: map<str, str> = new map<str, str>()
+	global LabelId: map<str, int> = new map<str, int>()
+	global SwCount: int = 0
+
+	# Claim labels for this level. insert() keeps first binding, so displace old.
+	str number_level( StmtList: stmt* )
+	{
+		SwName: str
+		N: int = 1
+		for Stmt: stmt in repeat( StmtList ) {
+			if match Stmt [L: goto_label] {
+				if ( !SwName ) {
+					SwName = "_sw[SwCount]"
+					SwCount = SwCount + 1
+				}
+				Name: str = $L.ident
+				LabelSw->remove( Name )
+				LabelId->remove( Name )
+				LabelSw->insert( Name, SwName )
+				LabelId->insert( Name, N )
+				N = N + 1
+			}
+		}
+		return SwName
+	}
+
+	void tok_list( TL: host::tok* )
+	{
+		for Tok: host::tok in repeat(TL) {
+			switch Tok
+			case Stmt {
+				<<	"{
+					"	[stmt_list( StmtList )]
+					"}
+			}
+			case Expr {
+				<<	"([expr( Expr )])"
+			}
+			case Escape {
+				Str: str = $Tok
+				<<	"[Str.suffix( 1 )]"
+			}
+			default {
+				<<	[Tok]
+			}
+		}
+	}
+
+	void embedded_host( EmbeddedHost: embedded_host )
+	{
+		switch EmbeddedHost
+		case Expr
+		{
+			<<	['(' tok_list( TL ) ')']
+		}
+		case Stmt
+		{
+			<<	['{' tok_list( TL ) '}\n']
+		}
+		case Bare
+		{
+			<<	[tok_list( TL )]
+		}
+	}
+
+	void expr_factor( ExprFactor: expr_factor )
+	{
+		switch ExprFactor
+		case EmbeddedHost
+		{
+			<<	[embedded_host(embedded_host)]
+		}
+		case Paren
+		{
+			<<	['( ' expr(expr) ' )']
+		}
+		case [Base: expr_factor `[ Sub: expr `]]
+		{
+			# RIL is written with C precedence, where 'cast(uint)a[i]'
+			# casts the element. The grammar here is left recursive on the
+			# subscript, so it binds as '(cast(uint)a)[i]' instead. Undo
+			# that, otherwise we would be casting the array itself.
+			#
+			# Zig indexes with usize. Narrower unsigned types widen
+			# implicitly but signed ones do not, so cast every subscript.
+			if match Base [`cast `( T: type `) Inner: expr_factor] {
+				<<	["@as( " type(T) ", @intCast( "
+						expr_factor(Inner) '\[@intCast( ' expr( Sub ) ' )\]'
+						" ) )"]
+			}
+			else {
+				<<	[expr_factor(Base) '\[@intCast( ' expr( Sub ) ' )\]']
+			}
+		}
+		case ArraySubField
+		{
+			# Flatten a[i].f to a_f[i] for lvalue compatibility.
+			<<	[^ident '_' ^Field '\[@intCast( ' expr( expr ) ' )\]']
+		}
+		case Offset
+		{
+			# 'offset' yields a plain integer position, not a pointer.
+			<<	"@as( i32, @intCast( [expr(expr)] ) )"
+		}
+		case Deref
+		{
+			<<	[ base '\[@intCast( ' expr( expr ) ' )\]' ]
+		}
+		case True
+		{
+			<<	"true"
+		}
+		case False
+		{
+			<<	"false"
+		}
+		case Nil
+		{
+			<<	"0"
+		}
+		case Access
+		{
+			embedded_host(embedded_host)
+			expr_factor(_expr_factor)
+		}
+		case Cast
+		{
+			<<	["@as( " type(type) ", @intCast( " expr_factor(_expr_factor) " ) )" ]
+		}
+		default {
+			<<	[ExprFactor]
+		}
+	}
+
+	void lvalue( ExprFactor: lvalue )
+	{
+		switch ExprFactor
+		case [EH: embedded_host]
+		{
+			<<	[embedded_host(EH)]
+		}
+		case [LV: lvalue `[ TL: expr `]]
+		{
+			<<	[lvalue(LV) '\[@intCast( ' expr( TL ) ' )\]']
+		}
+		case [I: ident `[ E: expr `] `. F: ident]
+		{
+			<<	[^I '_' ^F '\[@intCast( ' expr( E ) ' )\]']
+		}
+		case [E1: embedded_host `-> E2: lvalue]
+		{
+			embedded_host( E1 )
+			lvalue( E2 )
+		}
+		default {
+			<<	[ExprFactor]
+		}
+	}
+
+	void expr_factor_op( ExprFactorOp: expr_factor_op )
+	{
+		switch ExprFactorOp
+		case [B: `! expr_factor_op]
+		{
+			<<	['!' expr_factor_op( _expr_factor_op )]
+		}
+		case [T: `~ expr_factor_op]
+		{
+			# Zig needs comptime_int width for bitwise NOT; cast to i32.
+			<<	['~@as( i32, @intCast( ' expr_factor_op( _expr_factor_op ) ' ) )']
+		}
+		case [expr_factor]
+		{
+			<<	[expr_factor( ExprFactorOp.expr_factor )]
+		}
+	}
+
+	void expr_bitwise( ExprBitwise: expr_bitwise )
+	{
+		switch ExprBitwise
+		case [expr_bitwise A: `& expr_factor_op]
+		{
+			<<	[expr_bitwise( _expr_bitwise ) ' & ' expr_factor_op( expr_factor_op )]
+		}
+		case [expr_factor_op]
+		{
+			<<	[expr_factor_op( ExprBitwise.expr_factor_op )]
+		}
+	}
+
+	void expr_mult( ExprMult: expr_mult )
+	{
+		switch ExprMult
+		case [expr_mult T: `* expr_bitwise]
+		{
+			<<	[expr_mult( _expr_mult ) ' * ' expr_bitwise( expr_bitwise )]
+		}
+		case [expr_bitwise]
+		{
+			<<	[expr_bitwise( expr_bitwise )]
+		}
+	}
+
+	void expr_add( ExprAdd: expr_add )
+	{
+		switch ExprAdd
+		case [expr_add Op: add_op expr_mult]
+		{
+			<<	[expr_add( _expr_add ) ' ' Op ' ' expr_mult( expr_mult )]
+		}
+		case [expr_mult]
+		{
+			<<	[expr_mult( ExprAdd.expr_mult )]
+		}
+	}
+
+	void expr_shift( ExprShift: expr_shift )
+	{
+		switch ExprShift
+		case [expr_shift Op: shift_op expr_add]
+		{
+			# Shift count needs Log2 type cast for safety.
+			<<	[expr_shift( _expr_shift ) ' ' Op ' @intCast( ' expr_add( expr_add ) ' )']
+		}
+		case [expr_add]
+		{
+			<<	[expr_add( expr_add )]
+		}
+	}
+
+	void test_op_out( Op: test_op )
+	{
+		# Zig spells the logical connectives 'and'/'or'.
+		switch Op
+		case [`&&]
+			<<	[' and ']
+		case [`||]
+			<<	[' or ']
+		default
+			<<	[' ' Op ' ']
+	}
+
+	void expr_test( ExprTest: expr_test )
+	{
+		switch ExprTest
+		case [expr_test Op: test_op expr_shift]
+		{
+			expr_test( _expr_test )
+			test_op_out( Op )
+			expr_shift( expr_shift )
+		}
+		case [expr_shift]
+		{
+			<<	[expr_shift( ExprTest.expr_shift )]
+		}
+	}
+
+	void expr( Expr: expr )
+	{
+		expr_test( Expr.expr_test )
+	}
+
+	str type_str( Type: type )
+	{
+		switch Type
+		case S8
+			return 'i8'
+		case S16
+			return 'i16'
+		case S32
+			return 'i32'
+		case S64
+			return 'i64'
+		case S128
+			return 'i128'
+		case "uint"
+			return 'u32'
+		case "int"
+			return 'i32'
+		case "char"
+			return 'u8'
+		case "byte"
+			return 'u8'
+		case "bool"
+			return 'bool'
+		default
+			# The host types are already spelled as Zig types.
+			return $Type
+	}
+
+	void type( Type: type )
+	{
+		<<	[type_str( Type )]
+	}
+
+	void number( Number: number )
+	{
+		switch Number
+		case Unsigned
+			<<	[uint]
+		case Char
+			<<	[uint]
+		default
+			<<	[Number]
+	}
+
+	void num_list( NumList: num_list )
+	{
+		number( NumList.number )
+		for CommaNum: comma_num in NumList {
+			<<	[', ' number( CommaNum.number )]
+		}
+	}
+
+	# Zig rejects unreachable code; drop stmts after goto/break/continue.
+	bool is_transfer( Stmt: stmt )
+	{
+		if match Stmt [goto_stmt]
+			return true
+		if match Stmt [break_stmt]
+			return true
+		if match Stmt [continue_stmt]
+			return true
+		return false
+	}
+
+	# Ensure if/while bodies have braces.
+	void strip_block_stmt( Stmt: stmt )
+	{
+		if match Stmt [`{ StmtList: stmt* `}]
+			stmt_list(StmtList)
+		else
+			stmt( Stmt )
+	}
+
+	# Transform flat C-style cases into Zig prongs (no fallthrough).
+	void switch_body( StmtList: stmt* )
+	{
+		Open: bool = false
+		HasDefault: bool = false
+		Dead: bool = false
+
+		for Stmt: stmt in repeat( StmtList ) {
+			if match Stmt [CL: case_label] {
+				if Open
+					<<	"},
+				<<	"[expr( CL.expr )] => {
+				Open = true
+				Dead = false
+			}
+			elsif match Stmt [CB: case_block] {
+				if Open {
+					<<	"},
+					Open = false
+				}
+				<<	"[expr( CB.expr )] => {
+					"	[stmt_list( CB._repeat_stmt )]
+					"},
+			}
+			elsif match Stmt [DB: default_block] {
+				if Open {
+					<<	"},
+					Open = false
+				}
+				HasDefault = true
+				<<	"else => {
+					"	[stmt_list( DB._repeat_stmt )]
+					"},
+			}
+			elsif ( !Dead ) {
+				stmt( Stmt )
+				Dead = is_transfer( Stmt )
+			}
+		}
+
+		if Open
+			<<	"},
+
+		if ( !HasDefault )
+			<<	"else => {},
+	}
+
+	void stmt( Stmt: stmt )
+	{
+		switch Stmt
+		case [EH: embedded_host]
+		{
+			<<	[embedded_host(EH)]
+		}
+		case [A: static_array] {
+			<<	"const [A.ident] = \[_\][type(A.type)]{ [num_list(A.num_list)] };
+		}
+		case [V: static_value] {
+			<<	"const [V.ident]: [type(V.type)] = [V.number];
+		}
+		case [D: declaration]
+		{
+			# Declarations at a labelled level are hoisted by stmt_list;
+			# this path covers every other scope.
+			decl_out( D.ident, type_str(D.type), D.opt_init )
+		}
+		case [Index: index_stmt]
+		{
+			decl_out( Index.ident, 'i32', Index.opt_init )
+		}
+		case [ES: export_stmt]
+		{
+			<<	"pub const [ES.ident] = [number(ES.number)];
+		}
+		case [
+				'if' `( IfExpr: expr `) IfStmt: stmt
+				ElseIfClauseList: else_if_clause* ElseClauseOpt: else_clause?
+		] {
+			<<	"if ( [expr(IfExpr)] ) {
+				"	[strip_block_stmt(IfStmt)]
+				"}
+
+			for ElseIfClause: else_if_clause in repeat( ElseIfClauseList ) {
+				match ElseIfClause
+					['else if (' ElseIfExpr: expr ')' ElseIfStmt: stmt]
+
+				<<	"else if ( [expr(ElseIfExpr)] ) {
+					"	[strip_block_stmt(ElseIfStmt)]
+					"}
+			}
+
+			if ( match ElseClauseOpt ['else' ElseStmt: stmt] ) {
+				<<	"else {
+					"	[strip_block_stmt(ElseStmt)]
+					"}
+			}
+		}
+		case ["while ( TRUE )" WhileStmt: stmt] {
+			<<	"while ( true ) {
+				"	[strip_block_stmt(WhileStmt)]
+				"}
+		}
+		case [BL: break_label? 'while' '(' WhileExpr: expr ')' WhileStmt: stmt] {
+			if match BL [bl: break_label]
+				<<	"[bl.ident]: "
+			<<	"while ( [expr(WhileExpr)] ) {
+				"	[strip_block_stmt(WhileStmt)]
+				"}
+		}
+		case [`switch `( SwitchExpr: expr `) `{ StmtList: stmt* `}] {
+			<<	"switch ( [expr(SwitchExpr)] ) {
+				"	[switch_body( StmtList )]
+				"}
+		}
+		case [G: goto_stmt]
+		{
+			Name: str = $G.ident
+			SwName: str = LabelSw->find( Name )
+			Id: int = LabelId->find( Name )
+			if SwName
+				<<	"continue :[SwName] [Id];
+			else
+				# A label we never numbered; should not happen.
+				<<	"unreachable;
+		}
+		case [goto_label]
+		{
+			# Consumed by stmt_list when it builds the labeled switch.
+		}
+		case [`continue CL: ident `;] {
+			<<	"continue :[CL];
+		}
+		case [`break BL: ident `;] {
+			<<	"break :[BL];
+		}
+		case [`continue `;] {
+			<<	"continue;
+		}
+		case [`break `;] {
+			<<	"break;
+		}
+		case [ExprExpr: expr `;] {
+			<<	[expr(ExprExpr) ';']
+		}
+		case [B: block] {
+			<<	"{
+				"	[stmt_list(B.StmtList)]
+				"}
+		}
+		case [AS: assign_stmt]
+		{
+			<<	"[lvalue(AS.LValue) AS.assign_op expr(AS.expr)];
+		}
+		default {
+			# catches unspecified cases
+			<<	"[Stmt]
+		}
+	}
+
+	# A 'var' never mutated, and any unused local, are compile errors.
+	# Discarding the address counts as both and does not survive optimisation.
+	void decl_out( Ident: ident, Ty: str, Init: opt_init )
+	{
+		<<	"var [Ident]: [Ty] = "
+		if match Init ['=' E: expr]
+			<<	"[expr(E)];
+		else
+			<<	"0;
+		<<	"_ = &[Ident];
+	}
+
+	# decl_out's no-init path, for hoisting out of a labeled level.
+	void hoist_decl( Ident: ident, Ty: str )
+	{
+		<<	"var [Ident]: [Ty] = 0;
+			"_ = &[Ident];
+	}
+
+	# A level holding labels becomes a labeled switch. Declarations hoist out
+	# ahead of it, since prongs are separate scopes, leaving their
+	# initialisers behind as assignments to preserve evaluation order.
+	void stmt_list( StmtList: stmt* )
+	{
+		SwName: str = number_level( StmtList )
+
+		if ( !SwName ) {
+			Dead: bool = false
+			for Stmt: stmt in repeat( StmtList ) {
+				if ( !Dead ) {
+					stmt( Stmt )
+					Dead = is_transfer( Stmt )
+				}
+			}
+		}
+		else {
+			for Stmt: stmt in repeat( StmtList ) {
+				if match Stmt [D: declaration]
+					hoist_decl( D.ident, type_str(D.type) )
+				elsif match Stmt [I: index_stmt]
+					hoist_decl( I.ident, 'i32' )
+			}
+
+			<<	"[SwName]: switch ( @as( u32, 0 ) ) {
+				"0 => {
+
+			Dead: bool = false
+			Id: int = 0
+			for Stmt: stmt in repeat( StmtList ) {
+				if match Stmt [goto_label] {
+					# Prongs run in declaration order, matching the numbering
+					# number_level handed out.
+					Id = Id + 1
+					# Fall through into the next prong, unless control
+					# already left this one.
+					if ( !Dead )
+						<<	"continue :[SwName] [Id];
+					<<	"},
+						"[Id] => {
+					Dead = false
+				}
+				elsif Dead {
+					# Unreachable; Zig would reject it.
+				}
+				elsif match Stmt [D: declaration] {
+					if match D.opt_init ['=' E: expr]
+						<<	"[D.ident] = [expr(E)];
+				}
+				elsif match Stmt [I: index_stmt] {
+					if match I.opt_init ['=' E: expr]
+						<<	"[I.ident] = [expr(E)];
+				}
+				else {
+					stmt( Stmt )
+					Dead = is_transfer( Stmt )
+				}
+			}
+
+			<<	"},
+				"else => unreachable,
+				"}
+		}
+	}
+
+	void trans( Output: stream, Start: start )
+	{
+		_ = new parser<zig_out::zig_out>()
+		Input: _input = _->gets()
+		Input->auto_trim(true)
+
+		if ( Start.opt_bom.bom )
+			send Output [Start.opt_bom.bom]
+
+		stmt_list( Start._repeat_stmt )
+
+		ZO: zig_out::zig_out = _->finish()
+
+		if ZO {
+			send Output
+				[ZO]
+		}
+		else {
+			send stderr
+				"failed to parse output: [_->error]
+		}
+	}
+end
+
+void trans( Output: stream, Start: start )
+{
+	zig_gen::trans( Output, Start )
+}
+
+include 'rlhc-main.lm'

@@ -3,7 +3,7 @@
 
 . ../subject.sh
 
-langs='asm crack c cs d go java julia ocaml'
+langs='asm crack c cs d go java julia ocaml zig'
 
 mkdir -p working
 

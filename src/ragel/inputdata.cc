@@ -687,6 +687,7 @@ void InputData::usage()
 "   ragel-ruby           Ruby        -T0 -T1 -F0 -F1\n"
 "   ragel-ocaml          OCaml       -T0 -T1 -F0 -F1\n"
 "   ragel-rust           Rust        -T0 -T1 -F0 -F1\n"
+"   ragel-zig            Zig         All code styles supported\n"
 "   ragel-julia          Julia       -T0 -T1 -F0 -F1\n"
 "   ragel-crack          Crack       -T0 -T1 -F0 -F1\n"
 "   ragel-js             JavaScript  -T0 -T1 -F0 -F1\n"

@@ -24,6 +24,7 @@ EXTRA_DIST = \
 	trans-ocaml.lm \
 	trans-ruby.lm \
 	trans-rust.lm \
+	trans-zig.lm \
 	$(CASES)
 
 trans.c: trans.lm $(TRANS_DEPS) $(COLM_BIN)
@@ -47,6 +48,7 @@ CASES =  \
 	case/any1.rl \
 	case/any1_ruby.rl \
 	case/any1_rust.rl \
+	case/any1_zig.rl \
 	case/atoi1_asm.rl \
 	case/atoi1_crack.rl \
 	case/atoi1_c.rl \
@@ -59,6 +61,7 @@ CASES =  \
 	case/atoi1.rl \
 	case/atoi1_ruby.rl \
 	case/atoi1_rust.rl \
+	case/atoi1_zig.rl \
 	case/atoi2_asm.rl \
 	case/atoi2_crack.rl \
 	case/atoi2_c.rl \
@@ -71,6 +74,7 @@ CASES =  \
 	case/atoi2.rl \
 	case/atoi2_ruby.rl \
 	case/atoi2_rust.rl \
+	case/atoi2_zig.rl \
 	case/call4_asm.rl \
 	case/call4_crack.rl \
 	case/call4_c.rl \
@@ -81,6 +85,7 @@ CASES =  \
 	case/call4_julia.rl \
 	case/call4.rl \
 	case/call4_rust.rl \
+	case/call4_zig.rl \
 	case/caseindep_asm.rl \
 	case/caseindep_crack.rl \
 	case/caseindep_c.rl \
@@ -93,6 +98,7 @@ CASES =  \
 	case/caseindep.rl \
 	case/caseindep_ruby.rl \
 	case/caseindep_rust.rl \
+	case/caseindep_zig.rl \
 	case/clang4_asm.rl \
 	case/clang4_crack.rl \
 	case/clang4_c.rl \
@@ -105,6 +111,7 @@ CASES =  \
 	case/clang4.rl \
 	case/clang4_ruby.rl \
 	case/clang4_rust.rl \
+	case/clang4_zig.rl \
 	case/cond1_asm.rl \
 	case/cond1_crack.rl \
 	case/cond1_c.rl \
@@ -117,6 +124,7 @@ CASES =  \
 	case/cond1.rl \
 	case/cond1_ruby.rl \
 	case/cond1_rust.rl \
+	case/cond1_zig.rl \
 	case/cond7_asm.rl \
 	case/cond7_crack.rl \
 	case/cond7_c.rl \
@@ -129,6 +137,7 @@ CASES =  \
 	case/cond7.rl \
 	case/cond7_ruby.rl \
 	case/cond7_rust.rl \
+	case/cond7_zig.rl \
 	case/cppscan6_asm.rl \
 	case/cppscan6_crack.rl \
 	case/cppscan6_c.rl \
@@ -141,6 +150,7 @@ CASES =  \
 	case/cppscan6.rl \
 	case/cppscan6_ruby.rl \
 	case/cppscan6_rust.rl \
+	case/cppscan6_zig.rl \
 	case/curs1_asm.rl \
 	case/curs1_crack.rl \
 	case/curs1_c.rl \
@@ -153,6 +163,7 @@ CASES =  \
 	case/curs1.rl \
 	case/curs1_ruby.rl \
 	case/curs1_rust.rl \
+	case/curs1_zig.rl \
 	case/empty1_asm.rl \
 	case/empty1_crack.rl \
 	case/empty1_c.rl \
@@ -165,6 +176,7 @@ CASES =  \
 	case/empty1.rl \
 	case/empty1_ruby.rl \
 	case/empty1_rust.rl \
+	case/empty1_zig.rl \
 	case/eofact_asm.rl \
 	case/eofact_crack.rl \
 	case/eofact_c.rl \
@@ -177,6 +189,7 @@ CASES =  \
 	case/eofact.rl \
 	case/eofact_ruby.rl \
 	case/eofact_rust.rl \
+	case/eofact_zig.rl \
 	case/erract2_asm.rl \
 	case/erract2_crack.rl \
 	case/erract2_c.rl \
@@ -189,6 +202,7 @@ CASES =  \
 	case/erract2.rl \
 	case/erract2_ruby.rl \
 	case/erract2_rust.rl \
+	case/erract2_zig.rl \
 	case/goto1_asm.rl \
 	case/goto1_crack.rl \
 	case/goto1_c.rl \
@@ -199,6 +213,7 @@ CASES =  \
 	case/goto1_julia.rl \
 	case/goto1.rl \
 	case/goto1_rust.rl \
+	case/goto1_zig.rl \
 	case/gotocallret1_asm.rl \
 	case/gotocallret1_crack.rl \
 	case/gotocallret1_c.rl \
@@ -209,6 +224,7 @@ CASES =  \
 	case/gotocallret1_julia.rl \
 	case/gotocallret1.rl \
 	case/gotocallret1_rust.rl \
+	case/gotocallret1_zig.rl \
 	case/gotocallret2_asm.rl \
 	case/gotocallret2_crack.rl \
 	case/gotocallret2_c.rl \
@@ -219,6 +235,7 @@ CASES =  \
 	case/gotocallret2_julia.rl \
 	case/gotocallret2.rl \
 	case/gotocallret2_rust.rl \
+	case/gotocallret2_zig.rl \
 	case/gotocallret3_asm.rl \
 	case/gotocallret3_crack.rl \
 	case/gotocallret3_c.rl \
@@ -231,6 +248,7 @@ CASES =  \
 	case/gotocallret3.rl \
 	case/gotocallret3_ruby.rl \
 	case/gotocallret3_rust.rl \
+	case/gotocallret3_zig.rl \
 	case/ncall1_asm.rl \
 	case/ncall1_crack.rl \
 	case/ncall1_c.rl \
@@ -243,6 +261,7 @@ CASES =  \
 	case/ncall1.rl \
 	case/ncall1_ruby.rl \
 	case/ncall1_rust.rl \
+	case/ncall1_zig.rl \
 	case/next1_asm.rl \
 	case/next1_crack.rl \
 	case/next1_c.rl \
@@ -255,6 +274,7 @@ CASES =  \
 	case/next1.rl \
 	case/next1_ruby.rl \
 	case/next1_rust.rl \
+	case/next1_zig.rl \
 	case/next2_asm.rl \
 	case/next2_crack.rl \
 	case/next2_c.rl \
@@ -267,6 +287,7 @@ CASES =  \
 	case/next2.rl \
 	case/next2_ruby.rl \
 	case/next2_rust.rl \
+	case/next2_zig.rl \
 	case/patact_asm.rl \
 	case/patact_crack.rl \
 	case/patact_c.rl \
@@ -279,6 +300,7 @@ CASES =  \
 	case/patact.rl \
 	case/patact_ruby.rl \
 	case/patact_rust.rl \
+	case/patact_zig.rl \
 	case/rangei_asm.rl \
 	case/rangei_crack.rl \
 	case/rangei_c.rl \
@@ -291,6 +313,7 @@ CASES =  \
 	case/rangei.rl \
 	case/rangei_ruby.rl \
 	case/rangei_rust.rl \
+	case/rangei_zig.rl \
 	case/scan1_asm.rl \
 	case/scan1_crack.rl \
 	case/scan1_c.rl \
@@ -303,6 +326,7 @@ CASES =  \
 	case/scan1.rl \
 	case/scan1_ruby.rl \
 	case/scan1_rust.rl \
+	case/scan1_zig.rl \
 	case/scan2_asm.rl \
 	case/scan2_crack.rl \
 	case/scan2_c.rl \
@@ -315,6 +339,7 @@ CASES =  \
 	case/scan2.rl \
 	case/scan2_ruby.rl \
 	case/scan2_rust.rl \
+	case/scan2_zig.rl \
 	case/scan3_asm.rl \
 	case/scan3_crack.rl \
 	case/scan3_c.rl \
@@ -327,6 +352,7 @@ CASES =  \
 	case/scan3.rl \
 	case/scan3_ruby.rl \
 	case/scan3_rust.rl \
+	case/scan3_zig.rl \
 	case/scan4_asm.rl \
 	case/scan4_crack.rl \
 	case/scan4_c.rl \
@@ -339,6 +365,7 @@ CASES =  \
 	case/scan4.rl \
 	case/scan4_ruby.rl \
 	case/scan4_rust.rl \
+	case/scan4_zig.rl \
 	case/stateact1_asm.rl \
 	case/stateact1_crack.rl \
 	case/stateact1_c.rl \
@@ -351,6 +378,7 @@ CASES =  \
 	case/stateact1.rl \
 	case/stateact1_ruby.rl \
 	case/stateact1_rust.rl \
+	case/stateact1_zig.rl \
 	case/targs1_asm.rl \
 	case/targs1_crack.rl \
 	case/targs1_c.rl \
@@ -363,6 +391,7 @@ CASES =  \
 	case/targs1.rl \
 	case/targs1_ruby.rl \
 	case/targs1_rust.rl \
+	case/targs1_zig.rl \
 	case/zlen1_asm.rl \
 	case/zlen1_crack.rl \
 	case/zlen1_c.rl \
@@ -374,7 +403,8 @@ CASES =  \
 	case/zlen1_ocaml.rl \
 	case/zlen1.rl \
 	case/zlen1_ruby.rl \
-	case/zlen1_rust.rl
+	case/zlen1_rust.rl \
+	case/zlen1_zig.rl
 
 CLEANFILES = trans.c
 

@@ -119,7 +119,8 @@ add_executable(ragel
 target_link_libraries(ragel libragel libfsm)
 
 foreach(_SUBDIR host-ruby host-asm host-julia host-ocaml host-c host-d
-		host-csharp host-go host-java host-rust host-crack host-js)
+		host-csharp host-go host-java host-rust host-crack host-js
+		host-zig)
 	add_subdirectory(${_SUBDIR})
 endforeach()
 

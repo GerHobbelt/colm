@@ -14,7 +14,7 @@ This repository contains two closely related projects:
 
 - **Ragel**: A state machine compiler that generates executable finite state
   machines from regular expressions and state machine specifications. It targets
-  12+ languages: C, C++, D, Java, Ruby, C#, Go, OCaml, Rust, Julia, JavaScript,
+  13+ languages: C, C++, D, Java, Ruby, C#, Go, OCaml, Rust, Julia, Zig, JavaScript,
   GNU ASM x86-64, and Crack.
 
 Colm bootstraps Ragel -- Ragel's parser is written in Colm (`src/ragel/*.lm`).
@@ -64,6 +64,7 @@ ragel -T0 -o output.c input.rl
 ragel-c input.rl
 ragel-go input.rl
 ragel-rust input.rl
+ragel-zig input.rl
 ```
 
 ## Testing
@@ -118,9 +119,9 @@ cd test/trans.d && ../../test/runtests    # Translation tests
    - `rlreduce.lm`: Reduction rules
 
 3. **Host Language Targets** (src/ragel/host-*/):
-   - 12 directories: `host-asm/`, `host-c/`, `host-crack/`, `host-csharp/`,
+   - 13 directories: `host-asm/`, `host-c/`, `host-crack/`, `host-csharp/`,
      `host-d/`, `host-go/`, `host-java/`, `host-js/`, `host-julia/`,
-     `host-ocaml/`, `host-ruby/`, `host-rust/`
+     `host-ocaml/`, `host-ruby/`, `host-rust/`, `host-zig/`
    - Each contains language-specific parser grammar and code generation
 
 4. **Ragel Compilation Pipeline**:

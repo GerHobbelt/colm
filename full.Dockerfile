@@ -12,8 +12,16 @@ RUN apt-get update && apt-get install -y \
 	git libtool autoconf automake g++ gcc make \
 	wget clang gnupg gdc default-jdk \
 	ruby mono-mcs golang ocaml rustc julia \
+	xz-utils \
 	gnustep-make python2 python-is-python2 \
 	libpcre3-dev libgnustep-base-dev
+
+# Zig is not packaged for focal.
+WORKDIR /devel/zig
+RUN wget https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz
+RUN mkdir -p /pkgs/zig && \
+	tar -xJf zig-x86_64-linux-0.16.0.tar.xz -C /pkgs/zig --strip-components=1
+ENV PATH=/pkgs/zig:$PATH
 
 WORKDIR /devel/llvm/
 RUN wget https://releases.llvm.org/3.3/llvm-3.3.src.tar.gz

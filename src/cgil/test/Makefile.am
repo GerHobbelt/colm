@@ -1,7 +1,7 @@
 bin_PROGRAMS = \
 	cgil-c cgil-crack cgil-csharp cgil-d \
 	cgil-go cgil-java cgil-js cgil-julia \
-	cgil-ocaml cgil-ruby cgil-rust
+	cgil-ocaml cgil-ruby cgil-rust cgil-zig
 
 check_SCRIPTS = subject.mk subject.sh runtests
 
@@ -53,4 +53,7 @@ cgil-ruby$(EXEEXT): $(top_srcdir)/src/cgil/rlhc-ruby.lm $(top_srcdir)/src/cgil/r
 	$(SUBJ_COLM_BIN) -B '$(top_builddir)' -I .. -o $@ $<
 
 cgil-rust$(EXEEXT): $(top_srcdir)/src/cgil/rlhc-rust.lm $(top_srcdir)/src/cgil/ril.lm $(SUBJ_COLM_BIN)
+	$(SUBJ_COLM_BIN) -B '$(top_builddir)' -I .. -o $@ $<
+
+cgil-zig$(EXEEXT): $(top_srcdir)/src/cgil/rlhc-zig.lm $(top_srcdir)/src/cgil/ril.lm $(SUBJ_COLM_BIN)
 	$(SUBJ_COLM_BIN) -B '$(top_builddir)' -I .. -o $@ $<

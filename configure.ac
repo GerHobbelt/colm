@@ -184,6 +184,7 @@ AC_ARG_WITH(subject,
 		SUBJ_RAGEL_OCAML_BIN="$withval/bin/ragel-ocaml"
 		SUBJ_RAGEL_ASM_BIN="$withval/bin/ragel-asm"
 		SUBJ_RAGEL_RUST_BIN="$withval/bin/ragel-rust"
+		SUBJ_RAGEL_ZIG_BIN="$withval/bin/ragel-zig"
 		SUBJ_RAGEL_CRACK_BIN="$withval/bin/ragel-crack"
 		SUBJ_RAGEL_JULIA_BIN="$withval/bin/ragel-julia"
 	],
@@ -208,6 +209,7 @@ AC_ARG_WITH(subject,
 		SUBJ_RAGEL_OCAML_BIN='$(abs_top_builddir)/src/ragel/host-ocaml/ragel-ocaml'
 		SUBJ_RAGEL_ASM_BIN='$(abs_top_builddir)/src/ragel/host-asm/ragel-asm'
 		SUBJ_RAGEL_RUST_BIN='$(abs_top_builddir)/src/ragel/host-rust/ragel-rust'
+		SUBJ_RAGEL_ZIG_BIN='$(abs_top_builddir)/src/ragel/host-zig/ragel-zig'
 		SUBJ_RAGEL_CRACK_BIN='$(abs_top_builddir)/src/ragel/host-crack/ragel-crack'
 		SUBJ_RAGEL_JULIA_BIN='$(abs_top_builddir)/src/ragel/host-julia/ragel-julia'
 	]
@@ -229,6 +231,7 @@ SED_SUBST="$SED_SUBST -e 's|@SUBJ_RAGEL_GO_BIN@|${SUBJ_RAGEL_GO_BIN}|g'"
 SED_SUBST="$SED_SUBST -e 's|@SUBJ_RAGEL_OCAML_BIN@|${SUBJ_RAGEL_OCAML_BIN}|g'"
 SED_SUBST="$SED_SUBST -e 's|@SUBJ_RAGEL_ASM_BIN@|${SUBJ_RAGEL_ASM_BIN}|g'"
 SED_SUBST="$SED_SUBST -e 's|@SUBJ_RAGEL_RUST_BIN@|${SUBJ_RAGEL_RUST_BIN}|g'"
+SED_SUBST="$SED_SUBST -e 's|@SUBJ_RAGEL_ZIG_BIN@|${SUBJ_RAGEL_ZIG_BIN}|g'"
 SED_SUBST="$SED_SUBST -e 's|@SUBJ_RAGEL_CRACK_BIN@|${SUBJ_RAGEL_CRACK_BIN}|g'"
 SED_SUBST="$SED_SUBST -e 's|@SUBJ_RAGEL_JULIA_BIN@|${SUBJ_RAGEL_JULIA_BIN}|g'"
 
@@ -283,6 +286,7 @@ AC_PATH_PROG([GO_BIN], [go])
 AC_PATH_PROG([OCAML_BIN], [ocaml])
 AC_PATH_PROG([RUST_BIN], [rustc])
 AC_PATH_PROG([JULIA_BIN], [julia])
+AC_PATH_PROG([ZIG_BIN], [zig])
 
 dnl
 dnl Julia requires a large virtual address space. On systems where this is
@@ -365,6 +369,7 @@ SED_SUBST="$SED_SUBST -e 's|@GO_BIN@|${GO_BIN}|g'"
 SED_SUBST="$SED_SUBST -e 's|@OCAML_BIN@|${OCAML_BIN}|g'"
 SED_SUBST="$SED_SUBST -e 's|@RUST_BIN@|${RUST_BIN}|g'"
 SED_SUBST="$SED_SUBST -e 's|@JULIA_BIN@|${JULIA_BIN}|g'"
+SED_SUBST="$SED_SUBST -e 's|@ZIG_BIN@|${ZIG_BIN}|g'"
 SED_SUBST="$SED_SUBST -e 's|@GNUSTEP_CONFIG@|${GNUSTEP_CONFIG}|g'"
 SED_SUBST="$SED_SUBST -e 's|@ASM_BIN@|${ASM_BIN}|g'"
 
@@ -497,6 +502,7 @@ AC_CONFIG_FILES([
 	src/ragel/host-ocaml/Makefile
 	src/ragel/host-ruby/Makefile
 	src/ragel/host-rust/Makefile
+	src/ragel/host-zig/Makefile
 ])
 AC_OUTPUT
 

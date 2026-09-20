@@ -1,5 +1,6 @@
 SUBDIRS = . host-ruby host-asm host-julia host-ocaml host-c \
-	host-d host-csharp host-go host-java host-rust host-crack host-js
+	host-d host-csharp host-go host-java host-rust host-crack host-js \
+	host-zig
 
 # libragel contains the parse tree and other parsing support code. Everything
 # except the reducers, which are specific to the frontends.

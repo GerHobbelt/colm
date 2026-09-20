@@ -1,0 +1,10 @@
+{
+	_resume: {}
+	goto _out;
+	_out: {}
+}
+{
+	_resume: {}
+	goto _out;
+	_out: {}
+}
