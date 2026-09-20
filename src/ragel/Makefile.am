@@ -22,7 +22,8 @@ endif
 #
 # libragel: ragel program minus host-specific code
 #
-libragel_la_CPPFLAGS = -I$(top_srcdir)/src/aapl -I$(top_srcdir)/src/include -DBINDIR='"@bindir@"'
+libragel_la_CPPFLAGS = -I$(top_srcdir)/src/aapl $(LIBFSM_CPPFLAGS) $(LIBCOLM_CPPFLAGS) \
+	-DBINDIR='"@bindir@"'
 
 dist_libragel_la_SOURCES = \
 	parsedata.h parsetree.h inputdata.h pcheck.h reducer.h rlscan.h load.h \
@@ -43,7 +44,7 @@ endif
 #
 # ragel program.
 #
-ragel_CPPFLAGS = -I$(top_srcdir)/src/aapl -I$(top_srcdir)/src/include
+ragel_CPPFLAGS = -I$(top_srcdir)/src/aapl $(LIBFSM_CPPFLAGS) $(LIBCOLM_CPPFLAGS)
 
 dist_ragel_SOURCES = \
 	main.cc

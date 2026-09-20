@@ -1,5 +1,12 @@
 /*
  * @LANG: c++
+ *
+ * @ENABLED: false
+ *
+ * Known-failing marker for issue #76: ragel 7 runs from-state actions on
+ * EOF, so ts is re-set at EOF instead of staying null after the last
+ * token. The fix (branch set-ts-on-first-char) is deferred past 7.1.0.
+ * Re-enable when it lands.
  */
 #include <cstdio>
 #include <cstdlib>

@@ -1,8 +1,3 @@
-COLM_BIN = ../../src/colm
-
-COLM_xCPPFLAGS = -I../../src/include
-COLM_xLDADD = ../../src/libcolm.la
-
 check_PROGRAMS = trans
 
 EXTRA_DIST = \
@@ -27,12 +22,12 @@ EXTRA_DIST = \
 	trans-zig.lm \
 	$(CASES)
 
-trans.c: trans.lm $(TRANS_DEPS) $(COLM_BIN)
-	$(COLM_BIN) -b trans_object -c -o $@ -I$(srcdir) $<
+trans.c: trans.lm $(TRANS_DEPS) $(COLM)
+	$(COLM) -b trans_object -c -o $@ -I$(srcdir) $<
 
-trans_CPPFLAGS = $(COLM_xCPPFLAGS)
+trans_CPPFLAGS = $(LIBCOLM_CPPFLAGS)
 trans_SOURCES = actparams.cc trans.c main.c
-trans_LDADD = $(COLM_xLDADD)
+trans_LDADD = $(LIBCOLM_LA)
 trans_LDFLAGS = -static
 
 CASES =  \

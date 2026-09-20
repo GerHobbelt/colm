@@ -4,7 +4,7 @@ else
 noinst_PROGRAMS = ragel-zig
 endif
 
-ragel_zig_CPPFLAGS = -I$(top_srcdir)/src/aapl -I$(top_srcdir)/src/ragel -I$(top_srcdir)/src/include
+ragel_zig_CPPFLAGS = -I$(top_srcdir)/src/aapl -I$(top_srcdir)/src/ragel $(LIBFSM_CPPFLAGS) $(LIBCOLM_CPPFLAGS)
 
 dist_ragel_zig_SOURCES = main.cc rlhc.c
 

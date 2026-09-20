@@ -29,8 +29,14 @@ add_library(libfsm
 	goto.cc gotoloop.cc gotoexp.cc ipgoto.cc
 	dot.cc asm.cc)
 
+# Consumers include the headers as <libfsm/...>, so the parent of this
+# directory is the include root in the build tree, as ${includedir} is once
+# installed.
+get_filename_component(_libfsm_include_root "${CMAKE_CURRENT_LIST_DIR}" DIRECTORY)
+
 target_include_directories(libfsm
 	PUBLIC
+	$<BUILD_INTERFACE:${_libfsm_include_root}>
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>
 	$<BUILD_INTERFACE:${COLM_BUILD_INCLUDE_DIR}>
 	$<BUILD_INTERFACE:${COLM_AAPL_INCLUDE_DIR}>

@@ -474,9 +474,9 @@ void compileOutput()
 		        << " -g " << cflags
 		        << " -o " << binaryFn
 		        << " " << intermedFn
-		        << " -I" << fromBuildDir << "/src/include"
+		        << " -I" << fromBuildDir << "/src/colm/include"
 		        << " -static"
-		        << " " << fromBuildDir << "/src/libcolm.la";
+		        << " " << fromBuildDir << "/src/colm/libcolm.la";
 	}
 	else {
 		command << compiler << " -Wall -Wwrite-strings"

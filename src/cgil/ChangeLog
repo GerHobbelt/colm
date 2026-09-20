@@ -1,4 +1,4 @@
-cgil 1.0.0 - Aug 19, 2026
+cgil 1.0.0 - Aug 26, 2026
 -------------------------
 	* First independently versioned release. CGIL is the code generation
 	  intermediate language: the ril grammar plus the per-host-language rlhc

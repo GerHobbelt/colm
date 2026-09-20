@@ -1,4 +1,4 @@
-colm 0.15.0 - Aug 19, 2026
+colm 0.15.0 - Aug 26, 2026
 --------------------------
 	* Colm and ragel are distributed together, in a single colm-suite tarball.
 	  Ragel's front end is written in colm, and earlier ragel 7 releases

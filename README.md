@@ -9,6 +9,7 @@ The Colm Suite is a unified distribution of two closely related language tools:
 The two projects share components and have a build dependency, so a unified
 repository simplifies development and building. The significant links are:
 
+- The **colm compiler and runtime** (`src/colm/`) -- one sub-package of the suite, alongside the others below.
 - The **FSM library** (`src/libfsm/`) -- finite state machine construction and manipulation, used by both Colm and Ragel.
 - The **code generation intermediate language** (`src/cgil/`) -- written in Colm, used by both projects for target language code generation.
 - Ragel's **frontend is written in Colm** (`src/ragel/*.lm`), so Colm must build first to bootstrap Ragel.

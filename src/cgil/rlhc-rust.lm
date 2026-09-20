@@ -27,9 +27,19 @@ namespace rust_out
 
 		token lifetime / "'" id /
 
+		# The string form covers byte and C strings as well; the prefix scans as
+		# an id and the escape loop already accepts backslash-anything, which
+		# takes in \xNN, \u{...} and the backslash-newline continuation. The
+		# char form must spell out the multi-character escapes because it takes
+		# exactly one item before the closing quote.
 		token string /
 				'"' ( [^"\\] | '\\' any ) * '"' |
-				"'" ( [^\\] | '\\' any ) "'"
+				"'" (
+					[^\\] |
+					'\\' 'x' [0-9a-fA-F] [0-9a-fA-F] |
+					'\\' 'u{' [0-9a-fA-F_]+ '}' |
+					'\\' any
+				) "'"
 			/
 
 		ignore

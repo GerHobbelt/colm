@@ -18,8 +18,19 @@ rl block_comment
 rl line_comment
 	/ '//' [^\n]* NL /
 
+# A char literal holds exactly one item, so the multi-character escapes have to
+# be spelled out; backslash-anything alone stops at '\x' and '\u'. This keeps
+# the literal atomic instead of letting its interior scan as separate tokens,
+# and matches what the output grammar in cgil/rlhc-rust.lm accepts.
+rl char_escape
+	/ '\\' (
+		'x' [0-9a-fA-F] [0-9a-fA-F] |
+		'u{' [0-9a-fA-F_]+ '}' |
+		(any | NL)
+	) /
+
 rl char_literal
-	/ "'" ([^\\\n] | '\\' (any | NL)) "'" /
+	/ "'" ([^\\\n] | char_escape) "'" /
 
 rl string_literal
 	/ '"' ([^"\\] | NL | '\\' (any | NL))* '"' /

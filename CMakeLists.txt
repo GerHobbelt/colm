@@ -23,10 +23,10 @@ endif()
 #
 file(READ "${CMAKE_CURRENT_LIST_DIR}/configure.ac" _configure_ac)
 
-# The suite version is ragel's, being the highest of the components. Colm
-# versions independently and lower, so it carries its own number.
+# The suite is a calendar-versioned distribution, YYYY.MM; each component
+# carries its own version, declared as variables further down.
 #
-# AC_INIT([colm-suite],[7.1.0-pre.1])
+# AC_INIT([colm-suite],[2026.08])
 set(_ac_init_re "AC_INIT\\(\\[?([A-Za-z0-9_.+-]+)\\]?,[ \t]*\\[?([A-Za-z0-9_.+-]+)\\]?")
 if(NOT _configure_ac MATCHES "${_ac_init_re}")
 	message(FATAL_ERROR "could not read AC_INIT from configure.ac")
@@ -162,7 +162,7 @@ endif()
 
 #
 # Configuration checks. These mirror the ones performed by configure.ac and
-# feed src/config.h.cmake.in and src/defs.h.cmake.in.
+# feed src/colm/config.h.cmake.in and src/colm/defs.h.cmake.in.
 #
 include(CheckTypeSize)
 check_type_size("int" SIZEOF_INT)
@@ -183,7 +183,7 @@ if("${CMAKE_BUILD_TYPE}" MATCHES "[Dd][Ee][Bb]")
 	set(DEBUG 1)
 endif()
 
-# Definitions needed by src/main.cc when it drives the C compiler.
+# Definitions needed by src/colm/main.cc when it drives the C compiler.
 set(common_COMPILE_DEFINITIONS
 	PREFIX="${CMAKE_INSTALL_PREFIX}"
 	INCLUDEDIR="${CMAKE_INSTALL_FULL_INCLUDEDIR}"

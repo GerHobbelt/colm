@@ -1,3 +1,28 @@
+Aapl 2.15.0 - August 26, 2026
+=============================
+ -First release since 2.14, twenty years on. Aapl now ships as a component
+  of the colm suite rather than on its own, and is versioned independently
+  within it. The headers install to PREFIX/include/aapl; the doxygen
+  documentation and the test suite are no longer distributed.
+ -Relicensed from the GPL to the MIT license.
+ -A string class is back, in astring.h. It had been removed in 2.13 in
+  favour of the STL string; this one exists for use inside the colm
+  runtime. Added buffer.h, a small growable character buffer, and rope.h,
+  a block-linked rope for append-heavy accumulation.
+ -Added the CmpStr and CmpString comparison classes to compare.h, wrapping
+  strcmp and std::string::compare.
+ -Avl tree fixes: the copy constructors initialize the Compare base class,
+  and empty() and abandon() reset the head and tail pointers kept by the
+  linked variants.
+ -Added an El typedef to the Avl trees, naming the element type the way
+  the other containers do.
+ -The string class handles va_list correctly when vsnprintf must run
+  twice: va_start is re-issued before the second call.
+ -Element pointers are cast to void* before being passed to memmove and
+  memcpy, quieting the class-memaccess warnings of modern compilers, and
+  compare calls are qualified with this-> for two-phase name lookup.
+  Assorted fixes for warnings from newer g++ versions.
+
 Aapl 2.14 - March 17, 2006
 ==========================
  -Added a transfer function to the double list. This function should supersede

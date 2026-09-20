@@ -112,14 +112,14 @@ cd test/trans.d && ../../test/runtests    # Translation tests
 
 ### Colm
 
-1. **Compiler Pipeline** (src/):
+1. **Compiler Pipeline** (src/colm/):
    - `parsedata.cc/h`: Main parser data structures
    - `parsetree.cc/h`: Parse tree construction
    - `synthesis.cc`: Code synthesis and generation
    - `bytecode.cc/h`: Bytecode generation for the VM
    - `pdarun.c`: Runtime parser driver
 
-2. **Runtime System** (src/):
+2. **Runtime System** (src/colm/):
    - `colm.c`: Main runtime entry point
    - `tree.c`: Tree manipulation runtime
    - `input.c`: Input stream handling

@@ -1,5 +1,3 @@
-COLM_BIN = ../../src/colm
-
 RLHC_DEP = \
 	rlhc-host.lm \
 	rlhc-c.lm \
@@ -19,8 +17,8 @@ EXTRA_DIST = gentests rlhc.lm $(RLHC_DEP) $(CASES)
 check_PROGRAMS = rlhc
 rlhc_SOURCES =
 
-rlhc$(EXEEXT): rlhc.lm $(RLHC_DEP) $(COLM_BIN)
-	$(COLM_BIN) -B '$(top_builddir)' -b rlhc_object -o $@ -I$(srcdir) $<
+rlhc$(EXEEXT): rlhc.lm $(RLHC_DEP) $(COLM)
+	$(COLM) -B '$(top_builddir)' -b rlhc_object -o $@ -I$(srcdir) $<
 
 CASES = \
 	case/atoi1_c.c-C-F1--goto-backend.exp \

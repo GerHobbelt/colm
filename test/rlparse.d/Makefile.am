@@ -1,7 +1,3 @@
-COLM_BIN = ../../src/colm
-COLM_xCPPFLAGS = -I../../src/include
-COLM_xLDADD = ../../src/libcolm.la
-
 check_PROGRAMS = rlparse
 
 rlparse_SOURCES = parse.c if.h if.cc commit.cc \
@@ -20,8 +16,8 @@ rlparse_SOURCES = parse.c if.h if.cc commit.cc \
 	bubblesort.h mergesort.h sbstmap.h sbstset.h sbsttable.h \
 	svector.h
 
-rlparse_CPPFLAGS = $(COLM_xCPPFLAGS)
-rlparse_LDADD = $(COLM_xLDADD)
+rlparse_CPPFLAGS = $(LIBCOLM_CPPFLAGS)
+rlparse_LDADD = $(LIBCOLM_LA)
 rlparse_LDFLAGS = -static
 
 EXTRA_DIST = \
@@ -31,8 +27,8 @@ EXTRA_DIST = \
 	case/rlparse.h case/rlscan.rl \
 	case/rlscan--colm-frontend.exp case/rlscan--reduce-frontend.exp
 
-parse.c: rlparse.lm reducer.lm $(RAGEL_LM) $(COLM_BIN)
-	$(COLM_BIN) -c -b rlparse_object -o $@ -e if.h -x if.cc -m commit.cc -I$(srcdir) $<
+parse.c: rlparse.lm reducer.lm $(RAGEL_LM) $(COLM)
+	$(COLM) -c -b rlparse_object -o $@ -e if.h -x if.cc -m commit.cc -I$(srcdir) $<
 
 if.h: parse.c
 if.cc: parse.c

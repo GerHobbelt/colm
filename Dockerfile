@@ -30,11 +30,10 @@
 # (gnustep), D, Java, Ruby, C#, Go, OCaml, Rust, Julia and Zig. Not covered:
 # crack, which is unpackaged and whose upstream is dormant (configure and the
 # test suite skip it silently when it is absent), and asm, which needs no
-# toolchain beyond $CC but is x86-64 only, so it never runs on arm64. Note the
-# configure probe for asm links its conftest without -no-pie while the tests
-# themselves pass it, so on a PIE-default gcc the asm tests are skipped even on
-# x86-64; that is a configure.ac matter, not an image one. The manual
-# toolchain (asciidoc, pygmentize) is not installed either.
+# toolchain beyond $CC but is x86-64 only, so it never runs on arm64. The
+# documentation toolchain and gpg are installed too, so release work can
+# happen in the container: building the manuals, signing and verifying
+# tarballs (a key must be mounted in; the image carries none).
 
 ARG UBUNTU_TAG=26.04
 ARG ZIG_VERSION=0.16.0
@@ -82,6 +81,26 @@ RUN set -eux; \
     apt-get install -y --no-install-recommends \
         gobjc gnustep-make libgnustep-base-dev \
         golang-go default-jdk ruby ocaml rustc gdc mono-devel; \
+    rm -rf /var/lib/apt/lists/*
+
+# Documentation toolchain and release tooling.
+#
+#   asciidoc          asciidoc and a2x, plus the icons the colm manual pulls
+#                     from /usr/share/asciidoc/icons; configure requires it
+#                     for --enable-manual
+#   python3-pygments  pygmentize, the manual's source highlighter; also
+#                     required by configure for --enable-manual
+#   fig2dev           the .fig diagrams in the ragel guide
+#   dblatex           the a2x pdf backend, for ragel-guide.pdf; by far the
+#                     largest piece, it pulls in tex live
+#   gnupg             gpg, for signing and verifying release tarballs
+#
+# Recommends are left on here: dblatex and asciidoc lean on recommended
+# tex and font packages that are painful to enumerate by hand.
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y \
+        asciidoc dblatex fig2dev python3-pygments gnupg; \
     rm -rf /var/lib/apt/lists/*
 
 # Zig, from the upstream binary tarballs. Not needed to build the tree; it is

@@ -23,7 +23,7 @@ dnl SOFTWARE.
 dnl The suite is a calendar-versioned distribution: YYYY.MM, zero padded,
 dnl with an optional micro for fixups (2026.08, then 2026.08.1) and -pre.N
 dnl for pre-releases. Each component carries its own version, declared below.
-AC_INIT([colm-suite],[2026.08-pre.1])
+AC_INIT([colm-suite],[2026.08])
 PUBDATE="August 2026"
 
 dnl
@@ -31,8 +31,8 @@ dnl Component versions. Every shipped component is versioned independently
 dnl of the suite: colm and ragel continue their own lines, aapl resumes the
 dnl line that ended at 2.14 in 2006, libfsm and cgil start their own.
 dnl
-COLM_VERSION="0.15.0-pre.1"
-COLM_PUBDATE="April 2026"
+COLM_VERSION="0.15.0"
+COLM_PUBDATE="August 2026"
 
 AAPL_VERSION="2.15.0"
 LIBFSM_VERSION="1.0.0"
@@ -242,9 +242,9 @@ AC_ARG_WITH(subject,
 	[
 		SUBJ_AAPL_CPPFLAGS='-I$(abs_top_srcdir)/src/aapl'
 
-		SUBJ_COLM_BIN='$(abs_top_builddir)/src/colm'
-		SUBJ_COLM_CPPFLAGS='-I$(abs_top_builddir)/src/include'
-		SUBJ_COLM_LDFLAGS='-L$(abs_top_builddir)/src/.libs -Wl,-rpath,${abs_top_builddir}/src/.libs'
+		SUBJ_COLM_BIN='$(abs_top_builddir)/src/colm/colm'
+		SUBJ_COLM_CPPFLAGS='-I$(abs_top_builddir)/src/colm/include'
+		SUBJ_COLM_LDFLAGS='-L$(abs_top_builddir)/src/colm/.libs -Wl,-rpath,${abs_top_builddir}/src/colm/.libs'
 
 		SUBJ_RAGEL_BIN='$(abs_top_builddir)/src/ragel/ragel'
 		SUBJ_RAGEL_CPPFLAGS='-I$(abs_top_builddir)/src/ragel/include -I$(abs_top_builddir)/src/aapl'
@@ -489,8 +489,8 @@ AC_SUBST(SED_SUBST)
 dnl
 dnl Ragel build configuration
 dnl
-RAGEL_VERSION="7.1.0-pre.1"
-RAGEL_PUBDATE="April 2026"
+RAGEL_VERSION="7.1.0"
+RAGEL_PUBDATE="August 2026"
 AC_SUBST(RAGEL_VERSION)
 AC_SUBST(RAGEL_PUBDATE)
 
@@ -500,19 +500,23 @@ SED_SUBST="$SED_SUBST -e 's|[@]RAGEL_VERSION[@]|$RAGEL_VERSION|g'"
 SED_SUBST="$SED_SUBST -e 's|[@]RAGEL_PUBDATE[@]|$RAGEL_PUBDATE|g'"
 
 dnl Use local colm components
-COLM='$(abs_top_builddir)/src/colm'
-COLM_WRAP='$(abs_top_builddir)/src/colm-wrap'
+COLM='$(abs_top_builddir)/src/colm/colm'
+COLM_WRAP='$(abs_top_builddir)/src/colm/colm-wrap'
 COLM_SHARE='$(abs_top_srcdir)/src/cgil'
-LIBCOLM_LA='$(abs_top_builddir)/src/libcolm.la'
+LIBCOLM_LA='$(abs_top_builddir)/src/colm/libcolm.la'
+LIBCOLM_CPPFLAGS='-I$(abs_top_builddir)/src/colm/include'
 LIBFSM_LA='$(abs_top_builddir)/src/libfsm/libfsm.la'
+LIBFSM_CPPFLAGS='-I$(abs_top_srcdir)/src'
 
 AC_SUBST(COLM)
 AC_SUBST(COLM_WRAP)
 AC_SUBST(COLM_SHARE)
 AC_SUBST(LIBCOLM_LA)
+AC_SUBST(LIBCOLM_CPPFLAGS)
 AC_SUBST(LIBFSM_LA)
+AC_SUBST(LIBFSM_CPPFLAGS)
 
-AC_CONFIG_HEADERS([src/config.h src/defs.h src/version.h])
+AC_CONFIG_HEADERS([src/colm/config.h src/colm/defs.h src/colm/version.h])
 m4_foreach_w([header],
 	[
 		config.h
@@ -531,7 +535,7 @@ m4_foreach_w([header],
 		internal.h
 		colmex.h
 	],
-	[AC_CONFIG_LINKS(src/include/colm/header:src/header)]
+	[AC_CONFIG_LINKS(src/colm/include/colm/header:src/colm/header)]
 )
 AC_CONFIG_FILES([
 	Makefile
@@ -539,6 +543,7 @@ AC_CONFIG_FILES([
 	src/libfsm/Makefile
 	src/cgil/Makefile
 	src/cgil/test/Makefile
+	src/colm/Makefile
 	src/Makefile
 	test/Makefile
 	test/aapl.d/Makefile

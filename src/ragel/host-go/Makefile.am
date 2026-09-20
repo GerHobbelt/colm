@@ -5,7 +5,7 @@ else
 noinst_PROGRAMS = ragel-go
 endif
 
-ragel_go_CPPFLAGS = -I$(top_srcdir)/src/aapl -I$(top_srcdir)/src/ragel -I$(top_srcdir)/src/include
+ragel_go_CPPFLAGS = -I$(top_srcdir)/src/aapl -I$(top_srcdir)/src/ragel $(LIBFSM_CPPFLAGS) $(LIBCOLM_CPPFLAGS)
 
 dist_ragel_go_SOURCES = main.cc rlhc.c
 

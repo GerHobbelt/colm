@@ -1,4 +1,4 @@
-Ragel 7.1.0 - Aug 19, 2026
+Ragel 7.1.0 - Aug 26, 2026
 ==========================
  -Added Zig as a host language. The ragel-zig program supports all code
   styles.
