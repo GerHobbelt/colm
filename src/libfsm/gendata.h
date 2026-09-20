@@ -26,7 +26,6 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include "config.h"
 #include "redfsm.h"
 #include "common.h"
 #include "fsmgraph.h"

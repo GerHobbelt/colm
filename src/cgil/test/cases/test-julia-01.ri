@@ -1,0 +1,9 @@
+host( "test.rl", 1 ) @{
+x = A' * B'
+y = (A*B)' + A[1]'
+z = A \ b
+run(`ls -l {`)
+s = """it's a "quote" {"""
+α ≤ β
+
+}@

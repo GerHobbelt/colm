@@ -10,28 +10,39 @@ namespace js_out
 			'/*' any* :>> '*/'
 		/
 
+		# Identifiers admit any byte outside ASCII. The scanner works on bytes
+		# and does not decode UTF-8; a non-ASCII character in a name is a run of
+		# high bytes, which is enough to locate the braces around it.
 		token id
-			/[a-zA-Z_][a-zA-Z_0-9]*/
+			/( [a-zA-Z_] | 0x80..0xff ) ( [a-zA-Z_0-9] | 0x80..0xff )*/
 
 		token number /
 			[0-9]+
 		/
 
+		# Backslash begins a unicode escape in an identifier, and escapes
+		# inside a regular expression literal, which is otherwise scanned as
+		# the symbols and names it is made of.
 		token symbol /
 			'!' | '#' | '$' | '%' | '&' | '(' | ')' | '*' |
 			'+' | ',' | '-' | '.' | '/' | ':' | ';' | '<' |
 			'=' | '>' | '?' | '@' | '[' | ']' | '^' | '|' |
-			'~' /
+			'~' | '\\' /
 
 		literal `{ `}
 
+		# The backtick form is the template literal. A substitution inside it
+		# is hidden along with the rest of the literal; its braces pair on their
+		# own, so the brace matching loses nothing. A template nested inside a
+		# substitution is not modelled.
 		token string /
 				'"' ( [^"\\] | '\\' any ) * '"' |
-				"'" ( [^'\\] | '\\' any ) * "'"
+				"'" ( [^'\\] | '\\' any ) * "'" |
+				'`' ( [^`\\] | '\\' any ) * '`'
 			/
 
 		ignore
-			/[ \t\v\r\n]+/
+			/[ \t\v\f\r\n]+/
 	end
 
 	def item
@@ -492,6 +503,7 @@ namespace js_gen
 		else {
 			send stderr
 				"failed to parse output: [Parser->error]
+			exit(1)
 		}
 	}
 end

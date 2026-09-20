@@ -12,9 +12,6 @@ set(COLM_CGIL_DIR "${CMAKE_CURRENT_LIST_DIR}/cgil")
 # is the cmake equivalent of the AC_CONFIG_LINKS block in configure.ac.
 set(COLM_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/colm/include")
 
-# Where the generated config.h lives. libfsm and ragel include it.
-set(COLM_BUILD_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/colm")
-
 # colm is built before cgil and ragel, whose parsers are written in it. libfsm
 # does not depend on colm.
 add_subdirectory(aapl)

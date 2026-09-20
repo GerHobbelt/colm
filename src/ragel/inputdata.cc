@@ -46,7 +46,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
-#if defined(HAVE_SYS_WAIT_H)
+#ifndef _WIN32
 #include <sys/wait.h>
 #endif
 
@@ -1317,7 +1317,7 @@ int InputData::runRlhc( int argc, const char **argv )
  * via the process's exit code. otherwise it comes back on the stack. */
 int InputData::runJob( const char *what, IdProcess idProcess, int argc, const char **argv )
 {
-#if defined(HAVE_SYS_WAIT_H)
+#ifndef _WIN32
 	if ( !noFork ) {
 		pid_t pid = fork();
 

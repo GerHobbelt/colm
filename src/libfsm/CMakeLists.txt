@@ -38,7 +38,6 @@ target_include_directories(libfsm
 	PUBLIC
 	$<BUILD_INTERFACE:${_libfsm_include_root}>
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>
-	$<BUILD_INTERFACE:${COLM_BUILD_INCLUDE_DIR}>
 	$<BUILD_INTERFACE:${COLM_AAPL_INCLUDE_DIR}>
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/aapl>
@@ -59,8 +58,7 @@ if(COLM_INSTALL_RAGEL)
 		list(APPEND _libfsm_install_hdr "${CMAKE_CURRENT_LIST_DIR}/${_hdr}")
 	endforeach()
 
-	# The public headers include "config.h", so it has to sit beside them.
-	install(FILES ${_libfsm_install_hdr} "${COLM_BUILD_INCLUDE_DIR}/config.h"
+	install(FILES ${_libfsm_install_hdr}
 		DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/libfsm")
 
 	install(TARGETS libfsm

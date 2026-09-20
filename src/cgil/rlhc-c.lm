@@ -11,18 +11,33 @@ namespace c_out
 			'/*' any* :>> '*/'
 		/
 
+		# Identifiers admit any byte outside ASCII. The scanner works on bytes
+		# and does not decode UTF-8; a non-ASCII character in a name is a run of
+		# high bytes, which is enough to locate the braces around it.
 		token id
-			/[a-zA-Z_][a-zA-Z_0-9]*/
+			/( [a-zA-Z_] | 0x80..0xff ) ( [a-zA-Z_0-9] | 0x80..0xff )*/
 
 		token number /
 			[0-9]+
 		/
 
+		# A preprocessor line. It runs to the end of the line, through any
+		# backslash-newline continuation, and hides its text from the brace
+		# matching: an #error or #warning message need not pair its quotes and a
+		# macro body need not balance its braces. Outside of a string or a
+		# comment a # begins a directive, so there is no other use to keep for
+		# it.
+		token directive /
+			'#' ( [^\n\\] | '\\' any )*
+		/
+
+		# Backslash is the line continuation, and begins a universal character
+		# name.
 		token symbol /
-			'!' | '#' | '$' | '%' | '&' | '(' | ')' | '*' |
+			'!' | '$' | '%' | '&' | '(' | ')' | '*' |
 			'+' | ',' | '-' | '.' | '/' | ':' | ';' | '<' |
 			'=' | '>' | '?' | '@' | '[' | ']' | '^' | '|' |
-			'~' /
+			'~' | '\\' /
 
 		literal `{ `}
 
@@ -32,11 +47,12 @@ namespace c_out
 			/
 
 		ignore
-			/[ \t\v\r\n]+/
+			/[ \t\v\f\r\n]+/
 	end
 
 	def item
 		[comment]
+	|	[directive]
 	|	[id]
 	|	[number]
 	|	[symbol]
@@ -450,6 +466,7 @@ namespace c_gen
 		else {
 			send stderr
 				"failed to parse output: [_->error]
+			exit(1)
 		}
 	}
 end

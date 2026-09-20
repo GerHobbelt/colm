@@ -23,7 +23,6 @@
 #ifndef _FSMGRAPH_H
 #define _FSMGRAPH_H
 
-#include "config.h"
 #include "ragel.h"
 #include "common.h"
 #include "vector.h"

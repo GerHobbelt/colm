@@ -1,0 +1,5 @@
+host( "test.rl", 1 ) @{
+out = `ls -l {`
+café = 1
+
+}@

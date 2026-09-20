@@ -185,37 +185,41 @@ void TableArray::startGenerate()
 
 void TableArray::stringGenerate( long long value )
 {
-	char c; 
+	/* Narrow the value to a variable of the table's width, then emit that
+	 * variable's bytes. Two of these types can have the same size, so this is
+	 * an if chain rather than a switch: the first match wins and there are no
+	 * duplicate case labels to worry about. */
+	char c;
 	short h;
 	int i;
-#if SIZEOF_INT != SIZEOF_LONG
 	long l;
-#endif
+	long long ll;
 	unsigned char *p = 0;
 	int n = 0;
-	switch ( width ) {
-		case sizeof( char ):
-			c = value;
-			p = (unsigned char *)&c;
-			n = sizeof(char);
-			break;
-		case sizeof( short ):
-			h = value;
-			p = (unsigned char *)&h;
-			n = sizeof(short);
-			break;
-		case sizeof( int ):
-			i = value;
-			p = (unsigned char *)&i;
-			n = sizeof(int);
-			break;
-#if SIZEOF_INT != SIZEOF_LONG
-		case sizeof( long ):
-			l = value;
-			p = (unsigned char *)&l;
-			n = sizeof(long);
-			break;
-#endif
+	if ( width == (int)sizeof( char ) ) {
+		c = value;
+		p = (unsigned char *)&c;
+		n = sizeof(char);
+	}
+	else if ( width == (int)sizeof( short ) ) {
+		h = value;
+		p = (unsigned char *)&h;
+		n = sizeof(short);
+	}
+	else if ( width == (int)sizeof( int ) ) {
+		i = value;
+		p = (unsigned char *)&i;
+		n = sizeof(int);
+	}
+	else if ( width == (int)sizeof( long ) ) {
+		l = value;
+		p = (unsigned char *)&l;
+		n = sizeof(long);
+	}
+	else if ( width == (int)sizeof( long long ) ) {
+		ll = value;
+		p = (unsigned char *)&ll;
+		n = sizeof(long long);
 	}
 
 	std::ios_base::fmtflags prevFlags = out.flags( std::ios::hex );

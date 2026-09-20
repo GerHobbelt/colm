@@ -25,11 +25,16 @@ else
 noinst_LTLIBRARIES = libfsm.la
 endif
 
-# nodist_pkginclude_HEADERS = config.h
-
 #
 # libfsm: state machine construction and direct code generation.
 #
+# libfsm takes nothing from configure: no config.h, no HAVE_* or SIZEOF_*
+# macros. nostdinc drops automake's implicit -I$(top_builddir)/src/colm, so a
+# stray include of colm's config.h fails to compile rather than quietly
+# succeeding.
+#
+AUTOMAKE_OPTIONS = nostdinc
+
 libfsm_la_CPPFLAGS = -I$(top_srcdir)/src/aapl
 
 dist_libfsm_la_SOURCES = \

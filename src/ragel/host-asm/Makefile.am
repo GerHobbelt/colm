@@ -4,7 +4,10 @@ else
 noinst_PROGRAMS = ragel-asm
 endif
 
-ragel_asm_CPPFLAGS = -I$(top_srcdir)/src/aapl -I$(top_srcdir)/src/ragel $(LIBFSM_CPPFLAGS) $(LIBCOLM_CPPFLAGS)
+AUTOMAKE_OPTIONS = nostdinc
+
+ragel_asm_CPPFLAGS = -I$(top_srcdir)/src/aapl -I$(top_srcdir)/src/ragel \
+	$(LIBFSM_CPPFLAGS) $(LIBCOLM_CPPFLAGS)
 
 dist_ragel_asm_SOURCES = main.cc
 
@@ -15,12 +18,14 @@ ragel_asm_LDADD = $(LIBFSM_LA) $(LIBCOLM_LA) ../libragel.la
 
 BUILT_SOURCES = rlparse.c rlreduce.cc
 
+CLEANFILES = rlparse.pack rlparse.c rlreduce.cc
+
 EXTRA_DIST = rlparse.lm CMakeLists.txt
 
 LM_DEPS = ../ragel.lm ../rlreduce.lm
 
 rlparse.pack: rlparse.lm $(COLM) $(COLM_WRAP) $(LM_DEPS)
-	$(COLM_WRAP) -c -I .. -b rlparseAsm -o $@ -p rlparse.c -m rlreduce.cc $<
+	$(COLM_WRAP) -c -I$(top_srcdir)/src/ragel -b rlparseAsm -o $@ -p rlparse.c -m rlreduce.cc $<
 
 rlparse.c: rlparse.pack
 	$(COLM_WRAP) -o $@ $<

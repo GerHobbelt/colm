@@ -26,7 +26,6 @@
 #include <assert.h>
 #include <string.h>
 #include <string>
-#include "config.h"
 #include "common.h"
 #include "vector.h"
 #include "dlist.h"

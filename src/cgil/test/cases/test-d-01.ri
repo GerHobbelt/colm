@@ -1,0 +1,5 @@
+host( "test.rl", 1 ) @{
+string s = `C:\path\ {`;
+int café = 1;
+
+}@

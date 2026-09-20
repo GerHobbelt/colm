@@ -12,28 +12,40 @@ namespace julia_out
 
 		literal `function `end `while `if `else `elseif
 
+		# Identifiers admit any byte outside ASCII. The scanner works on bytes
+		# and does not decode UTF-8; a non-ASCII character in a name is a run of
+		# high bytes, which is enough to locate the braces around it. Julia's
+		# unicode operators come in the same way. The trailing primes are the
+		# adjoint, which would otherwise open a char literal.
 		token id
-			/[a-zA-Z_][a-zA-Z_0-9]*/
+			/( [a-zA-Z_] | 0x80..0xff ) ( [a-zA-Z_0-9] | 0x80..0xff )* "'"*/
 
 		token number /
 			[0-9]+
 		/
 
+		# Backslash is the left division operator. A closing paren or bracket
+		# takes the adjoint primes that follow it, for the reason given on id.
 		token symbol /
-			'!' | '$' | '%' | '&' | '(' | ')' | '*' |
+			'!' | '$' | '%' | '&' | '(' | ')' "'"* | '*' |
 			'+' | ',' | '-' | '.' | '/' | ':' | ';' | '<' |
-			'=' | '>' | '?' | '@' | '[' | ']' | '^' | '|' |
-			'~' /
+			'=' | '>' | '?' | '@' | '[' | ']' "'"* | '^' | '|' |
+			'~' | '\\' /
 
 		literal `{ `}
 
+		# The backtick form is the command literal. The triple-quoted string
+		# must come first as a form of its own, since it may hold unpaired
+		# quotes.
 		token string /
+				'"""' any* :>> '"""' |
 				'"' ( [^"\\] | '\\' any ) * '"' |
-				"'" ( [^'\\] | '\\' any ) * "'"
+				"'" ( [^'\\] | '\\' any ) * "'" |
+				'`' ( [^`\\] | '\\' any ) * '`'
 			/
 
 		ignore
-			/[ \t\v\r\n]+/
+			/[ \t\v\f\r\n]+/
 	end
 
 	def kw
@@ -549,6 +561,7 @@ namespace julia_gen
 		else {
 			send stderr
 				"failed to parse output: [Parser->error]
+			exit(1)
 		}
 	}
 end

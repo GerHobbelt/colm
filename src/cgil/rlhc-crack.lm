@@ -10,6 +10,8 @@ namespace crack_out
 			'/*' any* :>> '*/'
 		/
 
+		# Identifiers are ASCII; a non-ASCII byte belongs in a string or a
+		# comment.
 		token id
 			/[a-zA-Z_][a-zA-Z_0-9]*/
 
@@ -32,7 +34,7 @@ namespace crack_out
 			/
 
 		ignore
-			/[ \t\v\r\n]+/
+			/[ \t\v\f\r\n]+/
 	end
 
 	def item
@@ -524,6 +526,7 @@ namespace crack_gen
 		else {
 			send stderr
 				"failed to parse output: [Parser->error]
+			exit(1)
 		}
 	}
 end

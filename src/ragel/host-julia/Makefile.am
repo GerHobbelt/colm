@@ -4,7 +4,10 @@ else
 noinst_PROGRAMS = ragel-julia
 endif
 
-ragel_julia_CPPFLAGS = -I$(top_srcdir)/src/aapl -I$(top_srcdir)/src/ragel $(LIBFSM_CPPFLAGS) $(LIBCOLM_CPPFLAGS)
+AUTOMAKE_OPTIONS = nostdinc
+
+ragel_julia_CPPFLAGS = -I$(top_srcdir)/src/aapl -I$(top_srcdir)/src/ragel \
+	$(LIBFSM_CPPFLAGS) $(LIBCOLM_CPPFLAGS)
 
 dist_ragel_julia_SOURCES = main.cc rlhc.c
 
@@ -15,12 +18,14 @@ ragel_julia_LDADD = $(LIBFSM_LA) $(LIBCOLM_LA) ../libragel.la
 
 BUILT_SOURCES = rlparse.c rlreduce.cc rlhc.c
 
+CLEANFILES = rlparse.pack rlparse.c rlreduce.cc rlhc.c
+
 EXTRA_DIST = rlparse.lm CMakeLists.txt
 
 LM_DEPS = ../ragel.lm ../rlreduce.lm
 
 rlparse.pack: rlparse.lm $(COLM) $(COLM_WRAP) $(LM_DEPS)
-	$(COLM_WRAP) -c -I .. -b rlparseJulia -o $@ -p rlparse.c -m rlreduce.cc $<
+	$(COLM_WRAP) -c -I$(top_srcdir)/src/ragel -b rlparseJulia -o $@ -p rlparse.c -m rlreduce.cc $<
 
 rlparse.c: rlparse.pack
 	$(COLM_WRAP) -o $@ $<

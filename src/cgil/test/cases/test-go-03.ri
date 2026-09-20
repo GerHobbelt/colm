@@ -1,0 +1,5 @@
+host( "test.rl", 1 ) @{
+s := `raw "string" { \n`
+café := 1
+
+}@

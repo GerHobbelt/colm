@@ -1,0 +1,7 @@
+host( "test.rl", 1 ) @{
+let f (x : 'a) (y : 'b) : 'a * 'b = { a = x; b = y }
+let x' = 'a' and x'' = '\n' and c = '\'' and d = '\123' and e = '\xff'
+(* café *)
+let s = "café"
+
+}@

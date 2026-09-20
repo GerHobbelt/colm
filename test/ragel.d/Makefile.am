@@ -18,15 +18,12 @@
 #   along with Ragel; if not, write to the Free Software
 #   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA 
 
-RAGEL_LM = ../../src/ragel
+RAGEL_LM = $(top_srcdir)/src/ragel
 
-TESTS = gentests
-
-noinst_SCRIPTS = gentests
 noinst_PROGRAMS = trans
 
 EXTRA_DIST = \
-	gentests.sh trans.lm \
+	trans.lm \
 	trans-asm.lm     trans-d.lm      trans-ocaml.lm \
 	trans-c.lm       trans-go.lm     trans-ruby.lm \
 	trans-crack.lm   trans-java.lm   trans-rust.lm trans-zig.lm \
@@ -45,6 +42,7 @@ EXTRA_DIST = \
 	export2.rl export3.rl export4.rl fnext1.rl fnext2.rl fnext3.rl forder1.rl \
 	forder2.rl forder3.rl genrep1.rl genrep2.rl genrep3.rl genrep4.rl \
 	genrep5.rl genrep6.rl genrep7.rl genrep8.rl goto1.rl gotocallret1.rl \
+	hosttext1.rl hosttext2.rl hosttext3.rl hosttext4.rl \
 	gotocallret2.rl gotocallret3.rl high1.rl high2.rl high3.rl import1.rl \
 	import2.h import2.rl include1.rl include2.rl include3.rl \
 	include3/smtp_address.rl include3/smtp_addr_parser.rl \
@@ -59,7 +57,10 @@ EXTRA_DIST = \
 	tofrom1.rl tofrom2.rl tokstart1.rl union.rl url1.rl xmlcommon.rl xml.rl \
 	zlen1.rl
 
-CLEANFILES = working
+CLEANFILES = trans.c
+
+clean-local:
+	rm -Rf working
 
 TRANS_DEPS = \
 	$(RAGEL_LM)/ragel.lm \
@@ -76,8 +77,5 @@ trans_LDADD = $(LIBCOLM_LA)
 trans_LDFLAGS = -static
 
 trans.c: trans.lm $(TRANS_DEPS) $(COLM)
-	$(COLM) -c -b trans_object -I$(RAGEL_LM) -I../../src/ragel/host-go -o $@ $<
-
-gentests: gentests.sh Makefile
-	@$(top_srcdir)/sedsubst $< $@ -w,+x $(SED_SUBST)
+	$(COLM) -c -b trans_object -I$(srcdir) -I$(RAGEL_LM) -I$(RAGEL_LM)/host-go -o $@ $<
 

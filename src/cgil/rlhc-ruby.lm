@@ -11,17 +11,22 @@ namespace ruby_out
 
 		literal `def `class `begin `end `while `if
 
+		# Identifiers admit any byte outside ASCII. The scanner works on bytes
+		# and does not decode UTF-8; a non-ASCII character in a name is a run of
+		# high bytes, which is enough to locate the braces around it.
 		token id
-			/[a-zA-Z_][a-zA-Z_0-9]*/
+			/( [a-zA-Z_] | 0x80..0xff ) ( [a-zA-Z_0-9] | 0x80..0xff )*/
 
 		token number /
 			[0-9]+
 		/
 
+		# The backtick form is the command literal.
 		token string /
 				'"' ( [^"\\] | '\\' any ) * '"' |
 				"'" ( [^'\\] | '\\' any ) * "'" |
-				"/" ( [^/\\] | '\\' any ) * "/"
+				"/" ( [^/\\] | '\\' any ) * "/" |
+				'`' ( [^`\\] | '\\' any ) * '`'
 			/
 
 		token symbol /
@@ -31,7 +36,7 @@ namespace ruby_out
 			'~' | '{' | '}' | '\\' /
 
 		ignore
-			/[ \t\v\r\n]+/
+			/[ \t\v\f\r\n]+/
 	end
 
 	def item
@@ -513,6 +518,7 @@ void ruby_trans( Output: stream, Start: start )
 	else {
 		send stderr
 			"failed to parse output: [Parser->error]
+		exit(1)
 	}
 }
 

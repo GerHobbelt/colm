@@ -28,7 +28,6 @@
 #include <fstream>
 #include <string>
 #include "vector.h"
-#include "config.h"
 #include "common.h"
 
 #define PROGNAME "ragel"

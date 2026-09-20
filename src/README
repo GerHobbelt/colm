@@ -1,6 +1,10 @@
-The /src directory just holds the config.h header for use by the various
-components. The source code is spread amongst these sub-projects:
+The source code is spread amongst these sub-packages:
 
 aapl   - General Purpose Template Library.
+libfsm - Finite state machine construction and code generation.
 colm   - Colm Programming Language.
+cgil   - Code generation intermediate language, written in colm.
 ragel  - Ragel State Machine Compiler.
+
+Only colm is configured: config.h, defs.h and version.h are generated in
+src/colm. The other components take nothing from configure.

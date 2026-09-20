@@ -2,7 +2,12 @@ SUBDIRS = . host-ruby host-asm host-julia host-ocaml host-c \
 	host-d host-csharp host-go host-java host-rust host-crack host-js \
 	host-zig
 
-# nodist_pkginclude_HEADERS = config.h
+# Like libfsm, ragel takes nothing from configure. nostdinc drops automake's
+# implicit -I$(top_builddir)/src/colm so that an include of colm's config.h
+# fails rather than quietly succeeding. The -I. -I$(srcdir) pair it also drops
+# is put back explicitly: version.h and the parsers are generated in the
+# build directory and include headers from the source directory.
+AUTOMAKE_OPTIONS = nostdinc
 
 # libragel contains the parse tree and other parsing support code. Everything
 # except the reducers, which are specific to the frontends.
@@ -22,8 +27,8 @@ endif
 #
 # libragel: ragel program minus host-specific code
 #
-libragel_la_CPPFLAGS = -I$(top_srcdir)/src/aapl $(LIBFSM_CPPFLAGS) $(LIBCOLM_CPPFLAGS) \
-	-DBINDIR='"@bindir@"'
+libragel_la_CPPFLAGS = -I. -I$(srcdir) -I$(top_srcdir)/src/aapl \
+	$(LIBFSM_CPPFLAGS) $(LIBCOLM_CPPFLAGS) -DBINDIR='"@bindir@"'
 
 dist_libragel_la_SOURCES = \
 	parsedata.h parsetree.h inputdata.h pcheck.h reducer.h rlscan.h load.h \
@@ -44,7 +49,8 @@ endif
 #
 # ragel program.
 #
-ragel_CPPFLAGS = -I$(top_srcdir)/src/aapl $(LIBFSM_CPPFLAGS) $(LIBCOLM_CPPFLAGS)
+ragel_CPPFLAGS = -I. -I$(srcdir) -I$(top_srcdir)/src/aapl \
+	$(LIBFSM_CPPFLAGS) $(LIBCOLM_CPPFLAGS)
 
 dist_ragel_SOURCES = \
 	main.cc
@@ -80,7 +86,7 @@ EXTRA_DIST = \
 	rlparse.kh \
 	rlparse.kl
 
-CLEANFILES = parse.c commit.cc rlhc.c
+CLEANFILES = version.h parse.pack parse.c rlreduce.cc commit.cc rlhc.c
 
 if WITH_RAGEL_KELBT
 CLEANFILES += rlscan.cc rlparse.cc rlparse.h 
@@ -92,7 +98,7 @@ RAGEL_LM = \
 	rlreduce.lm
 
 parse.pack: $(RAGEL_LM) $(COLM) $(COLM_WRAP)
-	$(COLM_WRAP) -c -b rlparseC -o $@ -p parse.c -m rlreduce.cc $<
+	$(COLM_WRAP) -c -I$(srcdir) -b rlparseC -o $@ -p parse.c -m rlreduce.cc $<
 
 rlreduce.cc: parse.pack
 	$(COLM_WRAP) -o $@ $<

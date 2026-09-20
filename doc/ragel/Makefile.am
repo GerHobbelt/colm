@@ -37,6 +37,8 @@ EXTRA_DIST = ragel-guide.txt ragel.1.in \
 ragel.1: ragel.1.in Makefile
 	@$(top_srcdir)/sedsubst $< $@ -w,+x $(SED_SUBST)
 
+CLEANFILES = ragel.1
+
 if BUILD_MANUAL
 
 if INSTALL_RAGEL

@@ -1,0 +1,4 @@
+host( "test.rl", 1 ) @{
+
+const x: i32 = 1;
+}@

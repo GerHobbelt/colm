@@ -1,0 +1,4 @@
+host( "test.rl", 1 ) @{
+let café = 1;
+
+}@
