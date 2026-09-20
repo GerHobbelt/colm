@@ -12,6 +12,7 @@
 /depcomp
 /config.log
 /config.status
+/configure.lineno
 /Makefile
 /compile
 /test-driver

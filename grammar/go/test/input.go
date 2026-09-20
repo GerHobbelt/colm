@@ -1,7 +1,7 @@
 ﻿a b c
 d e f
 treeß
-		foo then /**/
+		foo then /***/
 	bar  //ladkf
 	baz /*
 */end

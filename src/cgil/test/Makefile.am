@@ -3,11 +3,13 @@ bin_PROGRAMS = \
 	cgil-go cgil-java cgil-js cgil-julia \
 	cgil-ocaml cgil-ruby cgil-rust
 
-check_SCRIPTS = subject.mk subject.sh
+check_SCRIPTS = subject.mk subject.sh runtests
 
 pkgdata_SCRIPTS = runtests
 
-EXTRA_DIST = runtests
+TESTS = runtests
+
+EXTRA_DIST = runtests.in cases
 
 subject.mk: $(top_srcdir)/test/subject.mk.in Makefile
 	@$(top_srcdir)/sedsubst $< $@ -w,+x $(SED_SUBST)

@@ -1,0 +1,5 @@
+host( "tmp.rl", 1 ) @{// line comment
+/* block comment */
+
+package main
+}@

@@ -6,6 +6,10 @@
 /subject.mk
 /subject.sh
 
+/runtests.log
+/runtests.trs
+/test-suite.log
+
 /cgil-c
 /cgil-c.c
 /cgil-c.dSYM

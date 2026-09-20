@@ -129,7 +129,7 @@ lex
 		/ '//' [^\n]* '\n' /
 	
 	rl general_comment
-		/ '/*' any* :> '*/'/
+		/ '/*' any* :>> '*/'/
 
 	rl pre_insert_semi /
 		( id -
