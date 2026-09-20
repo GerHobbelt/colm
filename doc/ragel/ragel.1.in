@@ -34,8 +34,9 @@ ragel \- compile regular languages into executable state machines
 .RI [ options ]
 .I file
 .SH DESCRIPTION
-Ragel compiles executable finite state machines from regular languages.  
-Ragel can generate C, C++, Objective-C, D, Go, or Java code. Ragel state
+Ragel compiles executable finite state machines from regular languages.
+Ragel can generate C, C++, Objective-C, D, Go, Java, Ruby, C#, OCaml, Rust,
+Zig, Julia, Crack, JavaScript or GNU AS x86-64 code. Ragel state
 machines can not only recognize byte
 sequences as regular expression machines do, but can also execute code at
 arbitrary points in the recognition of a regular language.  User code is
@@ -55,6 +56,52 @@ Ragel provides a very flexibile interface to the host language that attempts to
 place minimal restrictions on how the generated code is used and integrated
 into the application. The generated code has no dependencies.
 
+.SH HOST LANGUAGES
+The host language is determined by which program is run. There is one program
+per host language and they are installed alongside one another.
+.TP
+.BR ragel ", " ragel\-c
+C, C++, Obj\-C or Obj\-C++. All code styles supported.
+.TP
+.B ragel\-asm
+GNU AS, x86_64, System V ABI. Generated in a code style equivalent to \-G2.
+.TP
+.B ragel\-d
+D. All code styles supported.
+.TP
+.B ragel\-go
+Go. All code styles supported.
+.TP
+.B ragel\-zig
+Zig. All code styles supported.
+.TP
+.B ragel\-csharp
+C#. Code styles \-T0 \-T1 \-F0 \-F1 \-G0 \-G1.
+.TP
+.B ragel\-java
+Java. Code styles \-T0 \-T1 \-F0 \-F1.
+.TP
+.B ragel\-ruby
+Ruby. Code styles \-T0 \-T1 \-F0 \-F1.
+.TP
+.B ragel\-ocaml
+OCaml. Code styles \-T0 \-T1 \-F0 \-F1.
+.TP
+.B ragel\-rust
+Rust. Code styles \-T0 \-T1 \-F0 \-F1.
+.TP
+.B ragel\-julia
+Julia. Code styles \-T0 \-T1 \-F0 \-F1.
+.TP
+.B ragel\-crack
+Crack. Code styles \-T0 \-T1 \-F0 \-F1.
+.TP
+.B ragel\-js
+JavaScript. Code styles \-T0 \-T1 \-F0 \-F1.
+.PP
+Ragel 6 selected the host language with a command-line option instead, such as
+.B \-Z
+for Go. Those options do not exist in Ragel 7.
 .SH OPTIONS
 .TP
 .BR \-h ", " \-H ", " \-? ", " \-\-help
@@ -117,48 +164,8 @@ FSM specification to output.
 .B \-M <machine>
 Machine definition/instantiation to output.
 .TP
-.B \-C
-The host language is C, C++, Obj-C or Obj-C++. This is the default host language option.
-.TP
-.B --asm --gas-x86-64-sys-v
-GNU AS, x86_64, System V ABI
-ASM is generated in a code style equiv to -G2
-.TP
-.B \-D
-The host language is D.
-.TP
-.B \-Z
-The host language is Go.
-.TP
-.B \-J
-The host language is Java.
-.TP
-.B \-R
-The host language is Ruby.
-.TP
-.B -A
-The host language is C#
-.TP
-.B -O
-The host language is OCaml.
-.TP
-.B -U
-The host language is Rust.
-.TP
-.B -B
-The host language is Zig.
-.TP
-.B -Y
-The host language is Julia.
-.TP
-.B -K
-The host language is Crack.
-.TP
-.B -P
-The host language is JavaScript.
-.TP
 .B \-T0
-(C/D/Java/Ruby/C#) Generate a table driven FSM. This is the default code style.
+(all but ASM) Generate a table driven FSM. This is the default code style.
 The table driven
 FSM represents the state machine as static data. There are tables of states,
 transitions, indices and actions. The current state is stored in a variable.
@@ -170,21 +177,21 @@ compile but results in slower running code. The table driven FSM is suitable
 for any FSM.
 .TP
 .B \-T1
-(C/D/Ruby/C#) Generate a faster table driven FSM by expanding action lists in the action
+(all but ASM) Generate a faster table driven FSM by expanding action lists in the action
 execute code.
 .TP
 .B \-F0
-(C/D/Ruby/C#) Generate a flat table driven FSM. Transitions are represented as an array
+(all but ASM) Generate a flat table driven FSM. Transitions are represented as an array
 indexed by the current alphabet character. This eliminates the need for a
 binary search to locate transitions and produces faster code, however it is
 only suitable for small alphabets.
 .TP
 .B \-F1
-(C/D/Ruby/C#) Generate a faster flat table driven FSM by expanding action lists in the action
+(all but ASM) Generate a faster flat table driven FSM by expanding action lists in the action
 execute code.
 .TP
 .B \-G0
-(C/D/C#) Generate a goto driven FSM. The goto driven FSM represents the state machine
+(C, D, Go, C#, Zig) Generate a goto driven FSM. The goto driven FSM represents the state machine
 as a series of goto statements. While in the machine, the current state is
 stored by the processor's instruction pointer. The execution is a flat function
 where control is passed from state to state using gotos. In general, the goto
@@ -192,11 +199,11 @@ FSM produces faster code but results in a larger binary and a more expensive
 host language compile.
 .TP
 .B \-G1
-(C/D/C#) Generate a faster goto driven FSM by expanding action lists in the action
+(C, D, Go, C#, Zig) Generate a faster goto driven FSM by expanding action lists in the action
 execute code.
 .TP
 .B \-G2
-(C/D/Go) Generate a really fast goto driven FSM by embedding action lists in the state
+(C, D, Go, Zig, ASM) Generate a really fast goto driven FSM by embedding action lists in the state
 machine control code.
 .TP
 .B --nfa-conds-depth=D

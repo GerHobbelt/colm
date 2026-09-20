@@ -2766,22 +2766,25 @@ An example of line-oriented processing is given below.
 
 === Specifying the Host Language
 
-The `ragel` program has a number of options for specifying the host
-language. The host-language options are:
+The host language is determined by which program is run. There is one program
+per host language and they are installed alongside one another:
 
-* `-C` for C/C++/Objective-C code (default)
-* `--asm` or `--gas-x86-64-sys-v` for GNU AS, x86_64, System V ABI.
-* `-D` for D code.
-* `-Z` for Go code.
-* `-J` for Java code.
-* `-R` for Ruby code.
-* `-A` for C# code.
-* `-O` for OCaml code.
-* `-U` for Rust
-* `-B` for Zig
-* `-Y` for Julia
-* `-K` for Crack
-* `-P` for JavaScript
+* `ragel` or `ragel-c` for C, C++, Obj-C or Obj-C++ code
+* `ragel-asm` for GNU AS, x86_64, System V ABI
+* `ragel-d` for D code
+* `ragel-go` for Go code
+* `ragel-java` for Java code
+* `ragel-ruby` for Ruby code
+* `ragel-csharp` for C# code
+* `ragel-ocaml` for OCaml code
+* `ragel-rust` for Rust code
+* `ragel-zig` for Zig code
+* `ragel-julia` for Julia code
+* `ragel-crack` for Crack code
+* `ragel-js` for JavaScript code
+
+Ragel 6 selected the host language with a command-line option instead, such as
+`-Z` for Go. Those options do not exist in Ragel 7.
 
 [[genout]]
 === Choosing a Generated Code Style

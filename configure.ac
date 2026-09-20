@@ -299,6 +299,11 @@ if test "x$D_BIN" = x; then
 		AC_PATH_PROG([D_BIN], [gdc-6])
 		if test "x$D_BIN" = x; then
 			AC_PATH_PROG([D_BIN], [gdc-5])
+			if test "x$D_BIN" = x; then
+				dnl Newer distributions ship gdc-11 and later, which this chain
+				dnl does not know about, alongside an unversioned gdc.
+				AC_PATH_PROG([D_BIN], [gdc])
+			fi
 		fi
 	fi
 fi

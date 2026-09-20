@@ -35,8 +35,9 @@ Ragel 7.1.0 - Aug 19, 2026
   literals and identifiers, including lifetimes, in the host scanner.
  -Intermediate language: allow an expression as the base of a deref or
   offset, and support chained array subscripts.
- -Data files are installed to PREFIX/share/colm rather than PREFIX/share,
-  which was a nuisance for packaging.
+ -The cgil data files are installed to the package data directory,
+  PREFIX/share/colm-suite, rather than PREFIX/share, which was a nuisance
+  for packaging. The ragel.lm grammar still lands in PREFIX/share.
  -The cmake build has been repaired and extended. It had gone stale and
   covered ragel alone; it now builds colm, libfsm, cgil and ragel with all of
   its host language backends. The test suite and the documentation remain
