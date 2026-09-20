@@ -20,8 +20,17 @@ dnl LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM
 dnl OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 dnl SOFTWARE.
   
-AC_INIT([colm-suite],[0.15.0-pre.1])
+dnl The suite version is the highest of the versions contained in it, which is
+dnl ragel's. Colm carries its own, lower version number in COLM_VERSION below.
+AC_INIT([colm-suite],[7.1.0-pre.1])
 PUBDATE="April 2026"
+
+dnl
+dnl Colm build configuration. Colm versions independently of the suite, so it
+dnl cannot use the AC_INIT version.
+dnl
+COLM_VERSION="0.15.0-pre.1"
+COLM_PUBDATE="April 2026"
 
 AM_INIT_AUTOMAKE([foreign])
 
@@ -32,6 +41,11 @@ AC_CONFIG_MACRO_DIR([m4])
 
 AC_SUBST(PUBDATE)
 AC_DEFINE_UNQUOTED([PUBDATE], ["$PUBDATE"], [publication date])
+
+AC_SUBST(COLM_VERSION)
+AC_SUBST(COLM_PUBDATE)
+AC_DEFINE_UNQUOTED([COLM_VERSION], ["$COLM_VERSION"], [colm version])
+AC_DEFINE_UNQUOTED([COLM_PUBDATE], ["$COLM_PUBDATE"], [colm publication date])
 
 AC_CHECK_SIZEOF([int])
 AC_CHECK_SIZEOF([void *])
@@ -148,6 +162,34 @@ AC_ARG_ENABLE(program,
 
 AM_CONDITIONAL([BUILD_PROGRAM],    [test "x$build_program" = "xyes"])
 AM_CONDITIONAL([WITH_RAGEL_KELBT], [test "x$RAGEL_KELBT" = "xyes"])
+
+dnl
+dnl Which halves of the suite to install. The build always covers the whole
+dnl tree: ragel's parsers are written in colm, so colm must be built either
+dnl way. These options control only what "make install" copies out.
+dnl
+dnl The colm runtime library and the aapl headers are installed in both cases.
+dnl Ragel links libcolm and the installed libfsm headers include aapl, so
+dnl neither can be left out of a ragel-only install.
+dnl
+AC_ARG_ENABLE(install-colm,
+	[AS_HELP_STRING([--disable-install-colm],[do not install the colm program and headers])],
+	[install_colm=$enableval],
+	[install_colm=yes]
+)
+
+AC_ARG_ENABLE(install-ragel,
+	[AS_HELP_STRING([--disable-install-ragel],[do not install ragel, libragel, libfsm or cgil])],
+	[install_ragel=$enableval],
+	[install_ragel=yes]
+)
+
+if test "x$install_colm" != "xyes" && test "x$install_ragel" != "xyes"; then
+	AC_MSG_ERROR([nothing left to install: give at most one of --disable-install-colm and --disable-install-ragel])
+fi
+
+AM_CONDITIONAL([INSTALL_COLM],  [test "x$install_colm"  = "xyes"])
+AM_CONDITIONAL([INSTALL_RAGEL], [test "x$install_ragel" = "xyes"])
 
 dnl This is from ragel, but already have one above from colm. Need to merge.
 dnl AM_CONDITIONAL([BUILD_MANUAL],     [test "x$build_manual" = "xyes"])
@@ -433,10 +475,17 @@ AC_SUBST(SED_SUBST)
 dnl
 dnl Ragel build configuration
 dnl
-RAGEL_VERSION="7.1.0-pre.1"
-RAGEL_PUBDATE="April 2026"
+dnl Ragel is the highest-versioned component, so the suite is named after it.
+dnl Derived rather than repeated, to keep the version in one place.
+RAGEL_VERSION="$PACKAGE_VERSION"
+RAGEL_PUBDATE="$PUBDATE"
 AC_SUBST(RAGEL_VERSION)
 AC_SUBST(RAGEL_PUBDATE)
+
+dnl The ragel man page is generated with sedsubst, not config.status, so it
+dnl needs these in SED_SUBST to be filled in.
+SED_SUBST="$SED_SUBST -e 's|[@]RAGEL_VERSION[@]|$RAGEL_VERSION|g'"
+SED_SUBST="$SED_SUBST -e 's|[@]RAGEL_PUBDATE[@]|$RAGEL_PUBDATE|g'"
 
 dnl Use local colm components
 COLM='$(abs_top_builddir)/src/colm'

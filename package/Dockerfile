@@ -1,9 +1,10 @@
 # syntax=docker/dockerfile:1
 #
 # Development environment for the mainline colm suite (colm + ragel): the
-# C/C++ toolchain and autotools, enough to build the tree. Unlike the
-# ragel-6 image there is no kelbt and no bootstrap ragel: colm builds first
-# and then generates ragel's parsers, which are written in colm.
+# C/C++ toolchain, autotools and cmake, enough to build the tree either
+# way. Unlike the ragel-6 image there is no kelbt and no bootstrap ragel:
+# colm builds first and then generates ragel's parsers, which are written
+# in colm.
 #
 #   docker build -t colm-suite-dev package/
 #
@@ -11,6 +12,10 @@
 #
 #   docker run --rm -it -v "$PWD":/devel/colm -w /devel/colm colm-suite-dev
 #   ./autogen.sh && ./configure && make
+#
+# or, for the cmake build, which needs no autotools step:
+#
+#   cmake -S . -B build && cmake --build build
 #
 # Build args:
 #   UBUNTU_TAG   base image (default 26.04, i.e. the current Ubuntu LTS);
@@ -40,7 +45,7 @@ ENV LANG=C.UTF-8
 RUN set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
-        build-essential autoconf automake libtool git ca-certificates \
+        build-essential autoconf automake libtool cmake git ca-certificates \
         curl xz-utils; \
     rm -rf /var/lib/apt/lists/*
 

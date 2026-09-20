@@ -2,6 +2,12 @@
 # generators for C, asm and cgil (Code Gen Intermediate Language) . It is
 # useful for building state machine code generators in programs not connected
 # to the ragel language.
+#
+# libfsm is part of the ragel half of the suite. When it is not being
+# installed it is still built, as a convenience library, so the ragel
+# programs can be built and tested from the build tree.
+#
+if INSTALL_RAGEL
 lib_LTLIBRARIES = libfsm.la
 
 libfsminclude_HEADERS = \
@@ -15,6 +21,9 @@ libfsminclude_HEADERS = \
 	tables.h \
 	actloop.h actexp.h \
 	ipgoto.h
+else
+noinst_LTLIBRARIES = libfsm.la
+endif
 
 # nodist_pkginclude_HEADERS = config.h
 
@@ -35,9 +44,12 @@ dist_libfsm_la_SOURCES = \
 	goto.cc gotoloop.cc gotoexp.cc ipgoto.cc \
 	dot.cc asm.cc
 
+if INSTALL_RAGEL
 libfsm_la_LDFLAGS = -release $(VERSION) -no-undefined
 
 if LINKER_NO_UNDEFINED
 libfsm_la_LDFLAGS += -Wl,--no-undefined
 endif
+endif
 
+EXTRA_DIST = CMakeLists.txt

@@ -3,7 +3,10 @@
 #ifndef _COLM_VERSION_H
 #define _COLM_VERSION_H
 
-#cmakedefine COLM_VERSION "@COLM_VERSION@"
-#cmakedefine COLM_PUBDATE "@COLM_PUBDATE@"
+#define VERSION "@SUITE_VERSION@"
+#define PUBDATE "@SUITE_PUBDATE@"
+
+#define COLM_VERSION "@COLM_VERSION@"
+#define COLM_PUBDATE "@COLM_PUBDATE@"
 
 #endif /* _COLM_VERSION_H */

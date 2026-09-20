@@ -1,3 +1,9 @@
 # @_PACKAGE_NAME@-config.cmake Generated from ragel-config.cmake.in by cmake
 
+# libragel links the colm runtime, so the exported targets name colm::libcolm.
+# The colm package is installed alongside this one in every configuration,
+# including a ragel-only install.
+include(CMakeFindDependencyMacro)
+find_dependency(colm)
+
 include("${CMAKE_CURRENT_LIST_DIR}/@_PACKAGE_NAME@-targets.cmake")

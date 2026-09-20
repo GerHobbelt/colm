@@ -1,4 +1,8 @@
+if INSTALL_RAGEL
 bin_PROGRAMS = ragel-asm
+else
+noinst_PROGRAMS = ragel-asm
+endif
 
 ragel_asm_CPPFLAGS = -I$(top_srcdir)/src/aapl -I$(top_srcdir)/src/ragel -I$(top_srcdir)/src/include
 
@@ -11,7 +15,7 @@ ragel_asm_LDADD = $(LIBFSM_LA) $(LIBCOLM_LA) ../libragel.la
 
 BUILT_SOURCES = rlparse.c rlreduce.cc
 
-EXTRA_DIST = rlparse.lm
+EXTRA_DIST = rlparse.lm CMakeLists.txt
 
 LM_DEPS = ../ragel.lm ../rlreduce.lm
 

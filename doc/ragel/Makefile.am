@@ -20,7 +20,9 @@
 # SOFTWARE.
 #
 
-man_MANS = ragel.1 
+if INSTALL_RAGEL
+man_MANS = ragel.1
+endif
 
 EXTRA_DIST = ragel-guide.txt ragel.1.in \
 	bmconcat.fig bmregex.fig dropdown.fig exdoneact.fig \
@@ -37,7 +39,9 @@ ragel.1: ragel.1.in
 
 if BUILD_MANUAL
 
+if INSTALL_RAGEL
 doc_DATA = ragel-guide.html ragel-guide.pdf
+endif
 
 .fig.png:
 	fig2dev -L png -S 4 $< $@

@@ -26,7 +26,7 @@
 .\"
 
 
-.TH RAGEL 1 "@PUBDATE@" "Ragel @VERSION@" "Ragel State Machine Compiler"
+.TH RAGEL 1 "@RAGEL_PUBDATE@" "Ragel @RAGEL_VERSION@" "Ragel State Machine Compiler"
 .SH NAME
 ragel \- compile regular languages into executable state machines 
 .SH SYNOPSIS

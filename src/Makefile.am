@@ -26,8 +26,20 @@ AM_CPPFLAGS = -I$(top_srcdir)/src/aapl
 
 AUTOMAKE_OPTIONS = subdir-objects
 
+#
+# The colm program itself is always built: ragel's parsers are written in colm.
+# Whether it is installed is a separate question, controlled by
+# --disable-install-colm.
+#
+noinst_PROGRAMS =
+
+if INSTALL_COLM
 bin_PROGRAMS = colm
 bin_SCRIPTS = colm-wrap
+else
+noinst_PROGRAMS += colm
+noinst_SCRIPTS = colm-wrap
+endif
 
 RUNTIME_SRC = \
 	map.c pdarun.c list.c input.c stream.c debug.c \
@@ -44,7 +56,7 @@ lib_LTLIBRARIES = libcolm.la
 noinst_LIBRARIES = libprog.a
 
 libcolm_la_SOURCES = $(RUNTIME_SRC)
-libcolm_la_LDFLAGS = -release ${VERSION} -no-undefined
+libcolm_la_LDFLAGS = -release ${COLM_VERSION} -no-undefined
 
 if LINKER_NO_UNDEFINED
 libcolm_la_LDFLAGS += -Wl,--no-undefined
@@ -75,7 +87,11 @@ libprog_a_CXXFLAGS = $(common_CFLAGS)
 
 colmincdir = $(includedir)/colm
 
+if INSTALL_COLM
 colminc_HEADERS = $(RUNTIME_HDR)
+else
+noinst_HEADERS = $(RUNTIME_HDR)
+endif
 
 if EXTERNAL_COLM
 
@@ -89,7 +105,7 @@ AM_LDFLAGS = $(EXTERNAL_LIBS)
 
 else
 
-noinst_PROGRAMS = bootstrap0 bootstrap1 bootstrap2
+noinst_PROGRAMS += bootstrap0 bootstrap1 bootstrap2
 
 BUILD_PARSE_3_WITH = $(builddir)/bootstrap2$(EXEEXT)
 WRAP_PARSE_3_WITH = $(builddir)/colm-wrap
@@ -204,7 +220,9 @@ CLEANFILES = \
 distclean-local:
 	-rm -rf include
 
-EXTRA_DIST = prog.lm colm.lm loadfinal.cc colm-wrap.sh
+EXTRA_DIST = prog.lm colm.lm loadfinal.cc colm-wrap.sh \
+	CMakeLists.txt config.h.cmake.in defs.h.cmake.in version.h.cmake.in \
+	colm-config.cmake.in
 
 colm-wrap: colm-wrap.sh
 	@$(top_srcdir)/sedsubst $< $@ -w,+x $(SED_SUBST)

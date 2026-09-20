@@ -1,155 +1,172 @@
-# Package name
+#
+# ragel: the ragel language front end (libragel), the ragel driver, and one
+# backend program per host language.
+#
+
 set(_PACKAGE_NAME ragel)
 
-# Read project configuration from ../configure.ac file
-file(STRINGS ../configure.ac _PROJECT_CONFIGS
-	REGEX "(RAGEL_VERSION=)|(RAGEL_PUBDATE=)")
-foreach(_PROJECT_CONFIG ${_PROJECT_CONFIGS})
-	if(_PROJECT_CONFIG MATCHES "RAGEL_VERSION=\"([^\"]+)")
-		string(STRIP ${CMAKE_MATCH_1} RAGEL_VERSION)
-	endif()
-	if(_PROJECT_CONFIG MATCHES "RAGEL_PUBDATE=\"([^\"]+)")
-		string(STRIP ${CMAKE_MATCH_1} RAGEL_PUBDATE)
-	endif()
-endforeach()
+configure_file(version.h.cmake.in
+	"${CMAKE_CURRENT_BINARY_DIR}/version.h" @ONLY)
 
-## Generate headers
-configure_file(version.h.cmake.in version.h @ONLY)
-configure_file(ragel-config.cmake.in
-	"${PROJECT_BINARY_DIR}/${_PACKAGE_NAME}-config.cmake" @ONLY)
+#
+# libragel: the parse tree and the rest of the parsing support code. Everything
+# except the reducers, which are specific to the front ends.
+#
+add_library(libragel
+	parsetree.cc longest.cc parsedata.cc inputdata.cc load.cc reducer.cc
+	ncommon.cc allocgen.cc)
 
-# Runtime headers
-set(RUNTIME_HDR
-	action.h fsmgraph.h ragel.h common.h
-	gendata.h redfsm.h dot.h)
-
-# Other CMake modules
-include(GNUInstallDirs)
-
-# libfsm
-add_library(libfsm
-	buffer.h codegen.h
-	actloop.h actexp.h
-	tables.h
-	binary.h bingoto.h binbreak.h binvar.h
-	flat.h flatgoto.h flatbreak.h flatvar.h
-	switch.h switchgoto.h switchbreak.h switchvar.h
-	goto.h gotoloop.h gotoexp.h
-	ipgoto.h asm.h
-	idbase.cc fsmstate.cc fsmbase.cc fsmattach.cc fsmmin.cc fsmgraph.cc
-	fsmap.cc fsmcond.cc fsmnfa.cc common.cc redfsm.cc gendata.cc
-	allocgen.cc codegen.cc
-	actexp.cc binvar.cc
-	tables.cc tabgoto.cc tabbreak.cc tabvar.cc
-	binary.cc bingoto.cc binbreak.cc actloop.cc
-	flat.cc flatgoto.cc flatbreak.cc flatvar.cc
-	switch.cc switchgoto.cc switchbreak.cc switchvar.cc
-	goto.cc gotoloop.cc gotoexp.cc ipgoto.cc
-	dot.cc asm.cc)
-
-target_include_directories(libfsm
+target_include_directories(libragel
 	PUBLIC
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/../src>
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/../aapl>
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>
+	$<BUILD_INTERFACE:${COLM_BUILD_INCLUDE_DIR}>
+	$<BUILD_INTERFACE:${COLM_AAPL_INCLUDE_DIR}>
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
-set_target_properties(libfsm PROPERTIES
-	OUTPUT_NAME fsm)
+target_link_libraries(libragel PUBLIC libfsm colm::libcolm)
 
-# libragel
-add_library(libragel
-	# dist
-	parsedata.h parsetree.h inputdata.h pcheck.h reducer.h rlscan.h load.h
-	parsetree.cc longest.cc parsedata.cc inputdata.cc load.cc reducer.cc)
+target_compile_definitions(libragel PRIVATE
+	BINDIR="${CMAKE_INSTALL_FULL_BINDIR}")
+
+set_target_properties(libragel PROPERTIES
+	OUTPUT_NAME ragel
+	VERSION ${PROJECT_VERSION}
+	SOVERSION ${PROJECT_VERSION_MAJOR})
 
 if(BUILD_STANDALONE)
-	# libragel acts as an intermediate library so we can apply
-	# flags we want to apply to all ragel targets to libragel
-	# and they'll automatically propogate. This is a best effort
-	# to get `-static` placed sooner in the link line where it
-	# matters at least.
+	# libragel acts as an intermediate library, so flags applied here
+	# propagate to every ragel target. This is a best effort at getting
+	# -static placed early in the link line, where it matters.
 	if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-		target_link_libraries(libragel PUBLIC -static)
+		target_link_options(libragel PUBLIC -static)
 	else()
 		message(FATAL_ERROR "Unsupported toolset for standalone build.")
 	endif()
 endif()
 
-target_link_libraries(libragel PRIVATE colm::libcolm)
-
-target_include_directories(libragel
-	PUBLIC
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/..>
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..>
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/../aapl>
-	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
-
-set_target_properties(libragel PROPERTIES
-	OUTPUT_NAME ragel)
-
-set_property(TARGET libragel APPEND PROPERTY
-	COMPILE_DEFINITIONS BINDIR="${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}")
-
-# ragel program
-
+#
+# ragel: the driver. It parses enough of the input to work out the host
+# language, then hands off to the matching ragel-<lang> backend, which it
+# locates next to itself.
+#
 set(RAGEL_LM
-	rlparse.lm
-	ragel.lm
-	rlreduce.lm)
+	"${CMAKE_CURRENT_LIST_DIR}/ragel.lm"
+	"${CMAKE_CURRENT_LIST_DIR}/rlreduce.lm")
 
-add_custom_command(OUTPUT
-	"${CMAKE_CURRENT_BINARY_DIR}/parse.c"
-	"${CMAKE_CURRENT_BINARY_DIR}/rlreduce.cc"
-	DEPENDS ${RAGEL_LM} #$(COLM_BINDEP)
-	COMMAND colm::colm
-	ARGS -c -b rlparseC
-	-o "${CMAKE_CURRENT_BINARY_DIR}/parse.c"
-	-m "${CMAKE_CURRENT_BINARY_DIR}/rlreduce.cc"
-	rlparse.lm
-	WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}")
+add_custom_command(
+	OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/parse.c"
+		"${CMAKE_CURRENT_BINARY_DIR}/rlreduce.cc"
+	COMMAND colm::colm -c -I "${CMAKE_CURRENT_LIST_DIR}" -b rlparseC
+		-o "${CMAKE_CURRENT_BINARY_DIR}/parse.c"
+		-m "${CMAKE_CURRENT_BINARY_DIR}/rlreduce.cc"
+		"${CMAKE_CURRENT_LIST_DIR}/rlparse.lm"
+	DEPENDS colm::colm rlparse.lm ${RAGEL_LM}
+	COMMENT "Generating ragel parser"
+	VERBATIM)
 
 add_executable(ragel
 	main.cc
 	"${CMAKE_CURRENT_BINARY_DIR}/parse.c"
 	"${CMAKE_CURRENT_BINARY_DIR}/rlreduce.cc")
 
-target_link_libraries(ragel libragel libfsm)
+target_link_libraries(ragel PRIVATE libragel libfsm)
 
-foreach(_SUBDIR host-ruby host-asm host-julia host-ocaml host-c host-d
-		host-csharp host-go host-java host-rust host-crack host-js
+#
+# ragel_host: declare a ragel-<lang> backend program.
+#
+#   name    - the name of the program, eg ragel-c
+#   backend - the colm object name for the parser, eg rlparseC
+#   rlhc    - the colm object name for the code generator, eg rlhcC. Pass an
+#             empty string for backends that generate code directly (asm).
+#   lm      - the cgil source implementing the code generator, eg rlhc-c.lm
+#
+function(ragel_host name backend rlhc lm)
+	set(_dir "${CMAKE_CURRENT_SOURCE_DIR}")
+	set(_bin "${CMAKE_CURRENT_BINARY_DIR}")
+
+	# rlparse.lm, plus any host-specific colm sources it imports.
+	file(GLOB _dir_lm "${_dir}/*.lm")
+
+	add_custom_command(
+		OUTPUT "${_bin}/rlparse.c" "${_bin}/rlreduce.cc"
+		COMMAND colm::colm -c -I "${_dir}/.." -b ${backend}
+			-o "${_bin}/rlparse.c"
+			-m "${_bin}/rlreduce.cc"
+			"${_dir}/rlparse.lm"
+		DEPENDS colm::colm ${_dir_lm} ${RAGEL_LM}
+		COMMENT "Generating ${name} parser"
+		VERBATIM)
+
+	set(_sources main.cc "${_bin}/rlparse.c" "${_bin}/rlreduce.cc")
+
+	if(NOT rlhc STREQUAL "")
+		add_custom_command(
+			OUTPUT "${_bin}/rlhc.c"
+			COMMAND colm::colm -c -I "${COLM_CGIL_DIR}" -b ${rlhc}
+				-o "${_bin}/rlhc.c"
+				"${COLM_CGIL_DIR}/${lm}"
+			DEPENDS colm::colm
+				"${COLM_CGIL_DIR}/${lm}"
+				"${COLM_CGIL_DIR}/ril.lm"
+			COMMENT "Generating ${name} code generator"
+			VERBATIM)
+
+		list(APPEND _sources "${_bin}/rlhc.c")
+	endif()
+
+	add_executable(${name} ${_sources})
+
+	target_link_libraries(${name} PRIVATE libragel libfsm)
+
+	if(COLM_INSTALL_RAGEL)
+		install(TARGETS ${name}
+			EXPORT ${_PACKAGE_NAME}-targets
+			RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+	endif()
+endfunction()
+
+foreach(_subdir host-asm host-c host-crack host-csharp host-d host-go
+		host-java host-js host-julia host-ocaml host-ruby host-rust
 		host-zig)
-	add_subdirectory(${_SUBDIR})
+	add_subdirectory(${_subdir})
 endforeach()
 
-if(${PROJECT_NAME}_MAKE_INSTALL)
-	if(NOT DEFINED CMAKE_INSTALL_CMAKEDIR)
-		set(CMAKE_INSTALL_CMAKEDIR
+if(COLM_INSTALL_RAGEL)
+	if(NOT DEFINED CMAKE_INSTALL_CMAKEDIR_RAGEL)
+		set(CMAKE_INSTALL_CMAKEDIR_RAGEL
 			"${CMAKE_INSTALL_LIBDIR}/cmake/${_PACKAGE_NAME}"
-			CACHE STRING "CMake packages")
+			CACHE STRING "CMake package directory for ragel")
 	endif()
-	install(FILES ${RUNTIME_HDR}
-		DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/ragel")
-	install(TARGETS libfsm libragel ragel
+
+	configure_file(ragel-config.cmake.in
+		"${PROJECT_BINARY_DIR}/${_PACKAGE_NAME}-config.cmake" @ONLY)
+
+	install(TARGETS libragel ragel
 		EXPORT ${_PACKAGE_NAME}-targets
 		RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
 		LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 		ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+
 	install(EXPORT ${_PACKAGE_NAME}-targets
 		NAMESPACE ${_PACKAGE_NAME}::
-		DESTINATION "${CMAKE_INSTALL_CMAKEDIR}")
+		DESTINATION "${CMAKE_INSTALL_CMAKEDIR_RAGEL}")
+
 	export(EXPORT ${_PACKAGE_NAME}-targets
 		NAMESPACE ${_PACKAGE_NAME}::
 		FILE "${PROJECT_BINARY_DIR}/${_PACKAGE_NAME}-targets.cmake")
+
 	include(CMakePackageConfigHelpers)
 	write_basic_package_version_file(
 		"${PROJECT_BINARY_DIR}/${_PACKAGE_NAME}-config-version.cmake"
-		VERSION ${RAGEL_VERSION}
+		VERSION ${RAGEL_VERSION_NUMERIC}
 		COMPATIBILITY AnyNewerVersion)
+
 	install(FILES
 		"${PROJECT_BINARY_DIR}/${_PACKAGE_NAME}-config.cmake"
 		"${PROJECT_BINARY_DIR}/${_PACKAGE_NAME}-config-version.cmake"
-		DESTINATION "${CMAKE_INSTALL_CMAKEDIR}")
+		DESTINATION "${CMAKE_INSTALL_CMAKEDIR_RAGEL}")
+
+	install(FILES ragel.lm
+		DESTINATION "${CMAKE_INSTALL_DATADIR}")
 endif()

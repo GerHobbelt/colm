@@ -8,6 +8,7 @@ noinst_PROGRAMS = \
 	statechart 
 
 EXTRA_DIST = \
+	CMakeLists.txt \
 	gotocallret.rl pullscan.rl concurrent.rl rlscan.rl statechart.rl \
 	params.rl clang.rl cppscan.rl format.rl awkemu.rl mailbox.rl atoi.rl
 

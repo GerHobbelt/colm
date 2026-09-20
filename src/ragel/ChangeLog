@@ -1,5 +1,77 @@
-Ragel 7.0.1 - Aug XXX, 2018
-===========================
+Ragel 7.1.0 - Aug 19, 2026
+==========================
+ -Added Zig as a host language. The ragel-zig program supports all code
+  styles.
+ -Ragel is now distributed together with Colm, in a single colm-suite
+  tarball. Ragel's front end is written in Colm, so earlier ragel 7 releases
+  required a separately installed colm of an exactly matching version and
+  refused to configure without it. There is no longer a version to match.
+ -Ragel carries its own version number, independent of Colm's. The suite
+  tarball is named for the highest version it contains, which is Ragel's.
+ -Either half of the suite can be installed on its own, with
+  --disable-install-colm or --disable-install-ragel. The whole tree is built
+  in both cases, only the install step is narrowed.
+ -Generate an EOF check when a machine has from-state actions. From-state
+  actions execute on EOF, but their presence was not considered when deciding
+  whether to test against EOF, so they ran only when some other condition
+  happened to require the test. Note that this changes existing machines: a
+  specification with from-state actions but no EOF actions now needs eof to
+  be set, and its generated code changes accordingly.
+ -Parse errors in a machine specification are now reported. The parser could
+  backtrack into the rule that ignores uninteresting sections and consume the
+  broken specification through to the closing "}}%", so the error went
+  unnoticed and the machine was silently ignored.
+ -Only mark input items as processed when their parse data matches. With
+  several named machines interleaved in one file, completing the last block
+  of one machine marked all preceding items as processed and ready for
+  writing, including machines that were not yet complete.
+ -C codegen: the signedness of the char host type is now decided from
+  CHAR_MIN rather than assumed, SCHAR_MIN and SCHAR_MAX are used for the
+  signed char host type, and the "signed" prefix is written when specifying
+  the size of the signed types.
+ -Host language comments are retained across the intermediate language and
+  now survive into the generated code.
+ -Rust: permit the apostrophe in output, and improved lexing of character
+  literals and identifiers, including lifetimes, in the host scanner.
+ -Intermediate language: allow an expression as the base of a deref or
+  offset, and support chained array subscripts.
+ -Data files are installed to PREFIX/share/colm rather than PREFIX/share,
+  which was a nuisance for packaging.
+ -The cmake build has been repaired and extended. It had gone stale and
+  covered ragel alone; it now builds colm, libfsm, cgil and ragel with all of
+  its host language backends. The test suite and the documentation remain
+  autotools only.
+ -The ragel man page fills in its version and date. The placeholders had
+  never been substituted and were shipping literally.
+ -macOS: replaced deprecated sprintf uses with snprintf.
+
+Ragel 7.0.4 - Feb 15, 2021
+==========================
+ -The usage output now lists the per-host-language programs (ragel-c,
+  ragel-d, ragel-go, ragel-java, ...) in place of the host language flags
+  they replaced (-C, -D, -Z, -J, ...).
+ -The abort-compile exception is now caught in the non-ragel programs.
+  Previously only the ragel entry point handled it, so an abort in the rlhc
+  driver escaped instead of becoming an exit status.
+ -Creation of the src/include/ragel symlink moved out of the makefile and
+  into the configure script.
+ -Requires colm 0.14.7.
+
+Ragel 7.0.3 - Jan 18, 2021
+==========================
+ -Requires colm 0.14.6. There are no other changes; this release exists to
+  track the colm release.
+
+Ragel 7.0.2 - Jan 3, 2021
+=========================
+ -The version banner now uses the package version directly. The separate
+  RAGEL_VERSION and RAGEL_PUBDATE substitutions have been removed from the
+  build.
+ -Copyright years updated.
+ -Requires colm 0.14.5.
+
+Ragel 7.0.1 - Nov 25, 2020
+==========================
  -Condition implemenation rewritten. Previously utilized an extension of the
   alphabet space to encode "character when A". The character was looked up, the
   applicable condition set determined, a constant value was added to the

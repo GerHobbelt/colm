@@ -1,38 +1,51 @@
-# Package name
-set(_PACKAGE_NAME colm)
+#
+# colm: the runtime (libcolm), the compiler (libprog) and the bootstrap chain
+# that ends in the colm program itself.
+#
 
-# Read project configuration from ../configure.ac file
-file(STRINGS ../configure.ac _PROJECT_CONFIGS
-	REGEX "(COLM_VERSION=)|(COLM_PUBDATE=)")
-foreach(_PROJECT_CONFIG ${_PROJECT_CONFIGS})
-	if(_PROJECT_CONFIG MATCHES "COLM_VERSION=\"([^\"]+)")
-		string(STRIP ${CMAKE_MATCH_1} COLM_VERSION)
-	endif()
-	if(_PROJECT_CONFIG MATCHES "COLM_PUBDATE=\"([^\"]+)")
-		string(STRIP ${CMAKE_MATCH_1} COLM_PUBDATE)
-	endif()
-endforeach()
+#
+# Generated headers. config.h, defs.h and version.h are the cmake equivalents
+# of the headers autoheader produces for the autotools build.
+#
+configure_file(config.h.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/config.h" @ONLY)
+configure_file(defs.h.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/defs.h" @ONLY)
+configure_file(version.h.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/version.h" @ONLY)
 
-# Generate headers
-configure_file(version.h.cmake.in version.h @ONLY)
-configure_file(defs.h.cmake.in defs.h @ONLY)
-configure_file(colm-config.cmake.in
-"${PROJECT_BINARY_DIR}/${_PACKAGE_NAME}-config.cmake" @ONLY)
-
-# Runtime headers
+#
+# Runtime headers. Generated colm programs include these as <colm/tree.h> and
+# friends, so assemble a colm/ directory in the build tree. This is the cmake
+# equivalent of the AC_CONFIG_LINKS block in configure.ac.
+#
 set(RUNTIME_HDR
-	bytecode.h debug.h pool.h input.h
-	pdarun.h map.h type.h tree.h struct.h program.h colm.h internal.h)
+	bytecode.h debug.h pool.h input.h pdarun.h map.h type.h tree.h
+	struct.h program.h colm.h internal.h colmex.h)
 
-foreach(_hdr defs.h)
-	list(APPEND RUNTIME_HDR "${CMAKE_CURRENT_BINARY_DIR}/${_hdr}")
+set(COLM_GENERATED_HDR config.h defs.h)
+
+set(COLM_INCLUDE_DIR "${PROJECT_BINARY_DIR}/include")
+file(MAKE_DIRECTORY "${COLM_INCLUDE_DIR}/colm")
+
+set(COLM_INSTALL_HDR)
+foreach(_hdr ${RUNTIME_HDR})
+	file(CREATE_LINK
+		"${CMAKE_CURRENT_LIST_DIR}/${_hdr}"
+		"${COLM_INCLUDE_DIR}/colm/${_hdr}"
+		COPY_ON_ERROR SYMBOLIC)
+	list(APPEND COLM_INSTALL_HDR "${CMAKE_CURRENT_LIST_DIR}/${_hdr}")
 endforeach()
 
-# Other CMake modules
-include(GNUInstallDirs)
+foreach(_hdr ${COLM_GENERATED_HDR})
+	file(CREATE_LINK
+		"${CMAKE_CURRENT_BINARY_DIR}/${_hdr}"
+		"${COLM_INCLUDE_DIR}/colm/${_hdr}"
+		COPY_ON_ERROR SYMBOLIC)
+	list(APPEND COLM_INSTALL_HDR "${CMAKE_CURRENT_BINARY_DIR}/${_hdr}")
+endforeach()
 
-# libcolm
-
+#
+# libcolm: the colm runtime, linked into colm itself and into every generated
+# colm program.
+#
 add_library(libcolm
 	map.c pdarun.c list.c input.c stream.c debug.c
 	codevect.c pool.c string.c tree.c iter.c
@@ -41,23 +54,25 @@ add_library(libcolm
 
 target_include_directories(libcolm
 	PUBLIC
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..>
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/..>
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/../src>
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>
+	$<BUILD_INTERFACE:${COLM_INCLUDE_DIR}>
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
+# The colm runtime carries colm's version, not the suite's. This mirrors the
+# libtool -release string in Makefile.am.
 set_target_properties(libcolm PROPERTIES
-	OUTPUT_NAME colm)
+	OUTPUT_NAME colm
+	VERSION ${COLM_VERSION_NUMERIC}
+	SOVERSION ${COLM_VERSION_MAJOR})
 
-# libprog
+add_library(colm::libcolm ALIAS libcolm)
 
-add_library(libprog
-	buffer.h bytecode.h colm.h debug.h dotgen.h fsmcodegen.h fsmgraph.h
-	input.h keyops.h map.h compiler.h
-	parsetree.h pcheck.h pdacodegen.h pdagraph.h pdarun.h pool.h redbuild.h
-	redfsm.h tree.h global.h colm.h parser.h cstring.h
-	internal.h
+#
+# libprog: the colm compiler, minus the front end. Not installed; it exists so
+# the bootstrap programs and colm itself can share the objects.
+#
+add_library(libprog STATIC
 	resolve.cc lookup.cc synthesis.cc parsetree.cc
 	fsmstate.cc fsmbase.cc fsmattach.cc fsmmin.cc
 	fsmgraph.cc pdagraph.cc pdabuild.cc pdacodegen.cc fsmcodegen.cc
@@ -67,121 +82,189 @@ add_library(libprog
 
 target_include_directories(libprog
 	PUBLIC
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/..>
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/../aapl>
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/..>)
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/aapl>
+	$<BUILD_INTERFACE:${COLM_INCLUDE_DIR}>)
+
+target_link_libraries(libprog PUBLIC libcolm)
 
 set_target_properties(libprog PROPERTIES
 	OUTPUT_NAME prog)
 
-# bootstrap0
+#
+# The autotools build compiles builddir.cc, which lets colm detect that it is
+# being run out of the build tree and link programs via libtool. There is no
+# libtool in the cmake build, so supply a stub that always reports "not in a
+# build tree" and let colm use the installed headers and libraries.
+#
+set(_builddir_stub "${CMAKE_CURRENT_BINARY_DIR}/builddir-cmake.cc")
+file(WRITE "${_builddir_stub}"
+"/* Generated by cmake. The cmake build has no libtool wrapper, so the\n"
+" * run-from-build-directory detection in builddir.cc does not apply. */\n"
+"const char *defaultBuildDir()\n"
+"{\n"
+"	return 0;\n"
+"}\n")
 
-add_executable(bootstrap0
-	consinit.cc consinit.h main.cc)
+#
+# The bootstrap chain. Each stage builds the parser for the next one.
+#
+set(GEN_DIR "${CMAKE_CURRENT_BINARY_DIR}/gen")
+file(MAKE_DIRECTORY "${GEN_DIR}")
 
-target_link_libraries(bootstrap0 libprog libcolm)
+# bootstrap0: the input program is constructed with internal data structure
+# constructors. It can parse a grammar using limited features. No code.
+add_executable(bootstrap0 consinit.cc main.cc "${_builddir_stub}")
+target_link_libraries(bootstrap0 PRIVATE libprog libcolm)
+target_compile_definitions(bootstrap0 PRIVATE CONS_INIT ${common_COMPILE_DEFINITIONS})
 
-set_property(TARGET bootstrap0 APPEND PROPERTY
-	COMPILE_DEFINITIONS CONS_INIT ${common_COMPILE_DEFINITIONS})
+# bootstrap1: the input program is specified using a stripped down colm syntax.
+add_custom_command(
+	OUTPUT "${GEN_DIR}/parse1.c" "${GEN_DIR}/if1.h" "${GEN_DIR}/if1.cc"
+	COMMAND bootstrap0 -c -o "${GEN_DIR}/parse1.c"
+		-e "${GEN_DIR}/if1.h" -x "${GEN_DIR}/if1.cc" no-input
+	DEPENDS bootstrap0
+	COMMENT "Generating bootstrap1 parser"
+	VERBATIM)
 
-set_property(TARGET bootstrap0 APPEND PROPERTY
-	COMPILE_FLAGS -fpermissive)
+add_executable(bootstrap1 loadinit.cc main.cc "${_builddir_stub}"
+	"${GEN_DIR}/parse1.c" "${GEN_DIR}/if1.cc")
+target_link_libraries(bootstrap1 PRIVATE libprog libcolm)
+target_compile_definitions(bootstrap1 PRIVATE LOAD_INIT ${common_COMPILE_DEFINITIONS})
 
-# bootstrap1
+# bootstrap2: the input program is the colm grammar in colm.lm. It can parse
+# full colm programs.
+add_custom_command(
+	OUTPUT "${GEN_DIR}/parse2.c" "${GEN_DIR}/if2.h" "${GEN_DIR}/if2.cc"
+	COMMAND bootstrap1 -c -o "${GEN_DIR}/parse2.c"
+		-e "${GEN_DIR}/if2.h" -x "${GEN_DIR}/if2.cc"
+		"${CMAKE_CURRENT_LIST_DIR}/colm.lm"
+	DEPENDS bootstrap1 colm.lm
+	COMMENT "Generating bootstrap2 parser"
+	VERBATIM)
 
-make_directory("${CMAKE_CURRENT_BINARY_DIR}/gen")
+add_executable(bootstrap2 loadboot2.cc main.cc "${_builddir_stub}"
+	"${GEN_DIR}/parse2.c" "${GEN_DIR}/if2.cc")
+target_link_libraries(bootstrap2 PRIVATE libprog libcolm)
+target_compile_definitions(bootstrap2 PRIVATE LOAD_COLM ${common_COMPILE_DEFINITIONS})
 
-add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/gen/parse1.c"
-	"${CMAKE_CURRENT_BINARY_DIR}/gen/if1.h"
-	"${CMAKE_CURRENT_BINARY_DIR}/gen/if1.cc"
-	COMMAND bootstrap0
-	ARGS -c -o parse1.c -e if1.h -x if1.cc
-	WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/gen")
+# colm: built with the parser bootstrap2 generates from prog.lm.
+add_custom_command(
+	OUTPUT "${GEN_DIR}/parse3.c" "${GEN_DIR}/if3.h" "${GEN_DIR}/if3.cc"
+	COMMAND bootstrap2 -I "${CMAKE_CURRENT_LIST_DIR}"
+		-c -o "${GEN_DIR}/parse3.c"
+		-e "${GEN_DIR}/if3.h" -x "${GEN_DIR}/if3.cc"
+		"${CMAKE_CURRENT_LIST_DIR}/prog.lm"
+	DEPENDS bootstrap2 prog.lm colm.lm
+	COMMENT "Generating colm parser"
+	VERBATIM)
 
-add_executable(bootstrap1
-	loadinit.h loadinit.cc main.cc
-	"${CMAKE_CURRENT_BINARY_DIR}/gen/parse1.c"
-	"${CMAKE_CURRENT_BINARY_DIR}/gen/if1.cc")
+add_executable(colm loadcolm.cc main.cc "${_builddir_stub}"
+	"${GEN_DIR}/parse3.c" "${GEN_DIR}/if3.cc")
+target_link_libraries(colm PRIVATE libprog libcolm)
+target_compile_definitions(colm PRIVATE LOAD_COLM ${common_COMPILE_DEFINITIONS})
 
-target_link_libraries(bootstrap1 libprog libcolm)
-
-set_property(TARGET bootstrap1 APPEND PROPERTY
-	COMPILE_DEFINITIONS LOAD_INIT ${common_COMPILE_DEFINITIONS})
-
-# bootstrap2
-
-add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/gen/parse2.c"
-	"${CMAKE_CURRENT_BINARY_DIR}/gen/if2.h"
-	"${CMAKE_CURRENT_BINARY_DIR}/gen/if2.cc"
-	COMMAND bootstrap1
-	ARGS -c -o parse2.c -e if2.h -x if2.cc "${CMAKE_CURRENT_LIST_DIR}/colm.lm"
-	WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/gen")
-
-add_executable(bootstrap2
-	main.cc loadboot2.cc loadfinal.h version.h
-	"${CMAKE_CURRENT_BINARY_DIR}/gen/parse2.c"
-	"${CMAKE_CURRENT_BINARY_DIR}/gen/if2.cc")
-
-target_link_libraries(bootstrap2 libprog libcolm)
-
-set_property(TARGET bootstrap2 APPEND PROPERTY
-	COMPILE_DEFINITIONS LOAD_COLM ${common_COMPILE_DEFINITIONS})
-
-# colm
-
-add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/gen/parse3.c"
-	"${CMAKE_CURRENT_BINARY_DIR}/gen/if3.h"
-	"${CMAKE_CURRENT_BINARY_DIR}/gen/if3.cc"
-	COMMAND bootstrap2
-	ARGS -I "${CMAKE_CURRENT_LIST_DIR}" -c -o parse3.c -e if3.h -x if3.cc "${CMAKE_CURRENT_LIST_DIR}/prog.lm"
-	WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/gen")
-
-add_executable(colm
-	main.cc loadcolm.cc loadfinal.h version.h
-	"${CMAKE_CURRENT_BINARY_DIR}/gen/parse3.c"
-	"${CMAKE_CURRENT_BINARY_DIR}/gen/if3.cc")
+add_executable(colm::colm ALIAS colm)
 
 if(BUILD_STANDALONE)
 	if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-		target_link_libraries(colm -static)
+		target_link_options(colm PRIVATE -static)
 	else()
 		message(FATAL_ERROR "Unsupported toolset for standalone build.")
 	endif()
 endif()
 
-target_link_libraries(colm libprog libcolm)
+# loadinit.cc, loadboot2.cc and loadcolm.cc include the generated export
+# headers, which the custom commands above produce as a side effect of
+# generating the parsers.
+set_source_files_properties(loadinit.cc PROPERTIES
+	OBJECT_DEPENDS "${GEN_DIR}/if1.h")
+set_source_files_properties(loadboot2.cc PROPERTIES
+	OBJECT_DEPENDS "${GEN_DIR}/if2.h")
+set_source_files_properties(loadcolm.cc PROPERTIES
+	OBJECT_DEPENDS "${GEN_DIR}/if3.h")
 
-set_property(TARGET colm APPEND PROPERTY
-	COMPILE_DEFINITIONS LOAD_COLM ${common_COMPILE_DEFINITIONS})
+if(NOT MSVC)
+	foreach(_target bootstrap0 bootstrap1 bootstrap2 colm)
+		target_compile_options(${_target} PRIVATE -Wall)
+	endforeach()
 
-if(${PROJECT_NAME}_MAKE_INSTALL)
+	# bootstrap0 relies on the implicit conversions the constructed
+	# initialisation code performs.
+	target_compile_options(bootstrap0 PRIVATE
+		$<$<COMPILE_LANGUAGE:CXX>:-fpermissive>)
+endif()
+
+#
+# Subdirectories. libfsm does not depend on colm; ragel does. Both need the
+# generated config.h, which lives in this directory's build tree.
+#
+set(COLM_BUILD_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+set(COLM_AAPL_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/aapl")
+set(COLM_CGIL_DIR "${CMAKE_CURRENT_LIST_DIR}/cgil")
+
+add_subdirectory(cgil)
+add_subdirectory(libfsm)
+add_subdirectory(ragel)
+
+#
+# Install.
+#
+if(COLM_INSTALL_COLM OR COLM_INSTALL_RAGEL)
+	set(_PACKAGE_NAME colm)
+
 	if(NOT DEFINED CMAKE_INSTALL_CMAKEDIR)
 		set(CMAKE_INSTALL_CMAKEDIR
 			"${CMAKE_INSTALL_LIBDIR}/cmake/${_PACKAGE_NAME}"
 			CACHE STRING "CMake packages")
 	endif()
-	install(FILES ${RUNTIME_HDR}
-		DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/colm")
-	install(TARGETS libcolm colm
+
+	configure_file(colm-config.cmake.in
+		"${PROJECT_BINARY_DIR}/${_PACKAGE_NAME}-config.cmake" @ONLY)
+
+	#
+	# The runtime library goes out even when only ragel is being installed.
+	# The ragel programs link it, and the exported ragel targets name
+	# colm::libcolm, so the colm package has to be resolvable.
+	#
+	install(TARGETS libcolm
 		EXPORT ${_PACKAGE_NAME}-targets
 		RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
 		LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
 		ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+
+	if(COLM_INSTALL_COLM)
+		install(TARGETS colm
+			EXPORT ${_PACKAGE_NAME}-targets
+			RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+
+		install(FILES ${COLM_INSTALL_HDR}
+			DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/colm")
+	endif()
+
 	install(EXPORT ${_PACKAGE_NAME}-targets
 		NAMESPACE ${_PACKAGE_NAME}::
 		DESTINATION "${CMAKE_INSTALL_CMAKEDIR}")
+
 	export(EXPORT ${_PACKAGE_NAME}-targets
 		NAMESPACE ${_PACKAGE_NAME}::
 		FILE "${PROJECT_BINARY_DIR}/${_PACKAGE_NAME}-targets.cmake")
+
 	include(CMakePackageConfigHelpers)
 	write_basic_package_version_file(
 		"${PROJECT_BINARY_DIR}/${_PACKAGE_NAME}-config-version.cmake"
-		VERSION ${COLM_VERSION}
+		VERSION ${COLM_VERSION_NUMERIC}
 		COMPATIBILITY AnyNewerVersion)
+
 	install(FILES
 		"${PROJECT_BINARY_DIR}/${_PACKAGE_NAME}-config.cmake"
 		"${PROJECT_BINARY_DIR}/${_PACKAGE_NAME}-config-version.cmake"
 		DESTINATION "${CMAKE_INSTALL_CMAKEDIR}")
+
+	# aapl is a header-only template library. The installed libfsm headers
+	# include it, so it goes out with either half of the suite.
+	install(DIRECTORY aapl/
+		DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/aapl"
+		FILES_MATCHING PATTERN "*.h")
 endif()

@@ -45,7 +45,9 @@ EXTRA_DIST = $(IN_FILES) $(CODE)
 
 if BUILD_MANUAL
 
+if INSTALL_COLM
 doc_DATA = $(OUT_FILES)
+endif
 
 SUFFIXES = .html .adoc
 

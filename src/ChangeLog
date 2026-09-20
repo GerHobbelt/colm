@@ -1,3 +1,130 @@
+colm 0.13.0.3 - Jan 28, 2016
+----------------------------
+	* Added reductions. A reduction block is declared with reduction <id> ...
+	  end and holds host language code to be run as the parse tree is reduced.
+	  An action is attached either to a nonterminal, with type_ref { ... }, or
+	  to a named production, with type_ref: label { ... }.
+	* Reduction actions refer to the left hand side with $$, to right hand side
+	  elements by name with $name or by position with $1, $2, and to the
+	  locations of right hand side elements with @name, @1, @2. The location
+	  can be omitted.
+	* Added the reduce expression, which runs a named reduction over parsed
+	  input.
+	* A program can contain more than one reduction.
+	* Added the $$ operator, which converts a tree to a string, including the
+	  attributes.
+	* Added the -m option, which writes the C++ commit code to a file.
+	* Added the -b option, which names the program object. It also omits the
+	  host adapter functions, which need to appear only once in a binary that
+	  contains colm code.
+	* Generated reduction code carries line directives back to the colm source.
+	* The parse tree allocator is a pointer in the parser, so it can be
+	  overridden.
+	* Run buffers are sized dynamically when a token is extracted.
+	* Tokens taken from strings are given a default location.
+	* Data pushed in front of a stream sources its location.
+	* Added vim syntax highlighting for reduction blocks.
+
+colm 0.13.0.2 - Sep 20, 2015
+----------------------------
+	* Structs are now a distinct non-tree runtime object, with their own
+	  allocation, field access instructions and destruction. The global object,
+	  stream, parser, list and map are all built on them.
+	* Removed the deref syntax. Derefs are implicit under object semantics.
+	* Removed the list2, list2el, map2 and map2el types. The link fields
+	  declared with list_el and map_el are now used by the list and map types
+	  themselves.
+	* int and bool are now values rather than trees.
+	* new requires an argument list, and takes an optional capture name, as in
+	  new Var: type().
+	* A new parser of a context type must be given the context at new time.
+	* Added list_iter, rev_list_iter and map_iter, removing the need to walk
+	  lists and maps with while loops.
+	* Iterators always yield nil at the end.
+	* Functions can be declared inside namespaces, and are scoped to them.
+	* Globals can be declared inside namespaces.
+	* Added C extensions. A function declared with = c_name is implemented by a
+	  C function, which is called with the program and the stack pointer.
+	* Added str.prefix and str.suffix, and global versions of atoi, atoo,
+	  prefix, suffix and the uord and sord functions.
+	* Added string.atoo, the octal version of atoi.
+	* Added exit_hard, which calls the system exit directly.
+	* The system function handles signals and returns the correct exit status.
+	* Switch clauses take commit points, and switch statements can be wrapped
+	  in curly braces.
+	* alias declarations are allowed inside context declarations.
+	* List elements can refer to their own type recursively.
+	* nil can be cast to a struct or a generic.
+	* Brought back the comma as a separator in parameter and argument lists.
+	* Sending to a parser no longer trims trees, making it consistent with
+	  sending to a stream.
+	* Absolute indentation is incremented and decremented on the _IN_ and _EX_
+	  types, which can be sent to a stream or embedded in a parser.
+	* Renamed argv0 to arg0 and fixed a leak in it.
+	* New backtrack-halt strategy. Shifts are counted and a checkpoint is
+	  stored on commit, limiting backup to that point.
+	* Fixed a segfault following a parse error in an included file.
+	* Fixed missing downrefs in the logical operators and in the map key and
+	  find arguments.
+	* Fixed a couple of opcodes with missing breaks.
+	* Function arguments are passed in contiguous space on the caller's stack
+	  and return values come back in a register.
+	* Large scale renaming in the C runtime to snake case. Merged fsm_run and
+	  pda_run.
+	* Removed the fd-based IO functions. All stream IO goes through FILE
+	  structs, which buffers the many small writes made when printing trees.
+	* Restored the GPL license file and the GPL and LGPL headers in the
+	  sources.
+	* Install internal.h with the other headers.
+	* Determine CPPFLAGS and LDFLAGS for the source tests in configure.
+
+colm 0.13.0.1 - Dec 14, 2014
+----------------------------
+	* The list, map, parser and stream types now have object semantics. A type
+	  reference resolves to a pointer to the object and instances are made with
+	  the new operator.
+	* Added the new operator, which allocates an object and yields a pointer to
+	  it.
+	* The keyword struct was added as a synonym for context.
+	* Added the deref operator.
+	* Added the switch statement.
+	* Added list_el and map_el declarations, for naming the list and map link
+	  fields inside a struct.
+	* Added the list2, list2el, map2 and map2el types, which are lists and maps
+	  built from links declared in the element struct, rather than from
+	  separately allocated cells.
+	* Iterators automatically deref lists and maps.
+	* The list push and pop functions now operate on the head of the list.
+	  Added push_head, push_tail, pop_head and pop_tail. Removed append and
+	  remove_end.
+	* The send statement now converts trees to strings. Added send_tree, which
+	  retains the previous behaviour.
+	* The parse statement now converts trees to strings. Added parse_tree,
+	  which retains the previous behaviour.
+	* Added print as a synonym for send stdout.
+	* Parse statements can take functions that return void.
+	* String construction lists convert non-string trees to strings.
+	* Added the close function to stream.
+	* Added the append open mode ('a') to the open function.
+	* argv no longer contains the program name. It is available in the separate
+	  argv0 variable.
+	* Production label enum values in the generated C++ export interface no
+	  longer have a leading underscore.
+	* Removed the vector type.
+	* The -o option now works when compiling to a binary.
+	* Handle partially matched tokens on EOF.
+	* The include load now checks that the file was opened.
+	* Bounds check in the object field lookup.
+	* Free the input list when a parser is cleaned up.
+	* Streams embedded in a parse are downrefed when consumed.
+	* Can break from a for loop when the iterator argument is not a reference.
+	* Removed the GPL license file and stripped the GPL and LGPL headers from
+	  the sources.
+	* The test suite is built with autotools and honours the COLM environment
+	  variable, allowing an installed colm to be tested.
+	* Removed the test directory and the generated sources from the
+	  distribution.
+
 colm 0.12.0 - Feb 1, 2014
 -------------------------
 	* allow matching against reference types

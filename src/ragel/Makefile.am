@@ -2,15 +2,22 @@ SUBDIRS = . host-ruby host-asm host-julia host-ocaml host-c \
 	host-d host-csharp host-go host-java host-rust host-crack host-js \
 	host-zig
 
-# libragel contains the parse tree and other parsing support code. Everything
-# except the reducers, which are specific to the frontends.
-lib_LTLIBRARIES = libragel.la
-
-bin_PROGRAMS = ragel
-
 # nodist_pkginclude_HEADERS = config.h
 
+# libragel contains the parse tree and other parsing support code. Everything
+# except the reducers, which are specific to the frontends.
+#
+# This is the ragel half of the suite. With --disable-install-ragel it is all
+# still built, so it can be tested from the build tree, but none of it is
+# installed.
+if INSTALL_RAGEL
+lib_LTLIBRARIES = libragel.la
+bin_PROGRAMS = ragel
 data_DATA = ragel.lm
+else
+noinst_LTLIBRARIES = libragel.la
+noinst_PROGRAMS = ragel
+endif
 
 #
 # libragel: ragel program minus host-specific code
@@ -23,11 +30,14 @@ dist_libragel_la_SOURCES = \
 	parsetree.cc longest.cc parsedata.cc inputdata.cc load.cc reducer.cc \
 	ncommon.cc allocgen.cc
 
-libragel_la_LDFLAGS = -no-undefined
 libragel_la_LIBADD = $(LIBFSM_LA) $(LIBCOLM_LA)
+
+if INSTALL_RAGEL
+libragel_la_LDFLAGS = -no-undefined
 
 if LINKER_NO_UNDEFINED
 libragel_la_LDFLAGS += -Wl,--no-undefined
+endif
 endif
 
 #
@@ -61,6 +71,9 @@ version.h: Makefile
 	echo '#define RAGEL_PUBDATE "@RAGEL_PUBDATE@"' >> version.h
 
 EXTRA_DIST = \
+	CMakeLists.txt \
+	version.h.cmake.in \
+	ragel-config.cmake.in \
 	$(RAGEL_LM) \
 	rlscan.rl \
 	rlparse.kh \

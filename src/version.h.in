@@ -1,2 +1,4 @@
 #undef VERSION
 #undef PUBDATE
+#undef COLM_VERSION
+#undef COLM_PUBDATE

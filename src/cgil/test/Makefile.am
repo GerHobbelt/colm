@@ -1,7 +1,16 @@
+# The cgil translators belong to the ragel half of the suite. They are built
+# either way so the test suite here can run from the build tree.
+if INSTALL_RAGEL
 bin_PROGRAMS = \
 	cgil-c cgil-crack cgil-csharp cgil-d \
 	cgil-go cgil-java cgil-js cgil-julia \
 	cgil-ocaml cgil-ruby cgil-rust cgil-zig
+else
+noinst_PROGRAMS = \
+	cgil-c cgil-crack cgil-csharp cgil-d \
+	cgil-go cgil-java cgil-js cgil-julia \
+	cgil-ocaml cgil-ruby cgil-rust cgil-zig
+endif
 
 check_SCRIPTS = subject.mk subject.sh runtests
 

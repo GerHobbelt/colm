@@ -1,4 +1,8 @@
+if INSTALL_RAGEL
 bin_PROGRAMS = ragel-ruby
+else
+noinst_PROGRAMS = ragel-ruby
+endif
 
 ragel_ruby_CPPFLAGS = -I$(top_srcdir)/src/aapl -I$(top_srcdir)/src/ragel -I$(top_srcdir)/src/include
 
@@ -11,7 +15,7 @@ ragel_ruby_LDADD = $(LIBFSM_LA) $(LIBCOLM_LA) ../libragel.la
 
 BUILT_SOURCES = rlparse.c rlreduce.cc rlhc.c
 
-EXTRA_DIST = rlparse.lm
+EXTRA_DIST = rlparse.lm CMakeLists.txt
 
 LM_DEPS = ../ragel.lm ../rlreduce.lm
 

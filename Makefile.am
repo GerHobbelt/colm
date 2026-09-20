@@ -21,8 +21,17 @@
 
 SUBDIRS = src doc test
 
-dist_doc_DATA = colm.vim ragel.vim
-EXTRA_DIST = colm.vim ragel.vim sedsubst
+dist_doc_DATA =
+
+if INSTALL_COLM
+dist_doc_DATA += colm.vim
+endif
+
+if INSTALL_RAGEL
+dist_doc_DATA += ragel.vim
+endif
+
+EXTRA_DIST = colm.vim ragel.vim sedsubst CMakeLists.txt
 ACLOCAL_AMFLAGS = -I m4
 
 export CC CFLAGS
