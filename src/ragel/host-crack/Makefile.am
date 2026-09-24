@@ -33,5 +33,5 @@ rlparse.c: rlparse.pack
 rlreduce.cc: rlparse.pack
 	$(COLM_WRAP) -o $@ $<
 
-rlhc.c: $(COLM_SHARE)/rlhc-crack.lm $(COLM_SHARE)/ril.lm $(COLM_BINDEP)
+rlhc.c: $(COLM_SHARE)/rlhc-crack.lm $(COLM_SHARE)/ril.lm $(COLM) $(COLM_WRAP)
 	$(COLM) -c -I $(COLM_SHARE) -b rlhcCrack -o $@ $<
