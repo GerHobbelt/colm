@@ -24,12 +24,244 @@
 
 #include <assert.h>
 
-#include "redfsm.h"
-#include "compiler.h"
+#include "fsmcodegen.h"
 
-void execAction( struct pda_run *pdaRun, GenAction *genAction )
+static long actionLoc( RedAction *action )
 {
-	for ( InlineList::Iter item = *genAction->inlineList; item.lte(); item++ ) {
+	return action != 0 ? action->location + 1 : 0;
+}
+
+/* The tables for the table driven scanner below. The code generator writes
+ * only the entry points and the start, first final and error states into the
+ * program; the program runs the goto driven scanner. */
+fsm_tables *LexReducer::makeFsmTables()
+{
+	/* The fsm runtime needs states sorted by id. */
+	redFsm->sortByStateId();
+
+	int pos, curKeyOffset, curIndOffset;
+	fsm_tables *fsmTables = new fsm_tables;
+	fsmTables->num_states = redFsm->stateList.length();
+
+	/*
+	 * actions
+	 */
+
+	fsmTables->num_actions = 1;
+	for ( GenActionTableMap::Iter act = redFsm->actionMap; act.lte(); act++ )
+		fsmTables->num_actions += 1 + act->key.length();
+
+	pos = 0;
+	fsmTables->actions = new long[fsmTables->num_actions];
+	fsmTables->actions[pos++] = 0;
+	for ( GenActionTableMap::Iter act = redFsm->actionMap; act.lte(); act++ ) {
+		fsmTables->actions[pos++] = act->key.length();
+		for ( GenActionTable::Iter item = act->key; item.lte(); item++ )
+			fsmTables->actions[pos++] = item->value->actionId;
+	}
+
+	/*
+	 * keyOffset
+	 */
+	pos = 0, curKeyOffset = 0;
+	fsmTables->key_offsets = new long[fsmTables->num_states];
+	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ ) {
+		/* Store the current offset. */
+		fsmTables->key_offsets[pos++] = curKeyOffset;
+
+		/* Move the key offset ahead. */
+		curKeyOffset += st->outSingle.length() + st->outRange.length()*2;
+	}
+
+	/*
+	 * transKeys
+	 */
+	fsmTables->num_trans_keys = 0;
+	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ ) {
+		fsmTables->num_trans_keys += st->outSingle.length();
+		fsmTables->num_trans_keys += 2 * st->outRange.length();
+	}
+
+	pos = 0;
+	fsmTables->trans_keys = new char[fsmTables->num_trans_keys];
+	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ ) {
+		for ( RedTransList::Iter stel = st->outSingle; stel.lte(); stel++ )
+			fsmTables->trans_keys[pos++] = stel->lowKey.getVal();
+		for ( RedTransList::Iter rtel = st->outRange; rtel.lte(); rtel++ ) {
+			fsmTables->trans_keys[pos++] = rtel->lowKey.getVal();
+			fsmTables->trans_keys[pos++] = rtel->highKey.getVal();
+		}
+	}
+
+	/*
+	 * singleLengths
+	 */
+	pos = 0;
+	fsmTables->single_lengths = new long[fsmTables->num_states];
+	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ )
+		fsmTables->single_lengths[pos++] = st->outSingle.length();
+
+	/*
+	 * rangeLengths
+	 */
+	pos = 0;
+	fsmTables->range_lengths = new long[fsmTables->num_states];
+	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ )
+		fsmTables->range_lengths[pos++] = st->outRange.length();
+
+	/*
+	 * indexOffsets
+	 */
+	pos = 0, curIndOffset = 0;
+	fsmTables->index_offsets = new long[fsmTables->num_states];
+	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ ) {
+		fsmTables->index_offsets[pos++] = curIndOffset;
+
+		curIndOffset += st->outSingle.length() + st->outRange.length();
+		if ( st->defTrans != 0 )
+			curIndOffset += 1;
+	}
+
+	/*
+	 * transTargsWI
+	 */
+	fsmTables->numTransTargsWI = 0;
+	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ ) {
+		fsmTables->numTransTargsWI += st->outSingle.length();
+		fsmTables->numTransTargsWI += st->outRange.length();
+		if ( st->defTrans != 0 )
+			fsmTables->numTransTargsWI += 1;
+	}
+
+	pos = 0;
+	fsmTables->transTargsWI = new long[fsmTables->numTransTargsWI];
+	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ ) {
+		for ( RedTransList::Iter stel = st->outSingle; stel.lte(); stel++ )
+			fsmTables->transTargsWI[pos++] = stel->value->p.targ->id;
+
+		for ( RedTransList::Iter rtel = st->outRange; rtel.lte(); rtel++ )
+			fsmTables->transTargsWI[pos++] = rtel->value->p.targ->id;
+
+		if ( st->defTrans != 0 )
+			fsmTables->transTargsWI[pos++] = st->defTrans->p.targ->id;
+	}
+
+	/*
+	 * transActionsWI
+	 */
+	fsmTables->numTransActionsWI = 0;
+	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ ) {
+		fsmTables->numTransActionsWI += st->outSingle.length();
+		fsmTables->numTransActionsWI += st->outRange.length();
+		if ( st->defTrans != 0 )
+			fsmTables->numTransActionsWI += 1;
+	}
+
+	pos = 0;
+	fsmTables->transActionsWI = new long[fsmTables->numTransActionsWI];
+	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ ) {
+		for ( RedTransList::Iter stel = st->outSingle; stel.lte(); stel++ )
+			fsmTables->transActionsWI[pos++] = actionLoc( stel->value->p.action );
+
+		for ( RedTransList::Iter rtel = st->outRange; rtel.lte(); rtel++ )
+			fsmTables->transActionsWI[pos++] = actionLoc( rtel->value->p.action );
+
+		if ( st->defTrans != 0 )
+			fsmTables->transActionsWI[pos++] = actionLoc( st->defTrans->p.action );
+	}
+
+	/*
+	 * toStateActions
+	 */
+	pos = 0;
+	fsmTables->to_state_actions = new long[fsmTables->num_states];
+	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ )
+		fsmTables->to_state_actions[pos++] = actionLoc( st->toStateAction );
+
+	/*
+	 * fromStateActions
+	 */
+	pos = 0;
+	fsmTables->from_state_actions = new long[fsmTables->num_states];
+	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ )
+		fsmTables->from_state_actions[pos++] = actionLoc( st->fromStateAction );
+
+	/*
+	 * eofActions
+	 */
+	pos = 0;
+	fsmTables->eof_actions = new long[fsmTables->num_states];
+	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ ) {
+		RedTransAp *eofTrans = LexReducer::eofTrans( st );
+		fsmTables->eof_actions[pos++] = eofTrans != 0 ?
+				actionLoc( eofTrans->p.action ) : 0;
+	}
+
+	/*
+	 * eofTargs
+	 */
+	pos = 0;
+	fsmTables->eof_targs = new long[fsmTables->num_states];
+	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ ) {
+		RedTransAp *eofTrans = LexReducer::eofTrans( st );
+		fsmTables->eof_targs[pos++] = eofTrans != 0 ? eofTrans->p.targ->id : -1;
+	}
+
+	/* Start state. */
+	fsmTables->start_state = redFsm->startState->id;
+
+	/* First final state. */
+	fsmTables->first_final = ( redFsm->firstFinState != 0 ) ?
+		redFsm->firstFinState->id : redFsm->nextStateId;
+
+	/* The error state. */
+	fsmTables->error_state = ( redFsm->errState != 0 ) ?
+		redFsm->errState->id : -1;
+
+	/* The array pointing to actions. */
+	pos = 0;
+	fsmTables->num_action_switch = actionList.length();
+	fsmTables->action_switch = new LexAction*[fsmTables->num_action_switch];
+	for ( GenActionList::Iter act = actionList; act.lte(); act++ )
+		fsmTables->action_switch[pos++] = lexAction( act );
+
+	/*
+	 * entryByRegion
+	 */
+
+	/* The entry map can hold an id more than once. The first one wins. */
+	BstMap<int, long> entryMap;
+	for ( EntryMap::Iter en = fsm->entryPoints; en.lte(); en++ )
+		entryMap.insert( en->key, en->value->alg.stateNum );
+
+	fsmTables->num_regions = pd->regionList.length()+1;
+	fsmTables->entry_by_region = new long[fsmTables->num_regions];
+	fsmTables->entry_by_region[0] = fsmTables->error_state;
+
+	pos = 1;
+	for ( RegionList::Iter reg = pd->regionList; reg.lte(); reg++ ) {
+		assert( reg->id == pos - 1 );
+		assert( reg->impl->regionNameInst != 0 );
+
+		TokenRegion *use = reg;
+
+		if ( use->zeroLel != 0 )
+			use = use->ignoreOnly;
+
+		/* Find the entry state from the entry id. */
+		BstMapEl<int, long> *entryMapEl = entryMap.find( use->impl->regionNameInst->id );
+		
+		/* Save it off. */
+		fsmTables->entry_by_region[pos++] = entryMapEl != 0 ? entryMapEl->value 
+				: fsmTables->error_state;
+	}
+	
+	return fsmTables;
+}
+
+void execAction( struct pda_run *pdaRun, LexAction *lexAction )
+{
+	for ( InlineList::Iter item = *lexAction->inlineList; item.lte(); item++ ) {
 		switch ( item->type ) {
 		case InlineItem::Text:
 			assert(false);
@@ -96,8 +328,8 @@ void execAction( struct pda_run *pdaRun, GenAction *genAction )
 		}
 	}
 
-	if ( genAction->markType == MarkMark )
-		pdaRun->mark[genAction->markId-1] = pdaRun->p;
+	if ( lexAction->markType == MarkMark )
+		pdaRun->mark[lexAction->markId] = pdaRun->p;
 }
 
 extern "C" void internalFsmExecute( struct pda_run *pdaRun, struct input_impl *inputStream )

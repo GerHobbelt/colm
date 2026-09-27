@@ -30,7 +30,6 @@
 #include <assert.h>
 #include <iostream>
 
-#include "redbuild.h"
 #include "pdacodegen.h"
 #include "fsmcodegen.h"
 #include "colm.h"
@@ -323,6 +322,7 @@ Compiler::Compiler( )
 	nextFrameId(0),
 	nextParserId(0),
 	revertOn(true),
+	reducer(0),
 	predValue(0),
 	nextMatchEndNum(0),
 	argvTypeRef(0),
@@ -341,6 +341,7 @@ Compiler::~Compiler()
 	while ( actionList.head != 0 )
 		delete LexAction::cast( actionList.detachFirst() );
 
+	delete reducer;
 	delete fsmCtx;
 	delete fsmGbl;
 
@@ -1013,7 +1014,8 @@ void Compiler::writeHostCall()
 
 void Compiler::generateOutput( long activeRealm, bool includeCommit )
 {
-	FsmCodeGen *fsmGen = new FsmCodeGen( *outStream, redFsm, fsmTables );
+	FsmCodeGen *fsmGen = new FsmCodeGen( reducer, *outStream, fsmTables );
+	fsmGen->genAnalysis();
 
 	PdaCodeGen *pdaGen = new PdaCodeGen( *outStream );
 
@@ -1100,8 +1102,8 @@ void Compiler::compile()
 	compileByteCode();
 
 	/* Make the reduced scanner. */
-	RedFsmBuild reduce( this, fsmGraph );
-	redFsm = reduce.reduceMachine();
+	reducer = new LexReducer( this, fsmGraph );
+	reducer->reduce();
 
 	BstSet<LangEl*> parserEls;
 	collectParserEls( parserEls );
@@ -1109,7 +1111,7 @@ void Compiler::compile()
 	makeParser( parserEls );
 
 	/* Make the scanner tables. */
-	fsmTables = redFsm->makeFsmTables();
+	fsmTables = reducer->makeFsmTables();
 
 	/* Now that all parsers are built, make the global runtimeData. */
 	makeRuntimeData();

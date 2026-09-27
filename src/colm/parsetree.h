@@ -57,7 +57,6 @@
 	#error "SIZEOF_LONG contained an unexpected value"
 #endif
 
-struct RedFsm;
 struct ObjectDef;
 struct ElementOf;
 struct UniqueType;

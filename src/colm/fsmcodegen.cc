@@ -35,78 +35,103 @@ using std::string;
 using std::cerr;
 using std::endl;
 
-/* Init code gen with in parameters. */
-FsmCodeGen::FsmCodeGen( ostream &out, 
-		RedFsm *redFsm, fsm_tables *fsmTables )
+LexReducer::LexReducer( Compiler *pd, FsmAp *fsm )
 :
-	out(out),
-	redFsm(redFsm), 
+	Reducer( pd->fsmGbl, pd->fsmCtx, fsm, "parser", 0 ),
+	pd(pd),
+	lexActions(0)
+{
+}
+
+LexReducer::~LexReducer()
+{
+	delete[] lexActions;
+}
+
+void LexReducer::reduce()
+{
+	/* Both or neither, which eofTrans depends on. */
+	for ( StateList::Iter st = fsm->stateList; st.lte(); st++ )
+		assert( !( (st->eofTarget != 0) xor (st->eofActionTable.length() > 0) ) );
+
+	make();
+
+	/* Every action in the scanner graph is a LexAction. */
+	lexActions = new LexAction*[actionList.length()];
+	for ( ActionList::Iter act = fsmCtx->actionList; act.lte(); act++ ) {
+		if ( act->actionId >= 0 )
+			lexActions[act->actionId] = LexAction::cast( act );
+	}
+
+	numberTransitions();
+
+	/* The table driven scanner that runs at compile time reads the singles,
+	 * ranges and default of each state. Choose them here, where the tables
+	 * are made from the machine, not in the code generator. */
+	redFsm->chooseDefaultSpan();
+	redFsm->moveSelectTransToSingle();
+
+	redFsm->setInTrans();
+
+	analyzeMachine();
+}
+
+void LexReducer::numberTrans( RedTransAp *trans )
+{
+	if ( trans->id < 0 )
+		trans->id = trans->p.id = redFsm->nextTransId++;
+}
+
+/* Number the transitions in the order colm's own reducer allocated them:
+ * state by state, each one when first used, the error transition after the
+ * range that follows the gap it fills, and the eof transition last. */
+void LexReducer::numberTransitions()
+{
+	RedTransAp *errTrans = 0;
+	if ( redFsm->errState != 0 ) {
+		RedTransAp key( 0, 0, redFsm->errState, 0 );
+		errTrans = redFsm->transSet.find( &key );
+	}
+
+	for ( TransApSet::Iter trans = redFsm->transSet; trans.lte(); trans++ )
+		trans->id = -1;
+	redFsm->nextTransId = 0;
+
+	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ ) {
+		bool errPending = false;
+		for ( RedTransList::Iter rtel = st->outRange; rtel.lte(); rtel++ ) {
+			if ( rtel->value == errTrans )
+				errPending = true;
+			else {
+				numberTrans( rtel->value );
+				if ( errPending ) {
+					numberTrans( errTrans );
+					errPending = false;
+				}
+			}
+		}
+
+		if ( errPending )
+			numberTrans( errTrans );
+		if ( eofTrans( st ) != 0 )
+			numberTrans( st->eofTrans );
+	}
+
+	/* The eof transitions that leave a state where it is. */
+	for ( TransApSet::Iter trans = redFsm->transSet; trans.lte(); trans++ )
+		numberTrans( trans );
+}
+
+/* Colm writes its own keys and needs no line directives, so the code
+ * generator gets neither an alphabet type nor a line directive writer. */
+FsmCodeGen::FsmCodeGen( LexReducer *reducer, ostream &out, fsm_tables *fsmTables )
+:
+	CodeGen( CodeGenArgs( reducer->id, reducer, 0, 0, "", "parser",
+			out, GenIpGoto, 0, Direct ) ),
+	reducer(reducer),
 	fsmTables(fsmTables),
-	codeGenErrCount(0),
-	dataPrefix(true),
-	writeFirstFinal(true),
-	writeErr(true),
 	skipTokprefLabelNeeded(false)
 {
-}
-
-/* Write out the fsm name. */
-string FsmCodeGen::FSM_NAME()
-{
-	return "parser";
-}
-
-/* Emit the offset of the start state as a decimal integer. */
-string FsmCodeGen::START_STATE_ID()
-{
-	ostringstream ret;
-	ret << redFsm->startState->id;
-	return ret.str();
-};
-
-/* Write out the array of actions. */
-std::ostream &FsmCodeGen::ACTIONS_ARRAY()
-{
-	out << "\t0, ";
-	int totalActions = 1;
-	for ( GenActionTableMap::Iter act = redFsm->actionMap; act.lte(); act++ ) {
-		/* Write out the length, which will never be the last character. */
-		out << act->key.length() << ", ";
-		/* Put in a line break every 8 */
-		if ( totalActions++ % 8 == 7 )
-			out << "\n\t";
-
-		for ( GenActionTable::Iter item = act->key; item.lte(); item++ ) {
-			out << item->value->actionId;
-			if ( ! (act.last() && item.last()) )
-				out << ", ";
-
-			/* Put in a line break every 8 */
-			if ( totalActions++ % 8 == 7 )
-				out << "\n\t";
-		}
-	}
-	out << "\n";
-	return out;
-}
-
-
-string FsmCodeGen::CS()
-{
-	ostringstream ret;
-	/* Expression for retrieving the key, use simple dereference. */
-	ret << ACCESS() << "fsm_cs";
-	return ret.str();
-}
-
-string FsmCodeGen::GET_WIDE_KEY()
-{
-	return GET_KEY();
-}
-
-string FsmCodeGen::GET_WIDE_KEY( RedState *state )
-{
-	return GET_KEY();
 }
 
 string FsmCodeGen::GET_KEY()
@@ -153,11 +178,6 @@ void FsmCodeGen::SET_TOKEND_0( ostream &ret, InlineItem *item )
 	ret << "{ " << TOKEND() << " = " << TOKPREF() << " + ( " << P() << " - " << BLOCK_START() << " ); }";
 }
 
-void FsmCodeGen::INIT_TOKSTART( ostream &ret, InlineItem *item )
-{
-	ret << TOKSTART() << " = 0;";
-}
-
 void FsmCodeGen::INIT_ACT( ostream &ret, InlineItem *item )
 {
 	ret << ACT() << " = 0;";
@@ -173,10 +193,10 @@ void FsmCodeGen::EMIT_TOKEN( ostream &ret, LangEl *token )
 	ret << "	" << MATCHED_TOKEN() << " = " << token->id << ";\n";
 }
 
-void FsmCodeGen::LM_SWITCH( ostream &ret, InlineItem *item, 
+void FsmCodeGen::LM_SWITCH( ostream &ret, InlineItem *item,
 		int targState, int inFinish )
 {
-	ret << 
+	ret <<
 		"	switch( " << ACT() << " ) {\n";
 
 	/* If the switch handles error then we also forced the error state. It
@@ -196,7 +216,7 @@ void FsmCodeGen::LM_SWITCH( ostream &ret, InlineItem *item,
 		}
 	}
 
-	ret << 
+	ret <<
 		"	}\n"
 		"\t"
 		"	goto skip_tokpref;\n";
@@ -239,7 +259,7 @@ void FsmCodeGen::LM_ON_LAG_BEHIND( ostream &ret, InlineItem *item )
 
 /* Write out an inline tree structure. Walks the list and possibly calls out
  * to virtual functions than handle language specific items in the tree. */
-void FsmCodeGen::INLINE_LIST( ostream &ret, InlineList *inlineList, 
+void FsmCodeGen::INLINE_LIST( ostream &ret, InlineList *inlineList,
 		int targState, bool inFinish )
 {
 	for ( InlineList::Iter item = *inlineList; item.lte(); item++ ) {
@@ -281,171 +301,22 @@ void FsmCodeGen::INLINE_LIST( ostream &ret, InlineList *inlineList,
 	}
 }
 
-/* Write out paths in line directives. Escapes any special characters. */
-string FsmCodeGen::LDIR_PATH( char *path )
-{
-	ostringstream ret;
-	for ( char *pc = path; *pc != 0; pc++ ) {
-		if ( *pc == '\\' )
-			ret << "\\\\";
-		else
-			ret << *pc;
-	}
-	return ret.str();
-}
-
 void FsmCodeGen::ACTION( ostream &ret, GenAction *action, int targState, bool inFinish )
 {
+	LexAction *lexAction = reducer->lexAction( action );
+
 	/* Write the block and close it off. */
 	ret << "\t{";
-	INLINE_LIST( ret, action->inlineList, targState, inFinish );
+	INLINE_LIST( ret, lexAction->inlineList, targState, inFinish );
 
-	if ( action->markId > 0 )
-		ret << "mark[" << action->markId-1 << "] = " << P() << ";\n";
+	if ( lexAction->markId >= 0 )
+		ret << "mark[" << lexAction->markId << "] = " << P() << ";\n";
 
 	ret << "}\n";
 
 }
 
-void FsmCodeGen::CONDITION( ostream &ret, GenAction *condition )
-{
-	ret << "\n";
-	INLINE_LIST( ret, condition->inlineList, 0, false );
-}
-
-string FsmCodeGen::ERROR_STATE()
-{
-	ostringstream ret;
-	if ( redFsm->errState != 0 )
-		ret << redFsm->errState->id;
-	else
-		ret << "-1";
-	return ret.str();
-}
-
-string FsmCodeGen::FIRST_FINAL_STATE()
-{
-	ostringstream ret;
-	if ( redFsm->firstFinState != 0 )
-		ret << redFsm->firstFinState->id;
-	else
-		ret << redFsm->nextStateId;
-	return ret.str();
-}
-
-string FsmCodeGen::DATA_PREFIX()
-{
-	if ( dataPrefix )
-		return FSM_NAME() + "_";
-	return "";
-}
-
-/* Emit the alphabet data type. */
-string FsmCodeGen::ALPH_TYPE()
-{
-	string ret = colmAlphType.data1;
-	if ( colmAlphType.data2 != 0 ) {
-		ret += " ";
-		ret += + colmAlphType.data2;
-	}
-	return ret;
-}
-
-/* Emit the alphabet data type. */
-string FsmCodeGen::WIDE_ALPH_TYPE()
-{
-	string ret;
-	ret = ALPH_TYPE();
-	return ret;
-}
-
-
-string FsmCodeGen::PTR_CONST()
-{
-	return "const ";
-}
-
-std::ostream &FsmCodeGen::OPEN_ARRAY( string type, string name )
-{
-	out << "static const " << type << " " << name << "[] = {\n";
-	return out;
-}
-
-std::ostream &FsmCodeGen::CLOSE_ARRAY()
-{
-	return out << "};\n";
-}
-
-std::ostream &FsmCodeGen::STATIC_VAR( string type, string name )
-{
-	out << "static const " << type << " " << name;
-	return out;
-}
-
-string FsmCodeGen::UINT( )
-{
-	return "unsigned int";
-}
-
-string FsmCodeGen::ARR_OFF( string ptr, string offset )
-{
-	return ptr + " + " + offset;
-}
-
-string FsmCodeGen::CAST( string type )
-{
-	return "(" + type + ")";
-}
-
-std::ostream &FsmCodeGen::TO_STATE_ACTION_SWITCH()
-{
-	/* Walk the list of functions, printing the cases. */
-	for ( GenActionList::Iter act = redFsm->genActionList; act.lte(); act++ ) {
-		/* Write out referenced actions. */
-		if ( act->numToStateRefs > 0 ) {
-			/* Write the case label, the action and the case break. */
-			out << "\tcase " << act->actionId << ":\n";
-			ACTION( out, act, 0, false );
-			out << "\tbreak;\n";
-		}
-	}
-
-	return out;
-}
-
-std::ostream &FsmCodeGen::FROM_STATE_ACTION_SWITCH()
-{
-	/* Walk the list of functions, printing the cases. */
-	for ( GenActionList::Iter act = redFsm->genActionList; act.lte(); act++ ) {
-		/* Write out referenced actions. */
-		if ( act->numFromStateRefs > 0 ) {
-			/* Write the case label, the action and the case break. */
-			out << "\tcase " << act->actionId << ":\n";
-			ACTION( out, act, 0, false );
-			out << "\tbreak;\n";
-		}
-	}
-
-	return out;
-}
-
-std::ostream &FsmCodeGen::ACTION_SWITCH()
-{
-	/* Walk the list of functions, printing the cases. */
-	for ( GenActionList::Iter act = redFsm->genActionList; act.lte(); act++ ) {
-		/* Write out referenced actions. */
-		if ( act->numTransRefs > 0 ) {
-			/* Write the case label, the action and the case break. */
-			out << "\tcase " << act->actionId << ":\n";
-			ACTION( out, act, 0, false );
-			out << "\tbreak;\n";
-		}
-	}
-
-	return out;
-}
-
-void FsmCodeGen::emitSingleSwitch( RedState *state )
+void FsmCodeGen::emitSingleSwitch( RedStateAp *state )
 {
 	/* Load up the singles. */
 	int numSingles = state->outSingle.length();
@@ -453,28 +324,28 @@ void FsmCodeGen::emitSingleSwitch( RedState *state )
 
 	if ( numSingles == 1 ) {
 		/* If there is a single single key then write it out as an if. */
-		out << "\tif ( " << GET_WIDE_KEY(state) << " == " << 
-				KEY(data[0].lowKey) << " )\n\t\t"; 
+		out << "\tif ( " << GET_KEY() << " == " <<
+				KEY(data[0].lowKey) << " )\n\t\t";
 
 		/* Virtual function for writing the target of the transition. */
 		TRANS_GOTO(data[0].value, 0) << "\n";
 	}
 	else if ( numSingles > 1 ) {
 		/* Write out single keys in a switch if there is more than one. */
-		out << "\tswitch( " << GET_WIDE_KEY(state) << " ) {\n";
+		out << "\tswitch( " << GET_KEY() << " ) {\n";
 
 		/* Write out the single indices. */
 		for ( int j = 0; j < numSingles; j++ ) {
 			out << "\t\tcase " << KEY(data[j].lowKey) << ": ";
 			TRANS_GOTO(data[j].value, 0) << "\n";
 		}
-		
+
 		/* Close off the transition switch. */
 		out << "\t}\n";
 	}
 }
 
-void FsmCodeGen::emitRangeBSearch( RedState *state, int level, int low, int high )
+void FsmCodeGen::emitRangeBSearch( RedStateAp *state, int level, int low, int high )
 {
 	/* Get the mid position, staying on the lower end of the range. */
 	int mid = (low + high) >> 1;
@@ -485,16 +356,15 @@ void FsmCodeGen::emitRangeBSearch( RedState *state, int level, int low, int high
 	bool anyHigher = mid < high;
 
 	/* Determine if the keys at mid are the limits of the alphabet. */
-	KeyOps *keyOps = redFsm->keyOps;
 	bool limitLow = keyOps->eq( data[mid].lowKey, keyOps->minKey );
 	bool limitHigh = keyOps->eq( data[mid].highKey, keyOps->maxKey );
 
 	if ( anyLower && anyHigher ) {
 		/* Can go lower and higher than mid. */
-		out << TABS(level) << "if ( " << GET_WIDE_KEY(state) << " < " << 
+		out << TABS(level) << "if ( " << GET_KEY() << " < " <<
 				KEY(data[mid].lowKey) << " ) {\n";
 		emitRangeBSearch( state, level+1, low, mid-1 );
-		out << TABS(level) << "} else if ( " << GET_WIDE_KEY(state) << " > " << 
+		out << TABS(level) << "} else if ( " << GET_KEY() << " > " <<
 				KEY(data[mid].highKey) << " ) {\n";
 		emitRangeBSearch( state, level+1, mid+1, high );
 		out << TABS(level) << "} else\n";
@@ -502,7 +372,7 @@ void FsmCodeGen::emitRangeBSearch( RedState *state, int level, int low, int high
 	}
 	else if ( anyLower && !anyHigher ) {
 		/* Can go lower than mid but not higher. */
-		out << TABS(level) << "if ( " << GET_WIDE_KEY(state) << " < " << 
+		out << TABS(level) << "if ( " << GET_KEY() << " < " <<
 				KEY(data[mid].lowKey) << " ) {\n";
 		emitRangeBSearch( state, level+1, low, mid-1 );
 
@@ -513,14 +383,14 @@ void FsmCodeGen::emitRangeBSearch( RedState *state, int level, int low, int high
 			TRANS_GOTO(data[mid].value, level+1) << "\n";
 		}
 		else {
-			out << TABS(level) << "} else if ( " << GET_WIDE_KEY(state) << " <= " << 
+			out << TABS(level) << "} else if ( " << GET_KEY() << " <= " <<
 					KEY(data[mid].highKey) << " )\n";
 			TRANS_GOTO(data[mid].value, level+1) << "\n";
 		}
 	}
 	else if ( !anyLower && anyHigher ) {
 		/* Can go higher than mid but not lower. */
-		out << TABS(level) << "if ( " << GET_WIDE_KEY(state) << " > " << 
+		out << TABS(level) << "if ( " << GET_KEY() << " > " <<
 				KEY(data[mid].highKey) << " ) {\n";
 		emitRangeBSearch( state, level+1, mid+1, high );
 
@@ -531,7 +401,7 @@ void FsmCodeGen::emitRangeBSearch( RedState *state, int level, int low, int high
 			TRANS_GOTO(data[mid].value, level+1) << "\n";
 		}
 		else {
-			out << TABS(level) << "} else if ( " << GET_WIDE_KEY(state) << " >= " << 
+			out << TABS(level) << "} else if ( " << GET_KEY() << " >= " <<
 					KEY(data[mid].lowKey) << " )\n";
 			TRANS_GOTO(data[mid].value, level+1) << "\n";
 		}
@@ -540,19 +410,19 @@ void FsmCodeGen::emitRangeBSearch( RedState *state, int level, int low, int high
 		/* Cannot go higher or lower than mid. It's mid or bust. What
 		 * tests to do depends on limits of alphabet. */
 		if ( !limitLow && !limitHigh ) {
-			out << TABS(level) << "if ( " << KEY(data[mid].lowKey) << " <= " << 
-					GET_WIDE_KEY(state) << " && " << GET_WIDE_KEY(state) << " <= " << 
+			out << TABS(level) << "if ( " << KEY(data[mid].lowKey) << " <= " <<
+					GET_KEY() << " && " << GET_KEY() << " <= " <<
 					KEY(data[mid].highKey) << " )\n";
 			TRANS_GOTO(data[mid].value, level+1) << "\n";
 		}
 		else if ( limitLow && !limitHigh ) {
-			out << TABS(level) << "if ( " << GET_WIDE_KEY(state) << " <= " << 
+			out << TABS(level) << "if ( " << GET_KEY() << " <= " <<
 					KEY(data[mid].highKey) << " )\n";
 			TRANS_GOTO(data[mid].value, level+1) << "\n";
 		}
 		else if ( !limitLow && limitHigh ) {
-			out << TABS(level) << "if ( " << KEY(data[mid].lowKey) << " <= " << 
-					GET_WIDE_KEY(state) << " )\n";
+			out << TABS(level) << "if ( " << KEY(data[mid].lowKey) << " <= " <<
+					GET_KEY() << " )\n";
 			TRANS_GOTO(data[mid].value, level+1) << "\n";
 		}
 		else {
@@ -586,78 +456,12 @@ std::ostream &FsmCodeGen::STATE_GOTOS()
 	return out;
 }
 
-unsigned int FsmCodeGen::TO_STATE_ACTION( RedState *state )
-{
-	int act = 0;
-	if ( state->toStateAction != 0 )
-		act = state->toStateAction->location+1;
-	return act;
-}
-
-unsigned int FsmCodeGen::FROM_STATE_ACTION( RedState *state )
-{
-	int act = 0;
-	if ( state->fromStateAction != 0 )
-		act = state->fromStateAction->location+1;
-	return act;
-}
-
-std::ostream &FsmCodeGen::TO_STATE_ACTIONS()
-{
-	/* Take one off for the psuedo start state. */
-	int numStates = redFsm->stateList.length();
-	unsigned int *vals = new unsigned int[numStates];
-	memset( vals, 0, sizeof(unsigned int)*numStates );
-
-	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ )
-		vals[st->id] = TO_STATE_ACTION(st);
-
-	out << "\t";
-	for ( int st = 0; st < redFsm->nextStateId; st++ ) {
-		/* Write any eof action. */
-		out << vals[st];
-		if ( st < numStates-1 ) {
-			out << ", ";
-			if ( (st+1) % IALL == 0 )
-				out << "\n\t";
-		}
-	}
-	out << "\n";
-	delete[] vals;
-	return out;
-}
-
-std::ostream &FsmCodeGen::FROM_STATE_ACTIONS()
-{
-	/* Take one off for the psuedo start state. */
-	int numStates = redFsm->stateList.length();
-	unsigned int *vals = new unsigned int[numStates];
-	memset( vals, 0, sizeof(unsigned int)*numStates );
-
-	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ )
-		vals[st->id] = FROM_STATE_ACTION(st);
-
-	out << "\t";
-	for ( int st = 0; st < redFsm->nextStateId; st++ ) {
-		/* Write any eof action. */
-		out << vals[st];
-		if ( st < numStates-1 ) {
-			out << ", ";
-			if ( (st+1) % IALL == 0 )
-				out << "\n\t";
-		}
-	}
-	out << "\n";
-	delete[] vals;
-	return out;
-}
-
-bool FsmCodeGen::IN_TRANS_ACTIONS( RedState *state )
+void FsmCodeGen::IN_TRANS_ACTIONS( RedStateAp *state )
 {
 	/* Emit any transitions that have actions and that go to this state. */
-	for ( int it = 0; it < state->numInTrans; it++ ) {
-		RedTrans *trans = state->inTrans[it];
-		if ( trans->action != 0 && trans->labelNeeded ) {
+	for ( int it = 0; it < state->numInConds; it++ ) {
+		RedCondPair *trans = state->inConds[it];
+		if ( trans->action != 0 ) {
 			/* Write the label for the transition so it can be jumped to. */
 			out << "tr" << trans->id << ":\n";
 
@@ -673,17 +477,15 @@ bool FsmCodeGen::IN_TRANS_ACTIONS( RedState *state )
 			out << "\tgoto st" << trans->targ->id << ";\n";
 		}
 	}
-
-	return 0;
 }
 
 /* Called from FsmCodeGen::STATE_GOTOS just before writing the gotos for each
  * state. */
-void FsmCodeGen::GOTO_HEADER( RedState *state )
+void FsmCodeGen::GOTO_HEADER( RedStateAp *state )
 {
 	IN_TRANS_ACTIONS( state );
 
-	if ( state->labelNeeded ) 
+	if ( state->labelNeeded )
 		out << "st" << state->id << ":\n";
 
 	if ( state->toStateAction != 0 ) {
@@ -715,10 +517,10 @@ void FsmCodeGen::STATE_GOTO_ERROR()
 {
 	/* In the error state we need to emit some stuff that usually goes into
 	 * the header. */
-	RedState *state = redFsm->errState;
+	RedStateAp *state = redFsm->errState;
 	IN_TRANS_ACTIONS( state );
 
-	if ( state->labelNeeded ) 
+	if ( state->labelNeeded )
 		out << "st" << state->id << ":\n";
 
 	/* We do not need a case label here because the the error state is checked
@@ -729,16 +531,17 @@ void FsmCodeGen::STATE_GOTO_ERROR()
 }
 
 
-/* Emit the goto to take for a given transition. */
-std::ostream &FsmCodeGen::TRANS_GOTO( RedTrans *trans, int level )
+/* Emit the goto to take for a given transition. Colm's scanner transitions
+ * carry no conditions. */
+std::ostream &FsmCodeGen::TRANS_GOTO( RedTransAp *trans, int level )
 {
-	if ( trans->action != 0 ) {
+	if ( trans->p.action != 0 ) {
 		/* Go to the transition which will go to the state. */
-		out << TABS(level) << "goto tr" << trans->id << ";";
+		out << TABS(level) << "goto tr" << trans->p.id << ";";
 	}
 	else {
 		/* Go directly to the target state. */
-		out << TABS(level) << "goto st" << trans->targ->id << ";";
+		out << TABS(level) << "goto st" << trans->p.targ->id << ";";
 	}
 	return out;
 }
@@ -747,9 +550,10 @@ std::ostream &FsmCodeGen::EXIT_STATES()
 {
 	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ ) {
 		out << "	case " << st->id << ": out" << st->id << ": ";
-		if ( st->eofTrans != 0 ) {
+		RedTransAp *eofTrans = LexReducer::eofTrans( st );
+		if ( eofTrans != 0 ) {
 			out << "if ( " << DATA_EOF() << " ) {";
-			TRANS_GOTO( st->eofTrans, 0 );
+			TRANS_GOTO( eofTrans, 0 );
 			out << "\n";
 			out << "}";
 		}
@@ -760,6 +564,88 @@ std::ostream &FsmCodeGen::EXIT_STATES()
 	return out;
 }
 
+void FsmCodeGen::depthFirstOrdering( RedStateAp *state )
+{
+	/* Nothing to do if the state is already on the list. */
+	if ( state->onStateList )
+		return;
+
+	/* Doing depth first, put state on the list. */
+	state->onStateList = true;
+	redFsm->stateList.append( state );
+
+	/* Recurse on singles. */
+	for ( RedTransList::Iter stel = state->outSingle; stel.lte(); stel++ ) {
+		if ( stel->value->p.targ != 0 )
+			depthFirstOrdering( stel->value->p.targ );
+	}
+
+	/* Recurse on everything ranges. */
+	for ( RedTransList::Iter rtel = state->outRange; rtel.lte(); rtel++ ) {
+		if ( rtel->value->p.targ != 0 )
+			depthFirstOrdering( rtel->value->p.targ );
+	}
+
+	if ( state->defTrans != 0 && state->defTrans->p.targ != 0 )
+		depthFirstOrdering( state->defTrans->p.targ );
+}
+
+/* Ordering states by transition connections. */
+void FsmCodeGen::depthFirstOrdering()
+{
+	/* Init on state list flags. */
+	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ )
+		st->onStateList = false;
+
+	/* Clear out the state list, we will rebuild it. */
+	int stateListLen = redFsm->stateList.length();
+	redFsm->stateList.abandon();
+
+	/* Add back to the state list from the start state and all other entry
+	 * points. */
+	depthFirstOrdering( redFsm->startState );
+	for ( RedStateSet::Iter en = redFsm->entryPoints; en.lte(); en++ )
+		depthFirstOrdering( *en );
+	if ( redFsm->forcedErrorState )
+		depthFirstOrdering( redFsm->errState );
+
+	/* Make sure we put everything back on. */
+	assert( stateListLen == redFsm->stateList.length() );
+}
+
+bool FsmCodeGen::anyLmSwitchError( InlineList *inlineList )
+{
+	for ( InlineList::Iter item = *inlineList; item.lte(); item++ ) {
+		if ( item->type == InlineItem::LmSwitch &&
+				item->longestMatch->lmSwitchHandlesError )
+			return true;
+
+		if ( item->children != 0 && anyLmSwitchError( item->children ) )
+			return true;
+	}
+	return false;
+}
+
+/* Does an action the scanner takes have a longest match switch that handles
+ * the error case? */
+bool FsmCodeGen::anyLmSwitchError()
+{
+	for ( GenActionList::Iter act = reducer->actionList; act.lte(); act++ ) {
+		if ( act->numRefs() > 0 &&
+				anyLmSwitchError( reducer->lexAction( act )->inlineList ) )
+			return true;
+	}
+	return false;
+}
+
+void FsmCodeGen::setLabelNeeded( RedTransAp *trans )
+{
+	/* If there is no action with a next statement, then the label will be
+	 * needed. */
+	if ( trans->p.action == 0 || !trans->p.action->anyNextStmt() )
+		trans->p.targ->labelNeeded = true;
+}
+
 /* Set up labelNeeded flag for each state. */
 void FsmCodeGen::setLabelsNeeded()
 {
@@ -767,19 +653,30 @@ void FsmCodeGen::setLabelsNeeded()
 	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ )
 		st->labelNeeded = false;
 
-	if ( redFsm->errState != 0 && redFsm->anyLmSwitchError() )
+	if ( redFsm->errState != 0 && anyLmSwitchError() )
 		redFsm->errState->labelNeeded = true;
 
-	/* Walk all transitions and set only those that have targs. */
-	for ( RedTransSet::Iter trans = redFsm->transSet; trans.lte(); trans++ ) {
-		/* If there is no action with a next statement, then the label will be
-		 * needed. */
-		if ( trans->action == 0 || !trans->action->anyNextStmt() )
-			trans->targ->labelNeeded = true;
+	/* Walk the transitions the scanner takes and set only those that have
+	 * targs. The transition set also has eof transitions the scanner never
+	 * takes, so walk the states. */
+	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ ) {
+		for ( RedTransList::Iter rtel = st->outSingle; rtel.lte(); rtel++ )
+			setLabelNeeded( rtel->value );
+		for ( RedTransList::Iter rtel = st->outRange; rtel.lte(); rtel++ )
+			setLabelNeeded( rtel->value );
+		if ( st->defTrans != 0 )
+			setLabelNeeded( st->defTrans );
+		if ( LexReducer::eofTrans( st ) != 0 )
+			setLabelNeeded( st->eofTrans );
 	}
 
 	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ )
 		st->outNeeded = st->labelNeeded;
+}
+
+void FsmCodeGen::genAnalysis()
+{
+	depthFirstOrdering();
 }
 
 void FsmCodeGen::writeData()
@@ -829,7 +726,7 @@ void FsmCodeGen::writeData()
 		" 0, "         /* numIndexOffsets */
 		" 0, "         /* numTransTargsWI */
 		" 0,\n"        /* numTransActionsWI */
-		"	" << redFsm->regionToEntry.length() << ",\n"
+		"	" << fsmTables->num_regions - 1 << ",\n"
 		"\n"
 		"	" << START() << ",\n"
 		"	" << FIRST_FINAL() << ",\n"
@@ -839,23 +736,6 @@ void FsmCodeGen::writeData()
 		"	0\n"       /* numActionSwitch */
 		"};\n"
 		"\n";
-}
-
-void FsmCodeGen::writeInit()
-{
-	out << 
-		"	" << CS() << " = " << START() << ";\n";
-	
-	/* If there are any calls, then the stack top needs initialization. */
-	if ( redFsm->anyActionCalls() || redFsm->anyActionRets() )
-		out << "\t" << TOP() << " = 0;\n";
-
-	out << 
-		"	" << TOKSTART() << " = 0;\n"
-		"	" << TOKEND() << " = 0;\n"
-		"	" << ACT() << " = 0;\n";
-
-	out << "\n";
 }
 
 void FsmCodeGen::writeExec()
@@ -880,10 +760,10 @@ void FsmCodeGen::writeExec()
 		"	--" << P() << ";\n"
 		"\n"
 		"	switch ( " << CS() << " )\n	{\n";
-		STATE_GOTOS() << 
+		STATE_GOTOS() <<
 		"	}\n";
 
-	out << 
+	out <<
 		"out_switch:\n"
 		"	switch ( " << CS() << " )\n	{\n";
 	EXIT_STATES() <<
@@ -895,20 +775,18 @@ void FsmCodeGen::writeExec()
 		"		" << TOKPREF() << " += " << P() << " - " << BLOCK_START() << ";\n";
 
 	if ( skipTokprefLabelNeeded ) {
-		out << 
+		out <<
 			"skip_tokpref:\n"
 			"	{}\n";
 	}
-	
-	out << 
+
+	out <<
 		"}\n"
 		"\n";
 }
 
 void FsmCodeGen::writeCode()
 {
-	redFsm->depthFirstOrdering();
-
 	writeData();
 	writeExec();
 
@@ -922,5 +800,4 @@ void FsmCodeGen::writeCode()
 		"\n"
 		"\n";
 }
-
 
