@@ -357,13 +357,13 @@ struct TokenDef
 {
 	TokenDef()
 	: 
-		action(0), tdLangEl(0), inLmSelect(false), dupOf(0),
+		action(0), tdLangEl(0), dupOf(0),
 		noPostIgnore(false), noPreIgnore(false), isZero(false)
 	{}
 
 	static TokenDef *cons( const String &name, const String &literal,
 		bool isLiteral, bool isIgnore, LexJoin *join, CodeBlock *codeBlock,
-		const InputLoc &semiLoc, int longestMatchId, Namespace *nspace,
+		const InputLoc &semiLoc, Namespace *nspace,
 		RegionSet *regionSet, ObjectDef *objectDef, StructDef *contextIn )
 	{ 
 		TokenDef *t = new TokenDef;
@@ -377,8 +377,6 @@ struct TokenDef
 		t->codeBlock = codeBlock;
 		t->tdLangEl = 0;
 		t->semiLoc = semiLoc;
-		t->longestMatchId = longestMatchId;
-		t->inLmSelect = false;
 		t->nspace = nspace;
 		t->regionSet = regionSet;
 		t->objectDef = objectDef;
@@ -403,12 +401,6 @@ struct TokenDef
 	LangEl *tdLangEl;
 	InputLoc semiLoc;
 
-	Action *setActId;
-	Action *actOnLast;
-	Action *actOnNext;
-	Action *actLagBehind;
-	int longestMatchId;
-	bool inLmSelect;
 	Namespace *nspace;
 	RegionSet *regionSet;
 	ReCaptureVect reCaptureVect;

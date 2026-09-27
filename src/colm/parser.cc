@@ -322,7 +322,7 @@ void BaseParser::defineToken( const InputLoc &loc, String name, LexJoin *join,
 	RegionSet *regionSet = regionStack.top();
 
 	TokenDef *tokenDef = TokenDef::cons( name, String(), false, ignore, join, 
-			transBlock, loc, 0, nspace, regionSet, objectDef, curStruct() );
+			transBlock, loc, nspace, regionSet, objectDef, curStruct() );
 
 	regionSet->tokenDefList.append( tokenDef );
 	nspace->tokenDefList.append( tokenDef );
@@ -380,7 +380,7 @@ void BaseParser::zeroDef( const InputLoc &loc, const String &name )
 	LexJoin *join = literalJoin( loc, String("`") );
 
 	TokenDef *tokenDef = TokenDef::cons( name, String(), false, false, join,
-			0, loc, 0, nspace, regionSet, 0, curStruct() );
+			0, loc, nspace, regionSet, 0, curStruct() );
 
 	tokenDef->isZero = true;
 
@@ -421,7 +421,7 @@ void BaseParser::literalDef( const InputLoc &loc, const String &data,
 
 	/* The token definition. */
 	TokenDef *tokenDef = TokenDef::cons( name, data, true, false, join, 
-			0, loc, 0, nspace, regionSet, objectDef, 0 );
+			0, loc, nspace, regionSet, objectDef, 0 );
 
 	regionSet->tokenDefList.append( tokenDef );
 	nspace->tokenDefList.append( tokenDef );

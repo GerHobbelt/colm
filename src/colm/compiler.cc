@@ -852,9 +852,12 @@ void Compiler::initEmptyScanner( RegionSet *regionSet, TokenRegion *reg )
 		LexJoin *join = LexJoin::cons( LexExpression::cons( BT_Any ) );
 
 		TokenDef *tokenDef = TokenDef::cons( name, String(), false, false,
-				join, 0, internal, nextTokenId++, rootNamespace, 
-				regionSet, 0, 0 );
-			
+				join, 0, internal, rootNamespace, regionSet, 0, 0 );
+
+		/* The definition no longer takes an id, but keep skipping one so
+		 * the scanner's token ids are unchanged. */
+		nextTokenId++;
+
 		TokenInstance *tokenInstance = TokenInstance::cons( tokenDef,
 				join, internal, nextTokenId++,
 				rootNamespace, reg );
