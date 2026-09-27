@@ -611,23 +611,8 @@ FsmAp *Compiler::makeScanner()
 
 	analyzeGraph( fsmGraph );
 
-	/* Decide if an error state is necessary.
-	 *  1. There is an error transition
-	 *  2. There is a gap in the transitions
-	 *  3. The longest match operator requires it. */
-	if ( fsmCtx->lmRequiresErrorState || fsmGraph->hasErrorTrans() )
-		fsmGraph->errState = fsmGraph->addState();
-
-	/* State numbers need to be assigned such that all final states have a
-	 * larger state id number than all non-final states. This enables the
-	 * first_final mechanism to function correctly. We also want states to be
-	 * ordered in a predictable fashion. So we first apply a depth-first
-	 * search, then do a stable sort by final state status, then assign
-	 * numbers. */
-
-	fsmGraph->depthFirstOrdering();
-	fsmGraph->sortStatesByFinal();
-	fsmGraph->setStateNumbers( 0 );
+	/* Add the error state if one is needed and number the states. */
+	fsmCtx->prepareReduction( fsmGraph );
 
 	return fsmGraph;
 }
