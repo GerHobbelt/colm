@@ -63,7 +63,10 @@ void LexReducer::reduce()
 			lexActions[act->actionId] = LexAction::cast( act );
 	}
 
-	numberTransitions();
+	/* Order the states for the code generator, depth first from the start
+	 * state. The ordering walks the ranges before the singles and default
+	 * are taken out of them. */
+	redFsm->depthFirstOrdering();
 
 	/* The table driven scanner that runs at compile time reads the singles,
 	 * ranges and default of each state. Choose them here, where the tables
@@ -74,52 +77,6 @@ void LexReducer::reduce()
 	redFsm->setInTrans();
 
 	analyzeMachine();
-}
-
-void LexReducer::numberTrans( RedTransAp *trans )
-{
-	if ( trans->id < 0 )
-		trans->id = trans->p.id = redFsm->nextTransId++;
-}
-
-/* Number the transitions in the order colm's own reducer allocated them:
- * state by state, each one when first used, the error transition after the
- * range that follows the gap it fills, and the eof transition last. */
-void LexReducer::numberTransitions()
-{
-	RedTransAp *errTrans = 0;
-	if ( redFsm->errState != 0 ) {
-		RedTransAp key( 0, 0, redFsm->errState, 0 );
-		errTrans = redFsm->transSet.find( &key );
-	}
-
-	for ( TransApSet::Iter trans = redFsm->transSet; trans.lte(); trans++ )
-		trans->id = -1;
-	redFsm->nextTransId = 0;
-
-	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ ) {
-		bool errPending = false;
-		for ( RedTransList::Iter rtel = st->outRange; rtel.lte(); rtel++ ) {
-			if ( rtel->value == errTrans )
-				errPending = true;
-			else {
-				numberTrans( rtel->value );
-				if ( errPending ) {
-					numberTrans( errTrans );
-					errPending = false;
-				}
-			}
-		}
-
-		if ( errPending )
-			numberTrans( errTrans );
-		if ( eofTrans( st ) != 0 )
-			numberTrans( st->eofTrans );
-	}
-
-	/* The eof transitions that leave a state where it is. */
-	for ( TransApSet::Iter trans = redFsm->transSet; trans.lte(); trans++ )
-		numberTrans( trans );
 }
 
 /* Colm writes its own keys and needs no line directives, so the code
@@ -564,55 +521,6 @@ std::ostream &FsmCodeGen::EXIT_STATES()
 	return out;
 }
 
-void FsmCodeGen::depthFirstOrdering( RedStateAp *state )
-{
-	/* Nothing to do if the state is already on the list. */
-	if ( state->onStateList )
-		return;
-
-	/* Doing depth first, put state on the list. */
-	state->onStateList = true;
-	redFsm->stateList.append( state );
-
-	/* Recurse on singles. */
-	for ( RedTransList::Iter stel = state->outSingle; stel.lte(); stel++ ) {
-		if ( stel->value->p.targ != 0 )
-			depthFirstOrdering( stel->value->p.targ );
-	}
-
-	/* Recurse on everything ranges. */
-	for ( RedTransList::Iter rtel = state->outRange; rtel.lte(); rtel++ ) {
-		if ( rtel->value->p.targ != 0 )
-			depthFirstOrdering( rtel->value->p.targ );
-	}
-
-	if ( state->defTrans != 0 && state->defTrans->p.targ != 0 )
-		depthFirstOrdering( state->defTrans->p.targ );
-}
-
-/* Ordering states by transition connections. */
-void FsmCodeGen::depthFirstOrdering()
-{
-	/* Init on state list flags. */
-	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ )
-		st->onStateList = false;
-
-	/* Clear out the state list, we will rebuild it. */
-	int stateListLen = redFsm->stateList.length();
-	redFsm->stateList.abandon();
-
-	/* Add back to the state list from the start state and all other entry
-	 * points. */
-	depthFirstOrdering( redFsm->startState );
-	for ( RedStateSet::Iter en = redFsm->entryPoints; en.lte(); en++ )
-		depthFirstOrdering( *en );
-	if ( redFsm->forcedErrorState )
-		depthFirstOrdering( redFsm->errState );
-
-	/* Make sure we put everything back on. */
-	assert( stateListLen == redFsm->stateList.length() );
-}
-
 bool FsmCodeGen::anyLmSwitchError( InlineList *inlineList )
 {
 	for ( InlineList::Iter item = *inlineList; item.lte(); item++ ) {
@@ -676,7 +584,7 @@ void FsmCodeGen::setLabelsNeeded()
 
 void FsmCodeGen::genAnalysis()
 {
-	depthFirstOrdering();
+	setLabelsNeeded();
 }
 
 void FsmCodeGen::writeData()
@@ -740,8 +648,6 @@ void FsmCodeGen::writeData()
 
 void FsmCodeGen::writeExec()
 {
-	setLabelsNeeded();
-
 	out <<
 		"static void fsm_execute( struct pda_run *pdaRun, struct input_impl *inputStream )\n"
 		"{\n"

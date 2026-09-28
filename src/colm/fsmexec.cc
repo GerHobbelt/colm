@@ -36,8 +36,11 @@ static long actionLoc( RedAction *action )
  * program; the program runs the goto driven scanner. */
 fsm_tables *LexReducer::makeFsmTables()
 {
-	/* The fsm runtime needs states sorted by id. */
-	redFsm->sortByStateId();
+	/* The fsm runtime needs the states in id order. A state's id is its
+	 * position in the state array; the list is in the code generator's
+	 * order. */
+	RedStateAp *firstState = redFsm->allStates;
+	RedStateAp *endState = firstState + redFsm->stateList.length();
 
 	int pos, curKeyOffset, curIndOffset;
 	fsm_tables *fsmTables = new fsm_tables;
@@ -65,7 +68,7 @@ fsm_tables *LexReducer::makeFsmTables()
 	 */
 	pos = 0, curKeyOffset = 0;
 	fsmTables->key_offsets = new long[fsmTables->num_states];
-	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ ) {
+	for ( RedStateAp *st = firstState; st < endState; st++ ) {
 		/* Store the current offset. */
 		fsmTables->key_offsets[pos++] = curKeyOffset;
 
@@ -77,14 +80,14 @@ fsm_tables *LexReducer::makeFsmTables()
 	 * transKeys
 	 */
 	fsmTables->num_trans_keys = 0;
-	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ ) {
+	for ( RedStateAp *st = firstState; st < endState; st++ ) {
 		fsmTables->num_trans_keys += st->outSingle.length();
 		fsmTables->num_trans_keys += 2 * st->outRange.length();
 	}
 
 	pos = 0;
 	fsmTables->trans_keys = new char[fsmTables->num_trans_keys];
-	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ ) {
+	for ( RedStateAp *st = firstState; st < endState; st++ ) {
 		for ( RedTransList::Iter stel = st->outSingle; stel.lte(); stel++ )
 			fsmTables->trans_keys[pos++] = stel->lowKey.getVal();
 		for ( RedTransList::Iter rtel = st->outRange; rtel.lte(); rtel++ ) {
@@ -98,7 +101,7 @@ fsm_tables *LexReducer::makeFsmTables()
 	 */
 	pos = 0;
 	fsmTables->single_lengths = new long[fsmTables->num_states];
-	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ )
+	for ( RedStateAp *st = firstState; st < endState; st++ )
 		fsmTables->single_lengths[pos++] = st->outSingle.length();
 
 	/*
@@ -106,7 +109,7 @@ fsm_tables *LexReducer::makeFsmTables()
 	 */
 	pos = 0;
 	fsmTables->range_lengths = new long[fsmTables->num_states];
-	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ )
+	for ( RedStateAp *st = firstState; st < endState; st++ )
 		fsmTables->range_lengths[pos++] = st->outRange.length();
 
 	/*
@@ -114,7 +117,7 @@ fsm_tables *LexReducer::makeFsmTables()
 	 */
 	pos = 0, curIndOffset = 0;
 	fsmTables->index_offsets = new long[fsmTables->num_states];
-	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ ) {
+	for ( RedStateAp *st = firstState; st < endState; st++ ) {
 		fsmTables->index_offsets[pos++] = curIndOffset;
 
 		curIndOffset += st->outSingle.length() + st->outRange.length();
@@ -126,7 +129,7 @@ fsm_tables *LexReducer::makeFsmTables()
 	 * transTargsWI
 	 */
 	fsmTables->numTransTargsWI = 0;
-	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ ) {
+	for ( RedStateAp *st = firstState; st < endState; st++ ) {
 		fsmTables->numTransTargsWI += st->outSingle.length();
 		fsmTables->numTransTargsWI += st->outRange.length();
 		if ( st->defTrans != 0 )
@@ -135,7 +138,7 @@ fsm_tables *LexReducer::makeFsmTables()
 
 	pos = 0;
 	fsmTables->transTargsWI = new long[fsmTables->numTransTargsWI];
-	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ ) {
+	for ( RedStateAp *st = firstState; st < endState; st++ ) {
 		for ( RedTransList::Iter stel = st->outSingle; stel.lte(); stel++ )
 			fsmTables->transTargsWI[pos++] = stel->value->p.targ->id;
 
@@ -150,7 +153,7 @@ fsm_tables *LexReducer::makeFsmTables()
 	 * transActionsWI
 	 */
 	fsmTables->numTransActionsWI = 0;
-	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ ) {
+	for ( RedStateAp *st = firstState; st < endState; st++ ) {
 		fsmTables->numTransActionsWI += st->outSingle.length();
 		fsmTables->numTransActionsWI += st->outRange.length();
 		if ( st->defTrans != 0 )
@@ -159,7 +162,7 @@ fsm_tables *LexReducer::makeFsmTables()
 
 	pos = 0;
 	fsmTables->transActionsWI = new long[fsmTables->numTransActionsWI];
-	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ ) {
+	for ( RedStateAp *st = firstState; st < endState; st++ ) {
 		for ( RedTransList::Iter stel = st->outSingle; stel.lte(); stel++ )
 			fsmTables->transActionsWI[pos++] = actionLoc( stel->value->p.action );
 
@@ -175,7 +178,7 @@ fsm_tables *LexReducer::makeFsmTables()
 	 */
 	pos = 0;
 	fsmTables->to_state_actions = new long[fsmTables->num_states];
-	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ )
+	for ( RedStateAp *st = firstState; st < endState; st++ )
 		fsmTables->to_state_actions[pos++] = actionLoc( st->toStateAction );
 
 	/*
@@ -183,7 +186,7 @@ fsm_tables *LexReducer::makeFsmTables()
 	 */
 	pos = 0;
 	fsmTables->from_state_actions = new long[fsmTables->num_states];
-	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ )
+	for ( RedStateAp *st = firstState; st < endState; st++ )
 		fsmTables->from_state_actions[pos++] = actionLoc( st->fromStateAction );
 
 	/*
@@ -191,7 +194,7 @@ fsm_tables *LexReducer::makeFsmTables()
 	 */
 	pos = 0;
 	fsmTables->eof_actions = new long[fsmTables->num_states];
-	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ ) {
+	for ( RedStateAp *st = firstState; st < endState; st++ ) {
 		RedTransAp *eofTrans = LexReducer::eofTrans( st );
 		fsmTables->eof_actions[pos++] = eofTrans != 0 ?
 				actionLoc( eofTrans->p.action ) : 0;
@@ -202,7 +205,7 @@ fsm_tables *LexReducer::makeFsmTables()
 	 */
 	pos = 0;
 	fsmTables->eof_targs = new long[fsmTables->num_states];
-	for ( RedStateList::Iter st = redFsm->stateList; st.lte(); st++ ) {
+	for ( RedStateAp *st = firstState; st < endState; st++ ) {
 		RedTransAp *eofTrans = LexReducer::eofTrans( st );
 		fsmTables->eof_targs[pos++] = eofTrans != 0 ? eofTrans->p.targ->id : -1;
 	}

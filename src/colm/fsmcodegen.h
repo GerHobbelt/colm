@@ -68,9 +68,6 @@ struct LexReducer
 	}
 
 private:
-	void numberTrans( RedTransAp *trans );
-	void numberTransitions();
-
 	Compiler *pd;
 	LexAction **lexActions;
 };
@@ -142,9 +139,6 @@ protected:
 	void IN_TRANS_ACTIONS( RedStateAp *state );
 	void GOTO_HEADER( RedStateAp *state );
 	void STATE_GOTO_ERROR();
-
-	void depthFirstOrdering( RedStateAp *state );
-	void depthFirstOrdering();
 
 	bool anyLmSwitchError( InlineList *inlineList );
 	bool anyLmSwitchError();
