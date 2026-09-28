@@ -101,6 +101,8 @@ struct stream_funcs \
 	void (*print_tree)( struct colm_program *prg, struct colm_tree **sp, \
 			struct _stream_impl *impl, struct colm_tree *tree, int trim ); \
 	struct stream_impl *(*split_consumed)( struct colm_program *prg, struct _stream_impl *si ); \
+	void (*undo_split_consumed)( struct colm_program *prg, struct _stream_impl *si, \
+			struct stream_impl *split_off ); \
 	int (*append_data)( struct colm_program *prg, struct _stream_impl *si, const alph_t *data, int len ); \
 	int (*undo_append_data)( struct colm_program *prg, struct _stream_impl *si, int length ); \
 	void (*destructor)( struct colm_program *prg, struct colm_tree **sp, struct _stream_impl *si ); \
@@ -134,6 +136,10 @@ struct seq_buf
 {
 	enum seq_buf_type type;
 	char own_si;
+
+	/* Prepending this buffer split the consumed count off the head. */
+	char split;
+
 	struct colm_tree *tree;
 	struct stream_impl *si;
 	struct seq_buf *next, *prev;
