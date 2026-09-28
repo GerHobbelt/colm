@@ -1,0 +1,61 @@
+#
+# Location of a token scanned again after a backtrack. The string spans a
+# newline. When the parser sends it back as text, the column must retreat
+# through the text from its end, or it drifts by the difference in length
+# between the two sides of the newline.
+#
+
+token zl /''/
+
+lex
+	token id /[a-z]+/
+	token dstr /'"' [^"]* '"'/
+	ignore /[ \n]+/
+end
+
+# After the name the parser first reads the string, then fails for want of a
+# second name. It backs up, sends the string back as text, retries with the
+# zero-length token, and scans the string again.
+def start
+	[id dstr id]
+|	[id zl dstr]
+
+parse S: start[ stdin ]
+if S {
+	for T: dstr in S
+		print( T.line, ':', T.col, '\n' )
+}
+else
+	print( error, '\n' )
+##### IN #####
+a "x
+y"
+##### EXP #####
+1:3
+##### IN #####
+a "xy
+z"
+##### EXP #####
+1:3
+##### IN #####
+a "x
+yz"
+##### EXP #####
+1:3
+##### IN #####
+a "abcd
+e"
+##### EXP #####
+1:3
+##### IN #####
+a "a
+b
+cdef"
+##### EXP #####
+1:3
+##### IN #####
+
+a "xy
+z"
+##### EXP #####
+2:3

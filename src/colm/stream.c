@@ -247,8 +247,12 @@ void undo_position_data( struct stream_impl_data *is, const alph_t *data, long l
 {
 	/* FIXME: this needs to fetch the position information from the parsed
 	 * token and restore based on that.. */
+
+	/* Walk backwards from the end of the data. A newline pops back to the
+	 * column the previous line ended at, from which the rest of the data
+	 * retreats. */
 	int i;
-	for ( i = 0; i < length; i++ ) {
+	for ( i = length - 1; i >= 0; i-- ) {
 		if ( data[i] == '\n' ) {
 			is->line -= 1;
 			is->column = stream_impl_pop_line( is );
