@@ -76,6 +76,7 @@ EXTRA_DIST = \
 	include1.lm \
 	indent.lm \
 	inpush1.lm \
+	inpushbt1.lm \
 	island.lm \
 	lhs1.lm \
 	liftattrs.lm \

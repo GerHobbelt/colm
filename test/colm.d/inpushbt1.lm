@@ -1,0 +1,55 @@
+# Backtracking over a token that a token action pushed as a tree, after
+# the parser attached a right ignore to it and then copied it.
+
+token _IN_ /''/
+token _EX_ /''/
+
+lex
+	token id /[a-z]+/
+	token number /[0-9]+/
+
+	# Split "x /" into the name and the slash, and give back the character
+	# after the slash to be scanned again.
+	token div /[a-z]+ ' '* '/' any/
+	{
+		Pre: str = input->pull( match_length - 2 )
+		Slash: str = input->pull( 1 )
+		Post: str = input->pull( 1 )
+		input->push( Post )
+		input->push( make_token( typeid<symbol>, Slash ) )
+		input->push( Pre )
+	}
+
+	token symbol /[/;]/
+	literal `{ `}
+	ignore /[ \n]+/
+end
+
+def item
+	[id] | [number] | [symbol]
+|	[`{ _IN_ item* _EX_ `}]
+
+def start
+	[item*]
+
+parse S: start[ stdin ]
+if S
+	print( 'ok\n' )
+else
+	print( 'error: ', error, '\n' )
+##### IN #####
+x / 5;
+##### EXP #####
+ok
+##### IN #####
+x /5 }
+##### EXP #####
+error: <stdin>:1:6: parse error
+##### IN #####
+x / 5 }
+##### EXP #####
+error: <stdin>:1:7: parse error
+##### IN #####
+x / 5 {
+##### EXP #####
+error: <stdin>:2:1: parse error
