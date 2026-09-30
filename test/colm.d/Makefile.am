@@ -15,6 +15,7 @@ EXTRA_DIST = \
 	balance3.lm \
 	binary1.lm \
 	broken/travs2.lm \
+	btloc1.lm \
 	btpat1.lm \
 	btscan1.lm \
 	btscan2.lm \
