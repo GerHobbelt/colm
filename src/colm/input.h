@@ -137,8 +137,12 @@ struct seq_buf
 	enum seq_buf_type type;
 	char own_si;
 
-	/* Prepending this buffer split the consumed count off the head. */
-	char split;
+	/* The split-off stashed when prepending this buffer split the consumed
+	 * count off the head, or zero. */
+	struct seq_buf *split_off;
+
+	/* The next older buffer in the input's list of prepends. */
+	struct seq_buf *prev_prepend;
 
 	struct colm_tree *tree;
 	struct stream_impl *si;
@@ -160,6 +164,10 @@ struct input_impl_seq
 	} queue;
 
 	struct seq_buf *stash;
+
+	/* Prepended buffers, most recent first. Pushes are undone in reverse
+	 * order, so the undo of a prepend takes the first. */
+	struct seq_buf *prepends;
 
 	int consumed;
 	int auto_trim;
