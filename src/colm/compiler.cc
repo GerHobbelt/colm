@@ -30,7 +30,6 @@
 #include <assert.h>
 #include <iostream>
 
-#include "redbuild.h"
 #include "pdacodegen.h"
 #include "fsmcodegen.h"
 #include "colm.h"
@@ -323,6 +322,7 @@ Compiler::Compiler( )
 	nextFrameId(0),
 	nextParserId(0),
 	revertOn(true),
+	reducer(0),
 	predValue(0),
 	nextMatchEndNum(0),
 	argvTypeRef(0),
@@ -341,6 +341,7 @@ Compiler::~Compiler()
 	while ( actionList.head != 0 )
 		delete LexAction::cast( actionList.detachFirst() );
 
+	delete reducer;
 	delete fsmCtx;
 	delete fsmGbl;
 
@@ -611,23 +612,8 @@ FsmAp *Compiler::makeScanner()
 
 	analyzeGraph( fsmGraph );
 
-	/* Decide if an error state is necessary.
-	 *  1. There is an error transition
-	 *  2. There is a gap in the transitions
-	 *  3. The longest match operator requires it. */
-	if ( fsmCtx->lmRequiresErrorState || fsmGraph->hasErrorTrans() )
-		fsmGraph->errState = fsmGraph->addState();
-
-	/* State numbers need to be assigned such that all final states have a
-	 * larger state id number than all non-final states. This enables the
-	 * first_final mechanism to function correctly. We also want states to be
-	 * ordered in a predictable fashion. So we first apply a depth-first
-	 * search, then do a stable sort by final state status, then assign
-	 * numbers. */
-
-	fsmGraph->depthFirstOrdering();
-	fsmGraph->sortStatesByFinal();
-	fsmGraph->setStateNumbers( 0 );
+	/* Add the error state if one is needed and number the states. */
+	fsmCtx->prepareReduction( fsmGraph );
 
 	return fsmGraph;
 }
@@ -852,9 +838,12 @@ void Compiler::initEmptyScanner( RegionSet *regionSet, TokenRegion *reg )
 		LexJoin *join = LexJoin::cons( LexExpression::cons( BT_Any ) );
 
 		TokenDef *tokenDef = TokenDef::cons( name, String(), false, false,
-				join, 0, internal, nextTokenId++, rootNamespace, 
-				regionSet, 0, 0 );
-			
+				join, 0, internal, rootNamespace, regionSet, 0, 0 );
+
+		/* The definition no longer takes an id, but keep skipping one so
+		 * the scanner's token ids are unchanged. */
+		nextTokenId++;
+
 		TokenInstance *tokenInstance = TokenInstance::cons( tokenDef,
 				join, internal, nextTokenId++,
 				rootNamespace, reg );
@@ -1025,7 +1014,8 @@ void Compiler::writeHostCall()
 
 void Compiler::generateOutput( long activeRealm, bool includeCommit )
 {
-	FsmCodeGen *fsmGen = new FsmCodeGen( *outStream, redFsm, fsmTables );
+	FsmCodeGen *fsmGen = new FsmCodeGen( reducer, *outStream, fsmTables );
+	fsmGen->genAnalysis();
 
 	PdaCodeGen *pdaGen = new PdaCodeGen( *outStream );
 
@@ -1112,8 +1102,8 @@ void Compiler::compile()
 	compileByteCode();
 
 	/* Make the reduced scanner. */
-	RedFsmBuild reduce( this, fsmGraph );
-	redFsm = reduce.reduceMachine();
+	reducer = new LexReducer( this, fsmGraph );
+	reducer->reduce();
 
 	BstSet<LangEl*> parserEls;
 	collectParserEls( parserEls );
@@ -1121,7 +1111,7 @@ void Compiler::compile()
 	makeParser( parserEls );
 
 	/* Make the scanner tables. */
-	fsmTables = redFsm->makeFsmTables();
+	fsmTables = reducer->makeFsmTables();
 
 	/* Now that all parsers are built, make the global runtimeData. */
 	makeRuntimeData();

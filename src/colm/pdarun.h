@@ -66,7 +66,7 @@ struct fsm_tables
 	long first_final;
 	long error_state;
 
-	struct GenAction **action_switch;
+	struct LexAction **action_switch;
 	long num_action_switch;
 };
 

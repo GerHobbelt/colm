@@ -23,77 +23,79 @@
 #ifndef _COLM_FSMCODEGEN_H
 #define _COLM_FSMCODEGEN_H
 
+#include <assert.h>
 #include <stdio.h>
 
 #include <string>
 #include <iostream>
 
+#include "libfsm/codegen.h"
+
 #include "compiler.h"
-#include "redfsm.h"
 
 using std::string;
 using std::ostream;
 
-/* Integer array line length. */
-#define IALL 8
-
-/* Forwards. */
-struct RedFsm;
-struct RedState;
-struct GenAction;
-struct NameInst;
-struct RedAction;
-struct LongestMatch;
-struct TokenInstance;
-struct InlineList;
-struct InlineItem;
-struct NameInst;
-struct FsmCodeGen;
-
-typedef unsigned long ulong;
-typedef unsigned char uchar;
-
-
 /*
- * The interface to the parser
+ * The scanner's reduced machine. libfsm's reducer makes a GenAction for each
+ * action in the graph, but a GenAction has no slot for the capture mark, and
+ * its inline list no longer says which token a longest match item stands for.
+ * The reducer allocates the GenActions in an array indexed by
+ * Action::actionId, so a parallel array leads back to the LexAction, whose
+ * inline list still has the tokens.
  */
-
-std::ostream *openOutput( char *inputFile );
-
-inline string itoa( int i )
+struct LexReducer
+:
+	public Reducer
 {
-	char buf[16];
-	snprintf( buf, sizeof(buf), "%i", i );
-	return buf;
-}
+	LexReducer( Compiler *pd, FsmAp *fsm );
+	~LexReducer();
+
+	void reduce();
+	fsm_tables *makeFsmTables();
+
+	LexAction *lexAction( GenAction *genAction )
+		{ return lexActions[genAction - allActions]; }
+
+	/* libfsm gives every state an eof transition. Without eof actions it
+	 * leaves the state where it is. A colm scanner state has eof actions
+	 * exactly when it has an eof target, so the eof transitions with actions
+	 * are the ones the scanner takes. */
+	static RedTransAp *eofTrans( RedStateAp *state )
+	{
+		return state->eofTrans != 0 && state->eofTrans->p.action != 0 ?
+				state->eofTrans : 0;
+	}
+
+private:
+	Compiler *pd;
+	LexAction **lexActions;
+};
 
 /*
- * class FsmCodeGen
+ * Writes the goto driven scanner that reads and writes the pda_run fields.
  */
 struct FsmCodeGen
+:
+	public CodeGen
 {
-public:
-	FsmCodeGen( ostream &out, RedFsm *redFsm, fsm_tables *fsmTables );
+	FsmCodeGen( LexReducer *reducer, ostream &out, fsm_tables *fsmTables );
+
+	void genAnalysis();
+	void writeData();
+	void writeExec();
+
+	void writeIncludes();
+	void writeCode();
+	void writeMain( long activeRealm );
 
 protected:
+	LexReducer *reducer;
+	fsm_tables *fsmTables;
+	bool skipTokprefLabelNeeded;
 
-	string FSM_NAME();
-	string START_STATE_ID();
-	ostream &ACTIONS_ARRAY();
-	string GET_WIDE_KEY();
-	string GET_WIDE_KEY( RedState *state );
 	string TABS( int level );
 	string KEY( Key key );
-	string LDIR_PATH( char *path );
-	void ACTION( ostream &ret, GenAction *action, int targState, bool inFinish );
-	void CONDITION( ostream &ret, GenAction *condition );
-	string ALPH_TYPE();
-	string WIDE_ALPH_TYPE();
-	string ARRAY_TYPE( unsigned long maxVal );
-
-	string ARR_OFF( string ptr, string offset );
-	string CAST( string type );
-	string UINT();
 	string GET_KEY();
 
 	string ACCESS() { return "pdaRun->"; }
@@ -102,8 +104,7 @@ protected:
 	string PE() { return ACCESS() + "pe"; }
 	string DATA_EOF() { return ACCESS() + "scan_eof"; }
 
-	string CS();
-	string TOP() { return ACCESS() + "top"; }
+	string CS() { return ACCESS() + "fsm_cs"; }
 	string TOKSTART() { return ACCESS() + "tokstart"; }
 	string TOKEND() { return ACCESS() + "tokend"; }
 	string BLOCK_START() { return ACCESS() + "start"; }
@@ -111,99 +112,59 @@ protected:
 	string ACT() { return ACCESS() + "act"; }
 	string MATCHED_TOKEN() { return ACCESS() + "matched_token"; }
 
-	string DATA_PREFIX();
-
-	string START() { return DATA_PREFIX() + "start"; }
-	string ERROR() { return DATA_PREFIX() + "error"; }
-	string FIRST_FINAL() { return DATA_PREFIX() + "first_final"; }
-
 	string ENTRY_BY_REGION() { return DATA_PREFIX() + "entry_by_region"; }
 
-
-	void INLINE_LIST( ostream &ret, InlineList *inlineList, 
-		int targState, bool inFinish );
-	void EXEC_TOKEND( ostream &ret, InlineItem *item, int targState, int inFinish );
-	void EXECTE( ostream &ret, InlineItem *item, int targState, int inFinish );
+	void ACTION( ostream &ret, GenAction *action, int targState, bool inFinish );
+	void INLINE_LIST( ostream &ret, InlineList *inlineList,
+			int targState, bool inFinish );
 	void LM_SWITCH( ostream &ret, InlineItem *item, int targState, int inFinish );
 	void SET_ACT( ostream &ret, InlineItem *item );
-	void INIT_TOKSTART( ostream &ret, InlineItem *item );
 	void INIT_ACT( ostream &ret, InlineItem *item );
 	void SET_TOKSTART( ostream &ret, InlineItem *item );
 	void SET_TOKEND( ostream &ret, InlineItem *item );
 	void SET_TOKEND_0( ostream &ret, InlineItem *item );
-	void GET_TOKEND( ostream &ret, InlineItem *item );
-	void SUB_ACTION( ostream &ret, InlineItem *item, int targState, bool inFinish );
 	void LM_ON_LAST( ostream &ret, InlineItem *item );
 	void LM_ON_NEXT( ostream &ret, InlineItem *item );
 	void LM_ON_LAG_BEHIND( ostream &ret, InlineItem *item );
-	void EXEC_TOKEND( ostream &ret );
 	void EMIT_TOKEN( ostream &ret, LangEl *token );
 
-	string ERROR_STATE();
-	string FIRST_FINAL_STATE();
-
-	string PTR_CONST();
-	ostream &OPEN_ARRAY( string type, string name );
-	ostream &CLOSE_ARRAY();
-	ostream &STATIC_VAR( string type, string name );
-
-	string CTRL_FLOW();
-
-	unsigned int arrayTypeSize( unsigned long maxVal );
-
-public:
-	ostream &out;
-	RedFsm *redFsm;
-	fsm_tables *fsmTables;
-	int codeGenErrCount;
-
-	/* Write options. */
-	bool dataPrefix;
-	bool writeFirstFinal;
-	bool writeErr;
-	bool skipTokprefLabelNeeded;
-
-	std::ostream &TO_STATE_ACTION_SWITCH();
-	std::ostream &FROM_STATE_ACTION_SWITCH();
-	std::ostream &ACTION_SWITCH();
 	std::ostream &STATE_GOTOS();
-	std::ostream &TRANSITIONS();
-	std::ostream &EXEC_FUNCS();
-
-	unsigned int TO_STATE_ACTION( RedState *state );
-	unsigned int FROM_STATE_ACTION( RedState *state );
-
-	std::ostream &TO_STATE_ACTIONS();
-	std::ostream &FROM_STATE_ACTIONS();
-
-	void emitCondBSearch( RedState *state, int level, int low, int high );
-	void STATE_CONDS( RedState *state, bool genDefault ); 
-
-	void emitSingleSwitch( RedState *state );
-	void emitRangeBSearch( RedState *state, int level, int low, int high );
-
+	void emitSingleSwitch( RedStateAp *state );
+	void emitRangeBSearch( RedStateAp *state, int level, int low, int high );
 	std::ostream &EXIT_STATES();
-	std::ostream &TRANS_GOTO( RedTrans *trans, int level );
-	std::ostream &FINISH_CASES();
+	std::ostream &TRANS_GOTO( RedTransAp *trans, int level );
 
-	void writeIncludes();
-	void writeData();
-	void writeInit();
-	void writeExec();
-	void writeCode();
-	void writeMain( long activeRealm );
-
-protected:
-	bool useAgainLabel();
-
-	/* Called from GotoCodeGen::STATE_GOTOS just before writing the gotos for
-	 * each state. */
-	bool IN_TRANS_ACTIONS( RedState *state );
-	void GOTO_HEADER( RedState *state );
+	/* Called from STATE_GOTOS just before writing the gotos for each
+	 * state. */
+	void IN_TRANS_ACTIONS( RedStateAp *state );
+	void GOTO_HEADER( RedStateAp *state );
 	void STATE_GOTO_ERROR();
 
+	bool anyLmSwitchError( InlineList *inlineList );
+	bool anyLmSwitchError();
+
 	/* Set up labelNeeded flag for each state. */
+	void setLabelNeeded( RedTransAp *trans );
 	void setLabelsNeeded();
+
+	/* Colm's scanner actions contain none of these. */
+	void GOTO( ostream &ret, int gotoDest, bool inFinish ) { assert( false ); }
+	void CALL( ostream &ret, int callDest, int targState, bool inFinish ) { assert( false ); }
+	void NCALL( ostream &ret, int callDest, int targState, bool inFinish ) { assert( false ); }
+	void NEXT( ostream &ret, int nextDest, bool inFinish ) { assert( false ); }
+	void GOTO_EXPR( ostream &ret, GenInlineItem *ilItem, bool inFinish ) { assert( false ); }
+	void NEXT_EXPR( ostream &ret, GenInlineItem *ilItem, bool inFinish ) { assert( false ); }
+	void CALL_EXPR( ostream &ret, GenInlineItem *ilItem, int targState, bool inFinish )
+		{ assert( false ); }
+	void NCALL_EXPR( ostream &ret, GenInlineItem *ilItem, int targState, bool inFinish )
+		{ assert( false ); }
+	void RET( ostream &ret, bool inFinish ) { assert( false ); }
+	void NRET( ostream &ret, bool inFinish ) { assert( false ); }
+	void BREAK( ostream &ret, int targState, bool csForced ) { assert( false ); }
+	void NBREAK( ostream &ret, int targState, bool csForced ) { assert( false ); }
+	void CURS( ostream &ret, bool inFinish ) { assert( false ); }
+	void TARGS( ostream &ret, bool inFinish, int targState ) { assert( false ); }
+	void NFA_POP() { assert( false ); }
 };
 
 #endif /* _COLM_FSMCODEGEN_H */
