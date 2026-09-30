@@ -144,6 +144,7 @@ EXTRA_DIST = \
 	scan1.lm \
 	scope1.lm \
 	send1.lm \
+	sendignbt1.lm \
 	sendstream.lm \
 	sprintf.lm \
 	stds1.lm \
