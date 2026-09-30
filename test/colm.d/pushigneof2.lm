@@ -1,0 +1,80 @@
+#
+# Ignores pushed at the end of the input, when the parser has to back up over
+# them. Sent back and scanned again, a pushed ignore must still become the
+# right ignore of the token before it.
+#
+
+lex
+	ignore ws /[ \n]+/
+	token id /[a-z]+/
+	literal `!
+
+	# Replace the match with one space, pushed as an ignore.
+	token tx /'~x'/
+	{
+		input->pull( match_length )
+		input->push_ignore( make_token( typeid<ws>, ' ' ) )
+	}
+
+	# Parse a comment and push it as an ignore.
+	token open_paren /'('/
+	{
+		parse_stop NC: nested_comment[ stdin ]
+		input->push_ignore( NC )
+	}
+end
+
+lex
+	literal `( `)
+	token nc_data /[^()]+/
+end
+
+def nc_item
+	[nc_data]
+|	[nested_comment]
+
+def nested_comment
+	[`( nc_item* `)]
+
+# Each name is first taken as an ia. If the input ends without a !, the
+# parser backs up over all of them, sending back the ignores in between, and
+# takes them again as ib.
+def ia
+	[id]
+
+def ib
+	[id]
+
+def start
+	[ia* `!]
+|	[ib*]
+
+parse S: start[ stdin ]
+if S
+	print( '[', S, ']\n' )
+else
+	print( 'error: ', error, '\n' )
+##### IN #####
+a b ~x !--noeol
+##### EXP #####
+[a b   !]
+##### IN #####
+a b ~x--noeol
+##### EXP #####
+[a b  ]
+##### IN #####
+a b ~x  --noeol
+##### EXP #####
+[a b    ]
+##### IN #####
+a b (c)--noeol
+##### EXP #####
+[a b (c)]
+##### IN #####
+a b (c)  --noeol
+##### EXP #####
+[a b (c)  ]
+##### IN #####
+a b ~x (c (d)) ~x--noeol
+##### EXP #####
+[a b   (c (d))  ]
