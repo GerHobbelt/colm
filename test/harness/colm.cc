@@ -10,12 +10,22 @@
  *   ###### IN #####     program input
  *   ###### EXP #####    expected output
  *   ###### EXIT ######  expected exit value
+ *   ###### LOST ######  known leaks: runtime reports that don't fail the run
  *   ###### HOST ######  host program
  *   ###### CALL ######  file containing C functions
  *
- * ARGS, IN, EXP and EXIT repeat: the Nth of each describes the Nth run of
- * the compiled program. A line ending in --noeol is emitted without its
+ * ARGS, IN, EXP, EXIT and LOST repeat: the Nth of each describes the Nth run
+ * of the compiled program. A line ending in --noeol is emitted without its
  * newline.
+ *
+ * Each run has COLM_LEAK_CHECK set, so the runtime reports the kids, trees,
+ * parse trees, heads and locations the program never freed, one per line as
+ * "message: warning: lost trees: 2". A report fails the case unless the rest
+ * of its line, "lost trees: 2", is a line of the run's LOST section. With
+ * --valgrind each run is under valgrind, and a memory error or definite leak
+ * fails the case. Valgrind sees inside the pools only when the runtime is
+ * configured with --enable-pool-malloc, which leaves the runtime's own counts
+ * at zero.
  */
 
 #include "harness.h"
@@ -23,6 +33,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+
+/* The exit value valgrind gives a run in which it found errors. */
+static const int valgrindExit = 99;
 
 static std::string noEol( const std::string &body )
 {
@@ -215,11 +228,24 @@ void enumerateColm( const Config &config, const Selection &sel, JobList &jobs )
 			if ( section( cf, "EXIT", nth, body ) && !trim( body ).empty() )
 				exitValue = atoi( trim( body ).c_str() );
 
+			std::string lost;
+			section( cf, "LOST", nth, lost );
+
+			int errorExit = -1;
 			Words argv;
+			if ( config.valgrind ) {
+				errorExit = valgrindExit;
+				char opt[64];
+				snprintf( opt, sizeof(opt), "--error-exitcode=%d", valgrindExit );
+				argv.push_back( "valgrind" );
+				argv.push_back( "-q" );
+				argv.push_back( opt );
+				argv.push_back( "--leak-check=full" );
+				argv.push_back( "--show-leak-kinds=definite" );
+				argv.push_back( "--errors-for-leak-kinds=definite" );
+			}
 			argv.push_back( bin );
 			argv.insert( argv.end(), args.begin(), args.end() );
-			job->steps.push_back( Step::exec( Step::Run, argv, build )
-					.stdinFrom( stdinFile ).capture( CaptureOutput ).exit( exitValue ) );
 
 			std::string label;
 			if ( total > 1 ) {
@@ -227,6 +253,11 @@ void enumerateColm( const Config &config, const Selection &sel, JobList &jobs )
 				snprintf( num, sizeof(num), "run %d", nth );
 				label = num;
 			}
+
+			job->steps.push_back( Step::exec( Step::Run, argv, build )
+					.stdinFrom( stdinFile ).capture( CaptureOutput ).exit( exitValue )
+					.environment( "COLM_LEAK_CHECK=1" )
+					.errorsFrom( errorExit, "message: warning: ", lost ).labelled( label ) );
 			job->steps.push_back( Step::compare( expected, label ) );
 		}
 

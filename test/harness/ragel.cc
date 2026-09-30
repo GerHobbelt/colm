@@ -124,7 +124,7 @@ static bool langOpts( const Config &config, const std::string &src,
 				argv.push_back( "--objc-flags" );
 				std::string out, err;
 				int exitCode;
-				if ( runProcess( argv, "", 0, "", &out, 0, exitCode, err ) )
+				if ( runProcess( argv, "", Words(), 0, "", &out, 0, exitCode, err ) )
 					objcFlags = splitWords( out );
 				objcFlagsLoaded = true;
 			}

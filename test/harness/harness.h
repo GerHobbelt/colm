@@ -69,9 +69,12 @@ struct Config
 	/* aapl.d: how long each stress program runs. Zero skips them. */
 	int stressSecs;
 
+	/* colm.d: run the programs under valgrind. */
+	bool valgrind;
+
 	Config()
 		: jobs(0), verbose(false), keep(false), list(false), commands(false),
-		stressSecs(5) {}
+		stressSecs(5), valgrind(false) {}
 
 	std::string suiteSrc( const char *suite ) const;
 	std::string suiteBuild( const char *suite ) const;
@@ -106,9 +109,18 @@ struct Step
 	/* Exec. */
 	Words argv;
 	std::string cwd;
+	Words env;               /* NAME=value, added to the environment */
 	std::string stdinFile;
 	Capture stdoutTo;
 	int expectExit;          /* -1: not checked */
+
+	/* Exec: errors found in the program, which fail the case: errorExit, the
+	 * exit value of a checker it runs under (valgrind) that found some, and
+	 * standard error lines that start with errorPrefix, unless the rest of the
+	 * line is one of the lines of knownErrors. -1 and empty: not checked. */
+	int errorExit;
+	std::string errorPrefix;
+	std::string knownErrors;
 
 	/* Filter: a shell command the current output is piped through. */
 	std::string shell;
@@ -121,13 +133,15 @@ struct Step
 
 	/* Compare: the current output against expected. */
 	std::string expected;
-	std::string label;
 	bool ignoreWs;
 	bool stripCr;
 
+	/* Compare and Exec: names the run in failure reasons. */
+	std::string label;
+
 	Step( Kind kind )
 		: kind(kind), role(Run), stdoutTo(CaptureNone),
-		expectExit(-1), ignoreWs(false), stripCr(false) {}
+		expectExit(-1), errorExit(-1), ignoreWs(false), stripCr(false) {}
 
 	static Step exec( Role role, const Words &argv, const std::string &cwd );
 	static Step filter( const std::string &shell, const std::string &cwd );
@@ -139,6 +153,10 @@ struct Step
 	Step &stdinFrom( const std::string &file ) { stdinFile = file; return *this; }
 	Step &capture( Capture c ) { stdoutTo = c; return *this; }
 	Step &exit( int e ) { expectExit = e; return *this; }
+	Step &environment( const std::string &setting ) { env.push_back( setting ); return *this; }
+	Step &errorsFrom( int e, const std::string &prefix, const std::string &known )
+		{ errorExit = e; errorPrefix = prefix; knownErrors = known; return *this; }
+	Step &labelled( const std::string &l ) { label = l; return *this; }
 	Step &whitespace() { ignoreWs = true; return *this; }
 	Step &trailingCr() { stripCr = true; return *this; }
 };
@@ -259,13 +277,14 @@ struct CaseFile
  * Processes.
  */
 
-/* Run argv in cwd. Standard input comes from stdinData if non-null, else
- * from stdinFile if non-empty, else /dev/null. Standard output is appended to
+/* Run argv in cwd, with the NAME=value settings in env added to the
+ * environment. Standard input comes from stdinData if non-null, else from
+ * stdinFile if non-empty, else /dev/null. Standard output is appended to
  * stdoutBuf if non-null, else discarded. Standard error is appended to
  * stderrBuf if non-null, else inherited. Returns false if the process could
  * not be started, with errMsg set. The exit code is the exit status, or 128
  * plus the signal number. */
-bool runProcess( const Words &argv, const std::string &cwd,
+bool runProcess( const Words &argv, const std::string &cwd, const Words &env,
 		const std::string *stdinData, const std::string &stdinFile,
 		std::string *stdoutBuf, std::string *stderrBuf,
 		int &exitCode, std::string &errMsg );
