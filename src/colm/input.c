@@ -536,6 +536,11 @@ static int input_undo_prepend_data( struct colm_program *prg, struct input_impl_
 	struct seq_buf *seq_buf = input_stream_seq_pop_head( si );
 	if ( seq_buf->split )
 		undo_split( prg, si );
+
+	/* The buffer owns the text stream made by input_prepend_data. Its
+	 * destructor has no use for sp. */
+	if ( call_destructor( seq_buf ) )
+		seq_buf->si->funcs->destructor( prg, 0, seq_buf->si );
 	free( seq_buf );
 
 	return 0;

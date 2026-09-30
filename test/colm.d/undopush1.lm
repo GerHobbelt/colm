@@ -1,0 +1,66 @@
+# Backtracking over a token action that pushes text. The undo of each push
+# must destroy the text stream the push made.
+
+lex
+	ignore /[ \n]+/
+	token id /[a-z]+/
+	literal `; `( `)
+
+	# Give the name after the @ back as text, to be scanned again as an id.
+	token at /'@' [a-z]+/
+	{
+		input->pull( 1 )
+		input->push( input->pull( match_length - 1 ) )
+	}
+end
+
+# Parens must balance here. When they don't, the parser backtracks over
+# everything and takes flat instead.
+def item
+	[id]
+|	[`( item* `)]
+
+def flat
+	[id] | [`(] | [`)]
+
+def start
+	[item* `;]
+|	[flat* `;]
+
+parse S: start[ stdin ]
+if S {
+	if match S [item* `;]
+		print( 'items: ', S, '\n' )
+	else
+		print( 'flat: ', S, '\n' )
+}
+else
+	print( 'error: ', error, '\n' )
+##### IN #####
+@a ;
+##### EXP #####
+items: a ;
+
+##### IN #####
+@a ; ;
+##### EXP #####
+error: <stdin>:1:6: parse error
+##### IN #####
+@a @b @c ; ;
+##### EXP #####
+error: <stdin>:1:12: parse error
+##### IN #####
+@a ( @b ;
+##### EXP #####
+flat: a ( b ;
+
+##### IN #####
+@a ( @b ) @c ;
+##### EXP #####
+items: a ( b ) c ;
+
+##### IN #####
+a ( @bc ) ( ;
+##### EXP #####
+flat: a ( bc ) ( ;
+

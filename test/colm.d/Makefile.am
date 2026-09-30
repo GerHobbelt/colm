@@ -172,6 +172,7 @@ EXTRA_DIST = \
 	undolist1.lm \
 	undomap1.lm \
 	undomap2.lm \
+	undopush1.lm \
 	undosplit1.lm \
 	undosplit2.lm \
 	utf8.lm \
