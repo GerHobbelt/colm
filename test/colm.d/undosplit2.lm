@@ -1,0 +1,88 @@
+#
+# Backtracking over pushes made while the head of the input was partly
+# consumed, where the parse then succeeds another way. Each push splits the
+# consumed count off the head. If undoing a push does not join the split back,
+# the text sent back lands in the split-off, and undoing the outer pushes
+# takes the wrong buffers: input text is duplicated or lost without an error.
+#
+
+lex
+	token id /[a-z]+/
+
+	# Rewrite "Sx/" and the character after it, where S is a sigil, as "Sx:"
+	# and the character. All three go back as text.
+	token div /[$@%] [a-z]+ '/' any/
+	{
+		Pre: str = input->pull( match_length - 2 )
+		input->pull( 1 )
+		Post: str = input->pull( 1 )
+		input->push( Post )
+		input->push( ':' )
+		input->push( Pre )
+	}
+
+	# Rescanning "Sx", replace the sigil. Each sigil pushes its replacement
+	# in a different way: a token, text, or a stream.
+	token named /[$@%] [a-z]+/
+	{
+		Sigil: str = input->pull( 1 )
+		if Sigil == '$'
+			input->push( make_token( typeid<sym>, ';' ) )
+		elsif Sigil == '@'
+			input->push( ';' )
+		else
+			input->push_stream( open( 'undosplit2.in', 'r' ) )
+	}
+
+	token sym /[:;]/
+	literal `{ `}
+	ignore /[ \n]+/
+end
+
+# Braces must balance here. When they don't, the parser backtracks over
+# everything and takes flat instead.
+def item
+	[id] | [sym]
+|	[`{ item* `}]
+
+def flat
+	[id] | [sym] | [`{] | [`}]
+
+def start
+	[item*]
+|	[flat*]
+
+parse S: start[ stdin ]
+if S {
+	if match S [item*]
+		print( 'items: ', S, '\n' )
+	else
+		print( 'flat: ', S, '\n' )
+}
+else
+	print( 'error: ', error, '\n' )
+##### IN #####
+$v/{ }
+##### EXP #####
+items: ;v:{ }
+
+##### IN #####
+$v/{
+##### EXP #####
+flat: ;v:{
+
+##### IN #####
+a { $v/{ b
+##### EXP #####
+flat: a { ;v:{ b
+
+##### IN #####
+a { @v/{ b
+##### EXP #####
+flat: a { ;v:{ b
+
+##### IN #####
+a { %v/{ b
+##### EXP #####
+flat: a { ;v:{ b
+

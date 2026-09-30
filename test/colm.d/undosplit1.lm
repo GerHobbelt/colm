@@ -1,0 +1,67 @@
+#
+# Backtracking over a push made while the head of the input was partly
+# consumed. The push splits the consumed count off the head. Undoing the push
+# must join it back, so the text sent back afterwards lands in the buffer it
+# came from.
+#
+
+lex
+	token id /[a-z]+/
+
+	# Take "$x/" and the character after it. Give back the character as text,
+	# the slash as a token, and "$x" as text.
+	token div /'$' [a-z]+ '/' any/
+	{
+		Pre: str = input->pull( match_length - 2 )
+		Slash: str = input->pull( 1 )
+		Post: str = input->pull( 1 )
+		input->push( Post )
+		input->push( make_token( typeid<sym>, Slash ) )
+		input->push( Pre )
+	}
+
+	# Rescanning "$x", send the dollar on as a token.
+	token dollar /'$' [a-z]+/
+	{
+		input->push( make_token( typeid<sym>, input->pull( 1 ) ) )
+	}
+
+	token sym /[/;$]/
+	literal `{ `}
+	ignore /[ \n]+/
+end
+
+def item
+	[id] | [sym]
+|	[`{ item* `}]
+
+def start
+	[item*]
+
+parse S: start[ stdin ]
+if S
+	print( 'ok: ', S, '\n' )
+else
+	print( 'error: ', error, '\n' )
+##### IN #####
+$v/{ }
+##### EXP #####
+ok: $v/{ }
+
+##### IN #####
+$v/;
+##### EXP #####
+ok: $v/;
+
+##### IN #####
+$v/{
+##### EXP #####
+error: <stdin>:2:1: parse error
+##### IN #####
+a $v/{
+##### EXP #####
+error: <stdin>:2:1: parse error
+##### IN #####
+$v/; {
+##### EXP #####
+error: <stdin>:2:1: parse error

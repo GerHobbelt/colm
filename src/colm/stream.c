@@ -338,6 +338,19 @@ static struct stream_impl *data_split_consumed( program_t *prg, struct stream_im
 	return split_off;
 }
 
+static void data_undo_split_consumed( program_t *prg, struct stream_impl_data *sid,
+		struct stream_impl *split_off )
+{
+	struct stream_impl_data *so = (struct stream_impl_data*)split_off;
+
+	/* Nothing may have been sent back into the split-off. */
+	assert( so->consumed == so->offset && so->queue.head == 0 );
+
+	debug( prg, REALM_INPUT, "undo split: returning %d consumed\n", so->consumed );
+	sid->consumed += so->consumed;
+	free( so );
+}
+
 int data_append_data( struct colm_program *prg, struct stream_impl_data *sid,
 		const alph_t *data, int length )
 {
@@ -681,6 +694,7 @@ struct stream_funcs_data file_funcs =
 	&data_print_tree,
 
 	&data_split_consumed,
+	&data_undo_split_consumed,
 	&data_append_data,
 	&data_undo_append_data,
 	&data_destructor,
@@ -705,6 +719,7 @@ struct stream_funcs_data accum_funcs =
 	&data_print_tree,
 
 	&data_split_consumed,
+	&data_undo_split_consumed,
 	&data_append_data,
 	&data_undo_append_data,
 	&data_destructor,

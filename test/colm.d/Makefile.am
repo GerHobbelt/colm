@@ -168,6 +168,8 @@ EXTRA_DIST = \
 	undolist1.lm \
 	undomap1.lm \
 	undomap2.lm \
+	undosplit1.lm \
+	undosplit2.lm \
 	utf8.lm \
 	void1.lm \
 	while1.lm \
@@ -180,6 +182,7 @@ EXTRA_DIST = \
 	streamseq1b.in \
 	streamseq1c.in \
 	travs2.in \
+	undosplit2.in \
 	include1a.lmi \
 	redef1.lm \
 	redef2.lm \
