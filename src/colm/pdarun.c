@@ -829,7 +829,7 @@ static head_t *peek_match( program_t *prg, struct pda_run *pda_run, struct input
 
 	struct run_buf *run_buf = pda_run->consume_buf;
 	if ( run_buf == 0 || length > ( FSM_BUFSIZE - run_buf->length ) ) {
-		run_buf = new_run_buf( 0 );
+		run_buf = new_run_buf( length );
 		run_buf->next = pda_run->consume_buf;
 		pda_run->consume_buf = run_buf;
 	}
