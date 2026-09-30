@@ -405,8 +405,8 @@ tree_t *pop_right_ignore( program_t *prg, tree_t **sp, tree_t *pop_from, tree_t 
 		tree_t *orig = li->tree;
 		colm_tree_upref( prg, orig );
 		rem_left_ignore( prg, sp, ri_kid->tree );
+		/* The kid's reference to the list passes to the caller. */
 		*right_ignore = ri_kid->tree;
-		colm_tree_upref( prg, *right_ignore );
 		ri_kid->tree = orig;
 	}
 	else  {
@@ -433,8 +433,8 @@ tree_t *pop_left_ignore( program_t *prg, tree_t **sp, tree_t *pop_from, tree_t *
 		tree_t *orig = ri->tree;
 		colm_tree_upref( prg, orig );
 		rem_right_ignore( prg, sp, li_kid->tree );
+		/* The kid's reference to the list passes to the caller. */
 		*left_ignore = li_kid->tree;
-		colm_tree_upref( prg, *left_ignore );
 		li_kid->tree = orig;
 	}
 	else {
