@@ -179,14 +179,14 @@ static void send_back_ignore( program_t *prg, tree_t **sp,
 	head_t *head = parse_tree->shadow->tree->tokdata;
 	int artificial = parse_tree->flags & PF_ARTIFICIAL;
 
-	if ( head != 0 ) {
-		if ( artificial ) {
-			colm_tree_upref( prg, parse_tree->shadow->tree );
-			send_back_tree( prg, is, parse_tree->shadow->tree );
-		}
-		else
-			send_back_text( prg, is, colm_alph_from_cstr( string_data( head ) ), head->length );
+	/* An artificial ignore goes back as a tree, even when it has no token
+	 * data. A token action can push a nonterminal as an ignore. */
+	if ( artificial ) {
+		colm_tree_upref( prg, parse_tree->shadow->tree );
+		send_back_tree( prg, is, parse_tree->shadow->tree );
 	}
+	else if ( head != 0 )
+		send_back_text( prg, is, colm_alph_from_cstr( string_data( head ) ), head->length );
 
 	colm_decrement_steps( pda_run );
 
@@ -616,7 +616,16 @@ static void detach_right_ignore( program_t *prg, tree_t **sp,
 			data_ignore = data_next;
 		}
 
-		pda_run->accum_ignore = last;
+		/* Any ignores already accumulated came after these. The list is
+		 * newest first, so these go on the end. */
+		if ( pda_run->accum_ignore == 0 )
+			pda_run->accum_ignore = last;
+		else {
+			parse_tree_t *tail = pda_run->accum_ignore;
+			while ( tail->next != 0 )
+				tail = tail->next;
+			tail->next = last;
+		}
 
 		colm_tree_downref( prg, sp, right_ignore );
 	}

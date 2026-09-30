@@ -1,0 +1,81 @@
+#
+# Backtracking over ignores that a token action pushed as trees. The parser
+# must give a pushed nonterminal ignore back to the input, and must keep the
+# left ignores of a token it backs up over when it then detaches the right
+# ignores of the token before it.
+#
+
+lex
+	ignore /[ \n]+/
+	token id /[a-z]+/
+	literal `; `!
+
+	# Parse a comment and push it as an ignore.
+	token open_paren /'('/
+	{
+		parse_stop NC: nested_comment[ stdin ]
+		input->push_ignore( NC )
+	}
+end
+
+lex
+	literal `( `)
+	token nc_data /[^()]+/
+end
+
+def nc_item
+	[nc_data]
+|	[nested_comment]
+
+def nested_comment
+	[`( nc_item* `)]
+
+# Each name is first taken as an ia. At the ! the parser backs up over all of
+# them, sending back the ignores in between, and takes them again as ib.
+def ia
+	[id]
+
+def ib
+	[id]
+
+def start
+	[ia* `;]
+|	[ib* `!]
+
+parse S: start[ stdin ]
+if S
+	print( 'ok: ', S )
+else
+	print( 'error: ', error, '\n' )
+##### IN #####
+a (c) b ;
+##### EXP #####
+ok: a (c) b ;
+##### IN #####
+a b (c) !
+##### EXP #####
+ok: a b (c) !
+##### IN #####
+a (c) b !
+##### EXP #####
+ok: a (c) b !
+##### IN #####
+a  (c)  b !
+##### EXP #####
+ok: a  (c)  b !
+##### IN #####
+a (b (c)) d !
+##### EXP #####
+ok: a (b (c)) d !
+##### IN #####
+a (c) b (d) e !
+##### EXP #####
+ok: a (c) b (d) e !
+##### IN #####
+(c) a !
+##### EXP #####
+ok: (c) a !
+##### IN #####
+a (c) b (d) e
+##### EXP #####
+error: <stdin>:2:1: parse error

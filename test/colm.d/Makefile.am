@@ -122,6 +122,7 @@ EXTRA_DIST = \
 	prints.lm \
 	pull1.lm \
 	pull2.lm \
+	pushignbt1.lm \
 	pushloc.lm \
 	ragelambig1.lm \
 	ragelambig2.lm \
