@@ -1,0 +1,40 @@
+#
+# Backtracking over text longer than a run_buf. The whitespace before the
+# string arrives in two pieces, and the scanner frees the first once it has
+# moved past it. When the whitespace is sent back, what doesn't fit in front
+# of the head buffer's offset goes into a new buffer, which must be big enough
+# to hold it.
+#
+
+token zl /''/
+
+lex
+	token id /[a-z]+/
+	token dstr /'"' [^"]* '"'/
+	ignore /[ \n]+/
+end
+
+# After the name the parser first reads the string, then fails for want of a
+# second name. It backs up, sends back the string and the whitespace before
+# it, and scans them again.
+def start
+	[id dstr id]
+|	[id zl dstr]
+
+# 32768 spaces, four times the size of a run_buf.
+Spaces: str = ' '
+I: int = 15
+while ( I ) {
+	Spaces = Spaces + Spaces
+	I = I - 1
+}
+
+parse S: start[ "a" Spaces "   \"x\"" ]
+if S {
+	for T: dstr in S
+		print( T.line, ':', T.col, '\n' )
+}
+else
+	print( error, '\n' )
+##### EXP #####
+1:32773
