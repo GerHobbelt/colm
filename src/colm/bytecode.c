@@ -274,22 +274,29 @@ static word_t stream_append_stream( program_t *prg, tree_t **sp, input_t *dest, 
 	return length;
 }
 
-static void stream_undo_append( program_t *prg, tree_t **sp,
+static void stream_undo_append_text( program_t *prg, tree_t **sp,
+		struct input_impl *is, long length )
+{
+	is->funcs->undo_append_data( prg, sp, is, length );
+}
+
+static void stream_undo_append_tree( program_t *prg, tree_t **sp,
 		struct input_impl *is, tree_t *input, long length )
 {
 	if ( input->id == LEL_ID_PTR )
 		assert(false);
 	else if ( input->id == LEL_ID_STR )
-		is->funcs->undo_append_data( prg, is, length );
+		is->funcs->undo_append_data( prg, sp, is, length );
 	else {
-		is->funcs->undo_append_data( prg, is, length );
+		tree_t *tree = is->funcs->undo_append_tree( prg, sp, is );
+		colm_tree_downref( prg, sp, tree );
 	}
 }
 
 static void stream_undo_append_stream( program_t *prg, tree_t **sp, struct input_impl *is,
 		tree_t *input, long length )
 {
-	is->funcs->undo_append_stream( prg, is );
+	is->funcs->undo_append_stream( prg, sp, is );
 }
 
 static tree_t *stream_pull_bc( program_t *prg, tree_t **sp, struct pda_run *pda_run,
@@ -359,11 +366,11 @@ static long input_push( program_t *prg, tree_t **sp, struct input_impl *in, tree
 static void input_undo_push( program_t *prg, tree_t **sp, struct input_impl *is, long length )
 {
 	if ( length < 0 ) {
-		tree_t *tree = is->funcs->undo_prepend_tree( prg, is );
+		tree_t *tree = is->funcs->undo_prepend_tree( prg, sp, is );
 		colm_tree_downref( prg, sp, tree );
 	}
 	else {
-		is->funcs->undo_prepend_data( prg, is, length );
+		is->funcs->undo_prepend_data( prg, sp, is, length );
 	}
 }
 
@@ -375,7 +382,7 @@ static void input_push_stream( program_t *prg, tree_t **sp,
 
 static void input_undo_push_stream( program_t *prg, tree_t **sp, struct input_impl *is )
 {
-	is->funcs->undo_prepend_stream( prg, is );
+	is->funcs->undo_prepend_stream( prg, sp, is );
 }
 
 static void set_local( execution_t *exec, long field, tree_t *tree )
@@ -2494,7 +2501,7 @@ again:
 			debug( prg, REALM_BYTECODE, "IN_SEND_TEXT_BKT\n" );
 
 			struct input_impl *si = input_to_impl( parser->input );
-			stream_undo_append( prg, sp, si, sent, len );
+			stream_undo_append_text( prg, sp, si, len );
 
 			colm_tree_downref( prg, sp, sent );
 			break;
@@ -2553,7 +2560,7 @@ again:
 			debug( prg, REALM_BYTECODE, "IN_SEND_TREE_BKT\n" );
 
 			struct input_impl *si = input_to_impl( parser->input );
-			stream_undo_append( prg, sp, si, sent, len );
+			stream_undo_append_tree( prg, sp, si, sent, len );
 
 			colm_tree_downref( prg, sp, sent );
 			break;
