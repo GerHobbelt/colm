@@ -1961,6 +1961,10 @@ parse_error:
 
 				assert( pda_run->accum_ignore == 0 );
 				detach_left_ignore( prg, sp, pda_run, pda_run->parse_input );
+
+				/* Undo attach of right ignore. */
+				if ( pda_run->stack_top->flags & PF_RIGHT_IL_ATTACHED )
+					detach_right_ignore( prg, sp, pda_run, pda_run->stack_top );
 			}
 			else {
 				debug( prg, REALM_PARSE, "backing up over non-terminal: %s\n",
@@ -1969,14 +1973,12 @@ parse_error:
 				/* Pop the item from the stack. */
 				pda_run->stack_top = pda_run->stack_top->next;
 
-				/* Queue it as next parseInput item. */
+				/* Queue it as next parseInput item. The right ignore of the
+				 * item under it must wait until the unreduce has taken the
+				 * nonterminal's tokens off the stack. */
 				pda_run->undo_lel->next = pda_run->parse_input;
 				pda_run->parse_input = pda_run->undo_lel;
 			}
-
-			/* Undo attach of right ignore. */
-			if ( pda_run->stack_top->flags & PF_RIGHT_IL_ATTACHED )
-				detach_right_ignore( prg, sp, pda_run, pda_run->stack_top );
 		}
 	}
 

@@ -1,0 +1,77 @@
+#
+# Backtracking over a comment that a token action parsed with parse_stop and
+# pushed as an ignore. Undoing the action backs the inner parser up over its
+# own reductions, which the parse_stop made with no lookahead token. The
+# whitespace inside the comment must stay where it was.
+#
+
+lex
+	ignore /[ \n]+/
+	token id /[a-z]+/
+	literal `; `!
+
+	# Parse a comment and push it as an ignore.
+	token open_paren /'('/
+	{
+		parse_stop NC: cmt[ stdin ]
+		input->push_ignore( NC )
+	}
+end
+
+lex
+	ignore /[ ]+/
+	literal `( `) `:
+	token cid /[a-z]+/
+end
+
+def cn
+	[cid `)]
+
+def cmt
+	[`( cid `: cn]
+
+# Each name is first taken as an ia. At the ! the parser backs up over all of
+# them and takes them again as ib.
+def ia
+	[id]
+
+def ib
+	[id]
+
+def start
+	[ia* `;]
+|	[ib* `!]
+
+parse S: start[ stdin ]
+if S
+	print( 'ok: ', S )
+else
+	print( 'error: ', error, '\n' )
+##### IN #####
+a b (c: d) ;
+##### EXP #####
+ok: a b (c: d) ;
+##### IN #####
+a b (c: d) !
+##### EXP #####
+ok: a b (c: d) !
+##### IN #####
+a b (c:  d) !
+##### EXP #####
+ok: a b (c:  d) !
+##### IN #####
+a b ( c : d ) !
+##### EXP #####
+ok: a b ( c : d ) !
+##### IN #####
+a (c: d) b (e: f) g !
+##### EXP #####
+ok: a (c: d) b (e: f) g !
+##### IN #####
+a b (c: d) (e: f) !
+##### EXP #####
+ok: a b (c: d) (e: f) !
+##### IN #####
+a b (c: d) e
+##### EXP #####
+error: <stdin>:2:1: parse error
