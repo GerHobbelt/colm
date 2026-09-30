@@ -1,0 +1,143 @@
+#
+# Backtracking over pushes of empty text and empty streams. Scanning past an
+# empty buffer moves it to the stash, and sending text back doesn't bring it
+# back, since it gave nothing. The undo of its push must still find it and
+# take it out, and the undo of each push that split the head must join back
+# its own split-off.
+#
+
+lex
+	token id /[b-z]+/
+
+	# Replace "<x" with "ab". The head of stdin is partly consumed, so the
+	# push splits it.
+	token lt /'<' [a-z]+/
+	{
+		input->pull( match_length )
+		input->push( 'ab' )
+	}
+
+	# Replace the "a" with an empty stream. The "ab" buffer is partly
+	# consumed, so this push splits it too.
+	token a /'a'/
+	{
+		input->pull( 1 )
+		input->push_stream( open( '/dev/null', 'r' ) )
+	}
+
+	# Replace "^x" with "aa", then all of it with an empty stream. The push
+	# splits off the whole buffer, which is scanned past too.
+	token caret /'^' [a-z]+/
+	{
+		input->pull( match_length )
+		input->push( 'aa' )
+	}
+
+	token aa /'aa'/
+	{
+		input->pull( 2 )
+		input->push_stream( open( '/dev/null', 'r' ) )
+	}
+
+	# Replace "!x" with an empty stream.
+	token bang /'!' [a-z]+/
+	{
+		input->pull( match_length )
+		input->push_stream( open( '/dev/null', 'r' ) )
+	}
+
+	# Replace "?x" with empty text.
+	token quest /'?' [a-z]+/
+	{
+		input->pull( match_length )
+		input->push( '' )
+	}
+
+	# Replace "%x" with "b", then push an empty stream in front of it. The
+	# second push splits nothing.
+	token pct /'%' [a-z]+/
+	{
+		input->pull( match_length )
+		input->push( 'b' )
+		input->push_stream( open( '/dev/null', 'r' ) )
+	}
+
+	# The same with a token in place of the text.
+	token star /'*' [a-z]+/
+	{
+		input->pull( match_length )
+		input->push( make_token( typeid<id>, 'b' ) )
+		input->push_stream( open( '/dev/null', 'r' ) )
+	}
+
+	literal `{ `}
+	ignore /[ \n]+/
+end
+
+# Braces must balance here. When they don't, the parser backtracks over
+# everything and takes flat instead.
+def item
+	[id]
+|	[`{ item* `}]
+
+def flat
+	[id] | [`{] | [`}]
+
+def start
+	[item*]
+|	[flat*]
+
+parse S: start[ stdin ]
+if S {
+	if match S [item*]
+		print( 'items: ', S, '\n' )
+	else
+		print( 'flat: ', S, '\n' )
+}
+else
+	print( 'error: ', error, '\n' )
+##### IN #####
+c { <x {
+##### EXP #####
+flat: c { b {
+
+##### IN #####
+c { <x b }
+##### EXP #####
+items: c { b b }
+
+##### IN #####
+c { ^x c {
+##### EXP #####
+flat: c {  c {
+
+##### IN #####
+c { !x b {
+##### EXP #####
+flat: c {  b {
+
+##### IN #####
+c { ?x b {
+##### EXP #####
+flat: c {  b {
+
+##### IN #####
+c { %x {
+##### EXP #####
+flat: c { b {
+
+##### IN #####
+c { *x {
+##### EXP #####
+flat: c { b {
+
+##### IN #####
+c { <x %x ?x !x ^x b { *x }
+##### EXP #####
+flat: c { b b    b { b }
+
+##### IN #####
+c { <x %x ?x !x ^x b { *x } }
+##### EXP #####
+items: c { b b    b { b } }
+
