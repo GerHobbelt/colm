@@ -111,6 +111,8 @@ EXTRA_DIST = \
 	namespace1.lm \
 	nestedcomm.lm \
 	new1.lm \
+	ntignbt1.lm \
+	ntignbt2.lm \
 	open1.lm \
 	open2.lm \
 	order1.lm \
