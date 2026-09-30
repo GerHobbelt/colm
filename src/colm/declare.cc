@@ -536,7 +536,7 @@ void Compiler::makeIgnoreCollectors()
 {
 	for ( RegionSetList::Iter regionSet = regionSetList; regionSet.lte(); regionSet++ ) {
 		if ( regionSet->collectIgnore->zeroLel == 0 ) {
-			String name( 128, "_ign_%p", regionSet->tokenIgnore );
+			String name( 128, "_ign_%d", regionSet->tokenIgnore->id );
 			LangEl *zeroLel = new LangEl( rootNamespace, name, LangEl::Term );
 			langEls.append( zeroLel );
 			zeroLel->isZero = true;

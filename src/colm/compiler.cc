@@ -833,7 +833,7 @@ void Compiler::initEmptyScanner( RegionSet *regionSet, TokenRegion *reg )
 		reg->impl->wasEmpty = true;
 
 		static int def = 1;
-		String name( 64, "__%p_DEF_PAT_%d", reg, def++ );
+		String name( 64, "__%d_DEF_PAT_%d", reg->id, def++ );
 
 		LexJoin *join = LexJoin::cons( LexExpression::cons( BT_Any ) );
 
