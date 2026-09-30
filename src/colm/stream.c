@@ -225,7 +225,7 @@ struct run_buf *new_run_buf( int sz )
 }
 
 /* Keep the position up to date after consuming text. */
-void update_position_data( struct stream_impl_data *is, const alph_t *data, long length )
+static void update_position_data( struct stream_impl_data *is, const alph_t *data, long length )
 {
 	int i;
 	for ( i = 0; i < length; i++ ) {
@@ -243,7 +243,7 @@ void update_position_data( struct stream_impl_data *is, const alph_t *data, long
 }
 
 /* Keep the position up to date after sending back text. */
-void undo_position_data( struct stream_impl_data *is, const alph_t *data, long length )
+static void undo_position_data( struct stream_impl_data *is, const alph_t *data, long length )
 {
 	/* FIXME: this needs to fetch the position information from the parsed
 	 * token and restore based on that.. */

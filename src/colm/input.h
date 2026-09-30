@@ -223,9 +223,6 @@ int stream_impl_pop_line( struct stream_impl_data *ss );
 
 struct input_impl *colm_impl_new_generic( char *name );
 
-void update_position( struct stream_impl *input_stream, const char *data, long length );
-void undo_position( struct stream_impl *input_stream, const char *data, long length );
-
 struct stream_impl *colm_stream_impl( struct colm_struct *s );
 
 struct colm_str *collect_string( struct colm_program *prg, struct colm_stream *s );
