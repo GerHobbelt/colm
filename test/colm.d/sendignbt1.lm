@@ -1,0 +1,57 @@
+#
+# Backtracking over a tree, sent to a parser, that already carries whitespace
+# on both sides. The parser attaches its own ignores to the tree, keeping the
+# originals inside them, and must put the originals back when it backs up.
+#
+
+# Names have no ignore of their own, so the whitespace after one is scanned in
+# the next region and becomes the left ignore of the token after it.
+lex
+	token id /[a-z]+/
+end
+
+lex
+	token number /[0-9]+/
+	token symbol /[/;]/
+	literal `}
+	ignore /[ \n]+/
+end
+
+def item
+	[id] | [number] | [symbol]
+
+def one
+	[symbol]
+
+# The parser first takes everything as items. At the } it backs up over the
+# sent tree and tries the second form.
+def start
+	[item*]
+|	[id symbol number `} symbol]
+
+# A symbol that carries the whitespace before and after it.
+parse O: one "  /  "
+Sym: symbol = O.symbol
+
+P: parser<start> = new parser<start>()
+send P "x "
+send_tree P [Sym]
+send P " 5 "
+send P [stdin]
+S: start = P->finish()
+if S
+	print( 'ok: ', S, '\n' )
+else
+	print( 'error\n' )
+##### IN #####
+;--noeol
+##### EXP #####
+ok: x   /   5 ;
+##### IN #####
+} ;--noeol
+##### EXP #####
+ok: x   /   5 } ;
+##### IN #####
+} } ;--noeol
+##### EXP #####
+error

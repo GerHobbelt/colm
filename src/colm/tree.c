@@ -401,11 +401,13 @@ tree_t *pop_right_ignore( program_t *prg, tree_t **sp, tree_t *pop_from, tree_t 
 	 * right ignore. */
 	kid_t *li = tree_left_ignore_kid( prg, ri_kid->tree );
 	if ( li != 0 ) {
-		colm_tree_upref( prg, li->tree );
+		/* Read the original before removing it, rem_left_ignore frees li. */
+		tree_t *orig = li->tree;
+		colm_tree_upref( prg, orig );
 		rem_left_ignore( prg, sp, ri_kid->tree );
 		*right_ignore = ri_kid->tree;
 		colm_tree_upref( prg, *right_ignore );
-		ri_kid->tree = li->tree;
+		ri_kid->tree = orig;
 	}
 	else  {
 		*right_ignore = ri_kid->tree;
@@ -427,11 +429,13 @@ tree_t *pop_left_ignore( program_t *prg, tree_t **sp, tree_t *pop_from, tree_t *
 	 * left ignore. */
 	kid_t *ri = tree_right_ignore_kid( prg, li_kid->tree );
 	if ( ri != 0 ) {
-		colm_tree_upref( prg, ri->tree );
+		/* Read the original before removing it, rem_right_ignore frees ri. */
+		tree_t *orig = ri->tree;
+		colm_tree_upref( prg, orig );
 		rem_right_ignore( prg, sp, li_kid->tree );
 		*left_ignore = li_kid->tree;
 		colm_tree_upref( prg, *left_ignore );
-		li_kid->tree = ri->tree;
+		li_kid->tree = orig;
 	}
 	else {
 		*left_ignore = li_kid->tree;
