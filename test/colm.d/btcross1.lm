@@ -1,0 +1,55 @@
+#
+# Backtracking over a string that straddles two run_bufs. Each argument to
+# parse is appended to the input, and one that doesn't fit in the tail buffer
+# starts a new one. The scanner frees the first buffer once it has moved past
+# it. When the string is sent back, the part that was in the second buffer
+# goes into the space before its offset and the rest into a new buffer in
+# front of it. The whitespace sent back after it must find the stream's
+# consumed count intact.
+#
+
+token zl /''/
+
+lex
+	token id /[a-z]+/
+	token dstr /'"' [^"]* '"'/
+	ignore /[ \n]+/
+end
+
+# After the name the parser first reads the string, then fails for want of a
+# second name. It backs up, sends back the string and the whitespace before
+# it, and scans them again.
+def start
+	[id dstr id]
+|	[id zl dstr]
+
+str spaces( N: int )
+{
+	S: str = ''
+	while ( N ) {
+		S = S + ' '
+		N = N - 1
+	}
+	return S
+}
+
+# The name, 8190 spaces and the opening quote fill the first buffer.
+parse S1: start[ "a" spaces( 8190 ) "\"" "x\"" ]
+if S1 {
+	for T: dstr in S1
+		print( T.line, ':', T.col, '\n' )
+}
+else
+	print( error, '\n' )
+
+# The first buffer ends partway through the string.
+parse S2: start[ "a" spaces( 8185 ) "\"ppppp" "ppppp\"" ]
+if S2 {
+	for T: dstr in S2
+		print( T.line, ':', T.col, '\n' )
+}
+else
+	print( error, '\n' )
+##### EXP #####
+1:8192
+1:8187

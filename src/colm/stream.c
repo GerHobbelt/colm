@@ -633,7 +633,7 @@ static int data_undo_consume_data( struct colm_program *prg, struct stream_impl_
 		undo_position_data( sid, end, remaining );
 		memcpy( new_buf->data, end, remaining );
 		si_data_push_head( sid, new_buf );
-		sid->consumed -= amount;
+		sid->consumed -= remaining;
 	}
 
 	debug( prg, REALM_INPUT, "data_undo_consume_data: stream %p "
