@@ -481,7 +481,11 @@ static void input_undo_consume_tree( struct colm_program *prg, struct input_impl
 		input_stream_seq_prepend( si, b );
 
 		if ( is_tree( b ) ) {
+			/* The stash holds an uncounted pointer. The parser may have
+			 * copied the tree since consuming it, so put back the one it
+			 * sends, which it upreffed for the input. */
 			assert( b->tree->id == tree->id );
+			b->tree = tree;
 			break;
 		}
 	}
