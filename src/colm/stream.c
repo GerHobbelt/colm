@@ -628,7 +628,7 @@ static int data_undo_consume_data( struct colm_program *prg, struct stream_impl_
 
 	if ( remaining > 0 ) {
 		end -= remaining;
-		struct run_buf *new_buf = new_run_buf( 0 );
+		struct run_buf *new_buf = new_run_buf( remaining );
 		new_buf->length = remaining;
 		undo_position_data( sid, end, remaining );
 		memcpy( new_buf->data, end, remaining );

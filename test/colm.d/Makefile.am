@@ -17,6 +17,7 @@ EXTRA_DIST = \
 	broken/travs2.lm \
 	btcross1.lm \
 	btloc1.lm \
+	btlong1.lm \
 	btpat1.lm \
 	btscan1.lm \
 	btscan2.lm \
