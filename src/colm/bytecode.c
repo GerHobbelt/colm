@@ -3656,7 +3656,7 @@ again:
 					kid->tree->id == uiter->search_id || 
 					uiter->search_id == prg->rtd->any_id )
 			{
-				/* Store the yeilded value. */
+				/* Store the yielded value. */
 				uiter->ref.kid = kid;
 				uiter->ref.next = next;
 				uiter->yield_size = vm_ssize() - uiter->root_size;

@@ -246,7 +246,7 @@ user_iter_t *colm_uiter_create( program_t *prg, tree_t ***psp, struct function_i
 void uiter_init( program_t *prg, tree_t **sp, user_iter_t *uiter, 
 		struct function_info *fi, int revert_on )
 {
-	/* Set up the first yeild so when we resume it starts at the beginning. */
+	/* Set up the first yield so when we resume it starts at the beginning. */
 	uiter->ref.kid = 0;
 	uiter->yield_size = vm_ssize() - uiter->root_size;
 	//	uiter->frame = &uiter->stackRoot[-IFR_AA];
