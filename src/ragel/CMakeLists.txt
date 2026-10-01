@@ -158,11 +158,15 @@ if(COLM_INSTALL_RAGEL)
 		NAMESPACE ${_PACKAGE_NAME}::
 		FILE "${PROJECT_BINARY_DIR}/${_PACKAGE_NAME}-targets.cmake")
 
+	# A minor release of ragel can change the code generated for an existing
+	# specification (7.1.0 did), and the package carries libfsm's headers,
+	# whose API has no stability promise. As for colm, only the requested
+	# major and minor version is accepted.
 	include(CMakePackageConfigHelpers)
 	write_basic_package_version_file(
 		"${PROJECT_BINARY_DIR}/${_PACKAGE_NAME}-config-version.cmake"
 		VERSION ${RAGEL_VERSION_NUMERIC}
-		COMPATIBILITY AnyNewerVersion)
+		COMPATIBILITY SameMinorVersion)
 
 	install(FILES
 		"${PROJECT_BINARY_DIR}/${_PACKAGE_NAME}-config.cmake"
