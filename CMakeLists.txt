@@ -69,7 +69,6 @@ if(NOT _configure_ac MATCHES "[\r\n]LIBFSM_VERSION=\"([^\"]*)\"")
 endif()
 set(LIBFSM_VERSION "${CMAKE_MATCH_1}")
 string(REGEX MATCH "^[0-9]+(\\.[0-9]+)*" LIBFSM_VERSION_NUMERIC "${LIBFSM_VERSION}")
-string(REGEX MATCH "^[0-9]+" LIBFSM_VERSION_MAJOR "${LIBFSM_VERSION_NUMERIC}")
 
 project(colm-suite
 	VERSION ${SUITE_VERSION_NUMERIC}

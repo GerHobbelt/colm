@@ -65,12 +65,14 @@ set_target_properties(libfsmgen PROPERTIES
 	OUTPUT_NAME fsmgen
 	POSITION_INDEPENDENT_CODE ON)
 
-# libfsm carries its own version, independent of the suite's. This mirrors
-# the libtool -release string in Makefile.am.
+# libfsm carries its own version, independent of the suite's. Its C++ ABI can
+# change in any release, so the soname carries the whole version
+# (libfsm.so.X.Y.Z) and changes every release, as the libtool -release name in
+# Makefile.am does.
 set_target_properties(libfsm PROPERTIES
 	OUTPUT_NAME fsm
 	VERSION ${LIBFSM_VERSION_NUMERIC}
-	SOVERSION ${LIBFSM_VERSION_MAJOR})
+	SOVERSION ${LIBFSM_VERSION_NUMERIC})
 
 add_library(ragel::libfsm ALIAS libfsm)
 

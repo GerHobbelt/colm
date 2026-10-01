@@ -39,7 +39,7 @@ dist_libragel_la_SOURCES = \
 libragel_la_LIBADD = $(LIBFSM_LA) $(LIBCOLM_LA)
 
 if INSTALL_RAGEL
-libragel_la_LDFLAGS = -no-undefined
+libragel_la_LDFLAGS = -release ${RAGEL_VERSION} -no-undefined
 
 if LINKER_NO_UNDEFINED
 libragel_la_LDFLAGS += -Wl,--no-undefined
