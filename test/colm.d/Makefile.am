@@ -116,6 +116,9 @@ EXTRA_DIST = \
 	ntignbt2.lm \
 	ntignbt3.lm \
 	ntrejbt1.lm \
+	ntrejbt2.lm \
+	ntrejbt3.lm \
+	ntrejbt4.lm \
 	open1.lm \
 	open2.lm \
 	order1.lm \

@@ -1,0 +1,64 @@
+#
+# Backtracking over several reductions that their actions rejected, with no
+# commit point. Each rejected nonterminal goes on the stack and is backed up
+# over. Unless pushing it adds to the shift count as backing up takes away,
+# every one leaves the count one lower. With enough of them the count runs
+# down to the no-commit value before the stack is empty, and the parser fails
+# without unreducing c, whose retry the lookahead takes.
+#
+
+lex
+	ignore /[ \n]+/
+	token id /[a-z]+/
+	literal `; `! `?
+end
+
+def c
+	[`;]
+
+def d
+	[`; id]
+
+# Both take a !. The parser tries r first, which always rejects, so every
+# item costs one rejected reduction before it becomes an s.
+def r
+	[`!]
+	{ reject }
+
+def s
+	[`!]
+
+def item
+	[r]
+|	[s]
+
+# Without a ? at the end, the parser backs up over every item to take d.
+def start
+	[c id item* `?]
+|	[d item*]
+
+parse S: start[ stdin ]
+if S
+	print( 'ok: ', S )
+else
+	print( 'error: ', error, '\n' )
+##### IN #####
+; a ! ! ?
+##### EXP #####
+ok: ; a ! ! ?
+##### IN #####
+; a ! !
+##### EXP #####
+ok: ; a ! !
+##### IN #####
+; a ! ! !
+##### EXP #####
+ok: ; a ! ! !
+##### IN #####
+; a ! ! ! ! !
+##### EXP #####
+ok: ; a ! ! ! ! !
+##### IN #####
+; a ! ? !
+##### EXP #####
+error: <stdin>:1:9: parse error
