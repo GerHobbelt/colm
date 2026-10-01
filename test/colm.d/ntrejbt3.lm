@@ -1,0 +1,67 @@
+#
+# Backtracking to a commit point over a reduction that its action rejects,
+# with no lookahead token. A parse_stop on r makes its states reduce as they
+# shift, so the rejected r goes on the stack with nothing after it and the
+# parser backs up over it as it would over any other nonterminal. That must
+# take as much off the shift count as pushing it added, or the parser stops
+# one item short of the commit point.
+#
+
+lex
+	ignore /[ \n]+/
+	token id /[a-z]+/
+	literal `; `: `!
+end
+
+# After ; with an id next, the parser first reduces c, which commits, and
+# keeps shifting id for d as the alternative.
+def c
+	[`;] commit
+
+def d
+	[`; id]
+
+# Rejected every time, so the first alternative of start always fails.
+def r
+	[`!]
+	{ reject }
+
+def s
+	[`!]
+
+# After :, c2 commits with no alternative. The parser could only reach the
+# last alternative of start by backing up over the : to take e, which the
+# commit forbids.
+def c2
+	[`:] commit
+
+def e
+	[]
+
+def start
+	[c id r]
+|	[d s]
+|	[c2 id r]
+|	[e `: id `!]
+
+# Only here so that r is a parse_stop target. Its states then reduce as they
+# shift, in every parser.
+parse_stop R: r[ '!' ]
+
+parse S: start[ stdin ]
+if S
+	print( 'ok: ', S )
+else
+	print( 'error: ', error, '\n' )
+##### IN #####
+; a !
+##### EXP #####
+ok: ; a !
+##### IN #####
+: a !
+##### EXP #####
+error: <stdin>:1:6: parse error
+##### IN #####
+; a ! !
+##### EXP #####
+error: <stdin>:1:7: parse error

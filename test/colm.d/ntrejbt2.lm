@@ -1,0 +1,63 @@
+#
+# Backtracking to a commit point over a reduction that its action rejects.
+# The rejected nonterminal goes on the stack without a shift, but backing up
+# over it takes one off the shift count. Unless it is counted when pushed,
+# the parser reaches the commit point's count one item early and fails
+# without unreducing the committed nonterminal, whose retry the lookahead
+# takes.
+#
+
+lex
+	ignore /[ \n]+/
+	token id /[a-z]+/
+	literal `; `: `!
+end
+
+# After ; with an id next, the parser first reduces c, which commits, and
+# keeps shifting id for d as the alternative.
+def c
+	[`;] commit
+
+def d
+	[`; id]
+
+# Rejected every time, so the first alternative of start always fails.
+def r
+	[`!]
+	{ reject }
+
+def s
+	[`!]
+
+# After :, c2 commits with no alternative. The parser could only reach the
+# last alternative of start by backing up over the : to take e, which the
+# commit forbids.
+def c2
+	[`:] commit
+
+def e
+	[]
+
+def start
+	[c id r]
+|	[d s]
+|	[c2 id r]
+|	[e `: id `!]
+
+parse S: start[ stdin ]
+if S
+	print( 'ok: ', S )
+else
+	print( 'error: ', error, '\n' )
+##### IN #####
+; a !
+##### EXP #####
+ok: ; a !
+##### IN #####
+: a !
+##### EXP #####
+error: <stdin>:1:6: parse error
+##### IN #####
+; a ! !
+##### EXP #####
+error: <stdin>:1:7: parse error

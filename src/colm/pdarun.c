@@ -1716,8 +1716,12 @@ again:
 			debug( prg, REALM_PARSE, "error induced during reduction of %s\n",
 					prg->rtd->lel_info[pda_run->red_lel->id].name );
 			pda_run->red_lel->state = pda_run->cur_state;
+
+			/* Push it as if shifted. Backing up over it takes one off the
+			 * shift count, so it must be counted here too. */
 			pda_run->red_lel->next = pda_run->stack_top;
 			pda_run->stack_top = pda_run->red_lel;
+			pda_run->shift_count += 1;
 			/* FIXME: What is the right argument here? */
 			push_bt_point( prg, pda_run );
 			goto parse_error;
