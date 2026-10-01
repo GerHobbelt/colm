@@ -215,6 +215,7 @@ typedef struct colm_user_iter
 
 	code_t *resume;
 	tree_t **frame;
+	long frame_id;
 	long search_id;
 } user_iter_t;
 

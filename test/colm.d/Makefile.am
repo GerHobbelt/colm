@@ -174,6 +174,9 @@ EXTRA_DIST = \
 	typeref1.lm \
 	typeref2.lm \
 	typeref3.lm \
+	uiter1.lm \
+	uiter2.lm \
+	uiter3.lm \
 	undofrag1.lm \
 	undofrag2.lm \
 	undofrag3.lm \

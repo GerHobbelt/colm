@@ -1,0 +1,28 @@
+#
+# A user iterator releases its args and locals when the loop over it ends
+# early, by break or by a return from the function the loop is in.
+#
+
+iter i( A: str )
+{
+	S: str = A + "!"
+	yield S
+	yield A
+}
+
+str f( A: str )
+{
+	for T: str in i( A ) {
+		return T
+	}
+	return "none"
+}
+
+print( f( "a" ), "\n" )
+for T: str in i( "b" ) { print( T, "\n" ) }
+for T: str in i( "c" ) { print( T, "\n" ) break }
+##### EXP #####
+a!
+b!
+b
+c!
