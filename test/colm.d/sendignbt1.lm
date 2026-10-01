@@ -5,7 +5,12 @@
 #
 
 # Names have no ignore of their own, so the whitespace after one is scanned in
-# the next region and becomes the left ignore of the token after it.
+# the next region and becomes the left ignore of the token after it. Here that
+# is the sent tree, which already has a left ignore, so backing up over it
+# runs the merge branch of pop_left_ignore. With id in the region below, the
+# whitespace would be x's right ignore and the test would still pass, without
+# reaching that branch. The program prints x and the sent tree with their
+# ignores, so that such a change shows in the output.
 lex
 	token id /[a-z]+/
 end
@@ -39,18 +44,29 @@ send_tree P [Sym]
 send P " 5 "
 send P [stdin]
 S: start = P->finish()
-if S
+if S {
 	print( 'ok: ', S, '\n' )
+	for I: id in S
+		print( 'id: [', I, ']\n' )
+	for Y: symbol in S {
+		print( 'sent: [', Y, ']\n' )
+		break
+	}
+}
 else
 	print( 'error\n' )
 ##### IN #####
 ;--noeol
 ##### EXP #####
 ok: x   /   5 ;
+id: [x]
+sent: [   /   ]
 ##### IN #####
 } ;--noeol
 ##### EXP #####
 ok: x   /   5 } ;
+id: [x]
+sent: [   /   ]
 ##### IN #####
 } } ;--noeol
 ##### EXP #####

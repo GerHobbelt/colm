@@ -100,7 +100,10 @@ EXTRA_DIST = \
 	map4.lm \
 	map5.lm \
 	map6.lm \
+	map7.lm \
+	map8.lm \
 	matchex.lm \
+	matchtext1.lm \
 	maxlen.lm \
 	mediawiki/garticle.rl \
 	mediawiki/Makefile \
@@ -113,6 +116,11 @@ EXTRA_DIST = \
 	new1.lm \
 	ntignbt1.lm \
 	ntignbt2.lm \
+	ntignbt3.lm \
+	ntrejbt1.lm \
+	ntrejbt2.lm \
+	ntrejbt3.lm \
+	ntrejbt4.lm \
 	open1.lm \
 	open2.lm \
 	order1.lm \
@@ -130,6 +138,7 @@ EXTRA_DIST = \
 	pushigneof1.lm \
 	pushigneof2.lm \
 	pushloc.lm \
+	pushmixbt1.lm \
 	ragelambig1.lm \
 	ragelambig2.lm \
 	ragelambig3.lm \
@@ -173,6 +182,10 @@ EXTRA_DIST = \
 	typeref1.lm \
 	typeref2.lm \
 	typeref3.lm \
+	uiter1.lm \
+	uiter2.lm \
+	uiter3.lm \
+	uiter4.lm \
 	undofrag1.lm \
 	undofrag2.lm \
 	undofrag3.lm \

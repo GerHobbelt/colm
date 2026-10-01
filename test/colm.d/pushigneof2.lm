@@ -1,7 +1,8 @@
 #
 # Ignores pushed at the end of the input, when the parser has to back up over
 # them. Sent back and scanned again, a pushed ignore must still become the
-# right ignore of the token before it.
+# right ignore of the token before it. Each name is printed on its own as
+# well, to show which token holds the pushed ignores.
 #
 
 lex
@@ -50,31 +51,46 @@ def start
 |	[ib*]
 
 parse S: start[ stdin ]
-if S
+if S {
 	print( '[', S, ']\n' )
+	for I: id in S
+		print( '<', I, '>' )
+	print( '\n' )
+}
 else
 	print( 'error: ', error, '\n' )
 ##### IN #####
 a b ~x !--noeol
 ##### EXP #####
 [a b   !]
+<a ><b   >
 ##### IN #####
 a b ~x--noeol
 ##### EXP #####
 [a b  ]
+<a ><b  >
 ##### IN #####
 a b ~x  --noeol
 ##### EXP #####
 [a b    ]
+<a ><b    >
 ##### IN #####
 a b (c)--noeol
 ##### EXP #####
 [a b (c)]
+<a ><b (c)>
 ##### IN #####
 a b (c)  --noeol
 ##### EXP #####
 [a b (c)  ]
+<a ><b (c)  >
 ##### IN #####
 a b ~x (c (d)) ~x--noeol
 ##### EXP #####
 [a b   (c (d))  ]
+<a ><b   (c (d))  >
+##### IN #####
+a b (c) !--noeol
+##### EXP #####
+[a b (c) !]
+<a ><b (c) >

@@ -47,7 +47,6 @@ if(NOT _configure_ac MATCHES "[\r\n]COLM_VERSION=\"([^\"]*)\"")
 endif()
 set(COLM_VERSION "${CMAKE_MATCH_1}")
 string(REGEX MATCH "^[0-9]+(\\.[0-9]+)*" COLM_VERSION_NUMERIC "${COLM_VERSION}")
-string(REGEX MATCH "^[0-9]+" COLM_VERSION_MAJOR "${COLM_VERSION_NUMERIC}")
 
 if(NOT _configure_ac MATCHES "[\r\n]COLM_PUBDATE=\"([^\"]*)\"")
 	message(FATAL_ERROR "could not read COLM_PUBDATE from configure.ac")
@@ -70,7 +69,6 @@ if(NOT _configure_ac MATCHES "[\r\n]LIBFSM_VERSION=\"([^\"]*)\"")
 endif()
 set(LIBFSM_VERSION "${CMAKE_MATCH_1}")
 string(REGEX MATCH "^[0-9]+(\\.[0-9]+)*" LIBFSM_VERSION_NUMERIC "${LIBFSM_VERSION}")
-string(REGEX MATCH "^[0-9]+" LIBFSM_VERSION_MAJOR "${LIBFSM_VERSION_NUMERIC}")
 
 project(colm-suite
 	VERSION ${SUITE_VERSION_NUMERIC}

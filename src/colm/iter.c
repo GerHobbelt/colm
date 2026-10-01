@@ -208,8 +208,8 @@ void colm_init_rev_tree_iter( rev_tree_iter_t *rev_triter, tree_t **stack_root,
 	rev_triter->arg_size = arg_size;
 }
 
-void init_user_iter( user_iter_t *user_iter, tree_t **stack_root, long root_size,
-		long arg_size, long search_id )
+static void init_user_iter( user_iter_t *user_iter, tree_t **stack_root, long root_size,
+		long arg_size, long frame_id, long search_id )
 {
 	user_iter->type = IT_User;
 	user_iter->stack_root = stack_root;
@@ -218,6 +218,7 @@ void init_user_iter( user_iter_t *user_iter, tree_t **stack_root, long root_size
 	user_iter->root_size = root_size;
 	user_iter->resume = 0;
 	user_iter->frame = 0;
+	user_iter->frame_id = frame_id;
 	user_iter->search_id = search_id;
 
 	user_iter->ref.kid = 0;
@@ -236,7 +237,7 @@ user_iter_t *colm_uiter_create( program_t *prg, tree_t ***psp, struct function_i
 	tree_t **stack_root = vm_ptop();
 	long root_size = vm_ssize();
 
-	init_user_iter( uiter, stack_root, root_size, fi->arg_size, search_id );
+	init_user_iter( uiter, stack_root, root_size, fi->arg_size, fi->frame_id, search_id );
 
 	*psp = sp;
 	return uiter;
@@ -245,7 +246,7 @@ user_iter_t *colm_uiter_create( program_t *prg, tree_t ***psp, struct function_i
 void uiter_init( program_t *prg, tree_t **sp, user_iter_t *uiter, 
 		struct function_info *fi, int revert_on )
 {
-	/* Set up the first yeild so when we resume it starts at the beginning. */
+	/* Set up the first yield so when we resume it starts at the beginning. */
 	uiter->ref.kid = 0;
 	uiter->yield_size = vm_ssize() - uiter->root_size;
 	//	uiter->frame = &uiter->stackRoot[-IFR_AA];
@@ -287,6 +288,26 @@ void colm_rev_tree_iter_destroy( struct colm_program *prg, tree_t ***psp, rev_tr
 	}
 }
 
+/* Release the iterator's tree locals and args, as IN_RET does for a function.
+ * Its frame and the args must still be on the stack. The frame is the one
+ * IN_UITER_CREATE pushed after the iterator. It is not uiter->frame: a yield
+ * from a function the iterator called sets that to the function's frame. */
+static void uiter_downref_locals( program_t *prg, tree_t **sp, user_iter_t *uiter )
+{
+	struct frame_info *fi = &prg->rtd->frame_info[uiter->frame_id];
+	tree_t **frame = &uiter->stack_root[-IFR_AA];
+	tree_t **call_args = (tree_t**)frame[FR_CA];
+	long i;
+	for ( i = fi->locals_len-1; i >= 0; i-- ) {
+		if ( fi->locals[i].type == LI_Tree ) {
+			long offset = fi->locals[i].offset;
+			tree_t *tree = offset >= FR_AA ?
+					call_args[offset - FR_AA] : frame[offset];
+			colm_tree_downref( prg, sp, tree );
+		}
+	}
+}
+
 void colm_uiter_destroy( program_t *prg, tree_t ***psp, user_iter_t *uiter )
 {
 	if ( uiter != 0 && (int)uiter->type != 0 ) {
@@ -296,6 +317,8 @@ void colm_uiter_destroy( program_t *prg, tree_t ***psp, user_iter_t *uiter )
 		 * nonzero and the stack size in the iterator will be correct. */
 		long cur_stack_size = vm_ssize() - uiter->root_size;
 		assert( uiter->yield_size == cur_stack_size );
+
+		uiter_downref_locals( prg, sp, uiter );
 
 		vm_popn( uiter->yield_size );
 		vm_popn( sizeof(user_iter_t) / sizeof(word_t) );
@@ -317,6 +340,8 @@ void colm_uiter_unwind( program_t *prg, tree_t ***psp, user_iter_t *uiter )
 		assert( uiter->yield_size == cur_stack_size );
 
 		long arg_size = uiter->arg_size;
+
+		uiter_downref_locals( prg, sp, uiter );
 
 		vm_popn( uiter->yield_size );
 		vm_popn( sizeof(user_iter_t) / sizeof(word_t) );

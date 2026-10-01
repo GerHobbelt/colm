@@ -832,21 +832,16 @@ static head_t *peek_match( program_t *prg, struct pda_run *pda_run, struct input
 {
 	long length = pda_run->tokend;
 
-	struct run_buf *run_buf = pda_run->consume_buf;
-	if ( run_buf == 0 || length > ( FSM_BUFSIZE - run_buf->length ) ) {
-		run_buf = new_run_buf( length );
-		run_buf->next = pda_run->consume_buf;
-		pda_run->consume_buf = run_buf;
-	}
-
-	alph_t *dest = run_buf->data + run_buf->length;
+	/* The action's match_text can outlive the action, so the match gets a
+	 * string of its own, not space in the consume buffer. It is freed after
+	 * the action. */
+	head_t *head = init_str_space( length );
+	alph_t *dest = (alph_t*)head->data;
 
 	is->funcs->get_data( prg, is, dest, length );
 
 	pda_run->p = pda_run->pe = 0;
 	pda_run->tokpref = 0;
-
-	head_t *head = colm_string_alloc_pointer( prg, colm_cstr_from_alph( dest ), length );
 
 	head->location = location_allocate( prg );
 	is->funcs->transfer_loc( prg, head->location, is );
@@ -1721,8 +1716,12 @@ again:
 			debug( prg, REALM_PARSE, "error induced during reduction of %s\n",
 					prg->rtd->lel_info[pda_run->red_lel->id].name );
 			pda_run->red_lel->state = pda_run->cur_state;
+
+			/* Push it as if shifted. Backing up over it takes one off the
+			 * shift count, so it must be counted here too. */
 			pda_run->red_lel->next = pda_run->stack_top;
 			pda_run->stack_top = pda_run->red_lel;
+			pda_run->shift_count += 1;
 			/* FIXME: What is the right argument here? */
 			push_bt_point( prg, pda_run );
 			goto parse_error;

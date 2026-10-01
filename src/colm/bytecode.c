@@ -3656,7 +3656,7 @@ again:
 					kid->tree->id == uiter->search_id || 
 					uiter->search_id == prg->rtd->any_id )
 			{
-				/* Store the yeilded value. */
+				/* Store the yielded value. */
 				uiter->ref.kid = kid;
 				uiter->ref.next = next;
 				uiter->yield_size = vm_ssize() - uiter->root_size;
@@ -4465,6 +4465,9 @@ again:
 
 				//colm_tree_upref( prg, prg->trueVal );
 				vm_push_tree( prg->true_val );
+
+				if ( map->generic_info->key_type == TYPE_TREE )
+					colm_tree_downref( prg, sp, key );
 				break;
 			}
 			case FN_VMAP_FIND: {

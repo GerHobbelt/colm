@@ -10,6 +10,7 @@
 #include <string.h>
 #include <ctype.h>
 
+#include <algorithm>
 #include <condition_variable>
 #include <mutex>
 #include <queue>
@@ -120,6 +121,11 @@ static std::string commandLine( const Step &step )
 	std::string line = "$ ";
 	if ( !step.cwd.empty() )
 		line += "cd " + shellQuote( step.cwd ) + " && ";
+	for ( size_t i = 0; i < step.env.size(); i++ ) {
+		size_t eq = step.env[i].find( '=' );
+		line += step.env[i].substr( 0, eq + 1 ) +
+				shellQuote( step.env[i].substr( eq + 1 ) ) + " ";
+	}
 	for ( size_t i = 0; i < step.argv.size(); i++ ) {
 		if ( i > 0 )
 			line += " ";
@@ -147,6 +153,40 @@ std::string describeStep( const Step &step )
 					( step.label.empty() ? "" : " " + step.label ) + "\n";
 	}
 	return std::string();
+}
+
+static void splitLines( const std::string &text, std::vector<std::string> &lines )
+{
+	size_t pos = 0;
+	while ( pos < text.size() ) {
+		size_t eol = text.find( '\n', pos );
+		if ( eol == std::string::npos )
+			eol = text.size();
+		lines.push_back( text.substr( pos, eol - pos ) );
+		pos = eol + 1;
+	}
+}
+
+/* Fail the job for each line of an Exec's standard error that starts with
+ * its error prefix, giving the rest of the line as the reason, unless the rest
+ * is one of its known errors. */
+static void failOnErrors( Job &job, const Step &step, const std::string &errOut,
+		const std::string &run )
+{
+	const std::string &prefix = step.errorPrefix;
+	std::vector<std::string> lines, known;
+	splitLines( errOut, lines );
+	splitLines( step.knownErrors, known );
+	for ( size_t i = 0; i < known.size(); i++ )
+		known[i] = trim( known[i] );
+
+	for ( size_t i = 0; i < lines.size(); i++ ) {
+		if ( lines[i].compare( 0, prefix.size(), prefix ) != 0 )
+			continue;
+		std::string rest = trim( lines[i].substr( prefix.size() ) );
+		if ( std::find( known.begin(), known.end(), rest ) == known.end() )
+			job.fail( run + rest );
+	}
 }
 
 static void runJob( const Config &config, Job &job )
@@ -186,15 +226,31 @@ static void runJob( const Config &config, Job &job )
 					outBuf = &job.log;
 				}
 
+				/* Standard error goes to the log, by way of a buffer of its own
+				 * when it is to be searched. */
+				std::string errOut;
+				std::string *errBuf = step.errorPrefix.empty() ? &job.log : &errOut;
+
 				int exitCode = 0;
 				std::string err;
-				if ( !runProcess( step.argv, step.cwd, 0, step.stdinFile,
-						outBuf, &job.log, exitCode, err ) )
+				if ( !runProcess( step.argv, step.cwd, step.env, 0, step.stdinFile,
+						outBuf, errBuf, exitCode, err ) )
 				{
 					job.error( "cannot run " + err );
 					return;
 				}
 				job.exitCode = exitCode;
+				job.log += errOut;
+
+				std::string run = step.label.empty() ? "" : step.label + ": ";
+
+				if ( !step.errorPrefix.empty() )
+					failOnErrors( job, step, errOut, run );
+
+				if ( step.errorExit >= 0 && exitCode == step.errorExit ) {
+					job.fail( run + baseName( step.argv[0] ) + " found errors" );
+					break;
+				}
 
 				if ( step.expectExit >= 0 && exitCode != step.expectExit ) {
 					char buf[64];
@@ -204,7 +260,7 @@ static void runJob( const Config &config, Job &job )
 						char msg[128];
 						snprintf( msg, sizeof(msg), "exit value: got %d expected %d",
 								exitCode, step.expectExit );
-						job.fail( msg );
+						job.fail( run + msg );
 					}
 					else {
 						job.fail( std::string( roleName( step.role ) ) + " failed" );
@@ -222,7 +278,7 @@ static void runJob( const Config &config, Job &job )
 				std::string filtered;
 				int exitCode = 0;
 				std::string err;
-				if ( !runProcess( argv, step.cwd, &job.output, "",
+				if ( !runProcess( argv, step.cwd, Words(), &job.output, "",
 						&filtered, &job.log, exitCode, err ) )
 				{
 					job.error( "cannot run filter: " + err );

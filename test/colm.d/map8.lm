@@ -1,0 +1,45 @@
+lex
+	token id /[a-z]+/
+	token num /[0-9]+/
+	literal `- `;
+	ignore /[ \t\n]+/
+end
+
+def entry
+	[id num]
+
+def removal
+	[`- id]
+
+def start
+	[entry* `; removal*]
+
+parse P: start[stdin]
+S: start = P
+
+new M: map<id, num>()
+
+for E: entry in S
+	M->insert( E.id, E.num )
+
+# Remove with keys taken out of the parse tree, so each key is a subtree of
+# a tree that is still live. One key is in the map and one is not.
+for R: removal in S
+	M->remove( R.id )
+
+for V: num in M {
+	print( ^V, '\n' )
+}
+
+# The parse tree still holds every key afterwards.
+print( S )
+##### IN #####
+one 1 two 2 three 3;
+- two
+- four
+##### EXP #####
+1
+3
+one 1 two 2 three 3;
+- two
+- four

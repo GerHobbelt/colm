@@ -28,10 +28,13 @@ target_link_libraries(libragel PUBLIC libfsm colm::libcolm)
 target_compile_definitions(libragel PRIVATE
 	BINDIR="${CMAKE_INSTALL_FULL_BINDIR}")
 
+# libragel carries ragel's version, not the suite's. Its C++ ABI can change in
+# any release, so the soname carries the whole version (libragel.so.X.Y.Z) and
+# changes every release, as the libtool -release name in Makefile.am does.
 set_target_properties(libragel PROPERTIES
 	OUTPUT_NAME ragel
-	VERSION ${PROJECT_VERSION}
-	SOVERSION ${PROJECT_VERSION_MAJOR})
+	VERSION ${RAGEL_VERSION_NUMERIC}
+	SOVERSION ${RAGEL_VERSION_NUMERIC})
 
 if(BUILD_STANDALONE)
 	# libragel acts as an intermediate library, so flags applied here
