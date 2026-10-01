@@ -1,0 +1,26 @@
+new M: map<str, str>()
+
+# Remove from an empty map.
+M->remove( "none" )
+
+M->insert( "one", "1" )
+M->insert( "two", "2" )
+M->insert( "three", "3" )
+
+# Remove a key that is not in the map.
+M->remove( "four" )
+
+# Remove a key that is in the map, as a literal and as a variable. The
+# variable still holds its key afterwards.
+M->remove( "one" )
+K: str = "two"
+M->remove( K )
+print "[K]
+
+for V: str in M {
+	print "[V]
+}
+
+##### EXP #####
+two
+3

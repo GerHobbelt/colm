@@ -100,6 +100,8 @@ EXTRA_DIST = \
 	map4.lm \
 	map5.lm \
 	map6.lm \
+	map7.lm \
+	map8.lm \
 	matchex.lm \
 	matchtext1.lm \
 	maxlen.lm \

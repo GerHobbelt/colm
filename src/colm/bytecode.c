@@ -4465,6 +4465,9 @@ again:
 
 				//colm_tree_upref( prg, prg->trueVal );
 				vm_push_tree( prg->true_val );
+
+				if ( map->generic_info->key_type == TYPE_TREE )
+					colm_tree_downref( prg, sp, key );
 				break;
 			}
 			case FN_VMAP_FIND: {
