@@ -6,6 +6,12 @@
 # without unreducing the committed nonterminal, whose retry the lookahead
 # takes.
 #
+# Each reduction action adds its own power of ten to G. Backing up undoes the
+# actions of the rejected r and the unreduced c, so only those of d and s are
+# left in G.
+#
+
+global G: int = 0
 
 lex
 	ignore /[ \n]+/
@@ -17,17 +23,23 @@ end
 # keeps shifting id for d as the alternative.
 def c
 	[`;] commit
+	{ G = G + 10 }
 
 def d
 	[`; id]
+	{ G = G + 1000 }
 
 # Rejected every time, so the first alternative of start always fails.
 def r
 	[`!]
-	{ reject }
+	{
+		G = G + 100
+		reject
+	}
 
 def s
 	[`!]
+	{ G = G + 1 }
 
 # After :, c2 commits with no alternative. The parser could only reach the
 # last alternative of start by backing up over the : to take e, which the
@@ -49,15 +61,19 @@ if S
 	print( 'ok: ', S )
 else
 	print( 'error: ', error, '\n' )
+print( 'G=', G, '\n' )
 ##### IN #####
 ; a !
 ##### EXP #####
 ok: ; a !
+G=1001
 ##### IN #####
 : a !
 ##### EXP #####
 error: <stdin>:1:6: parse error
+G=0
 ##### IN #####
 ; a ! !
 ##### EXP #####
 error: <stdin>:1:7: parse error
+G=0
