@@ -151,14 +151,17 @@ jobs:
           test "$soname" = "libcolm.so.$numeric"
 
       # Compile and run a colm program against the installed runtime, and a
-      # ragel example with the installed ragel.
+      # ragel example with the installed ragel. Each output is assigned
+      # before the test so that -e sees the program's exit status.
       - name: run installed colm and ragel
         run: |
           set -eux
           mkdir smoke
           echo 'print "hello from colm\n"' > smoke/hello.lm
           inst/bin/colm -o smoke/hello smoke/hello.lm
-          test "$(smoke/hello)" = "hello from colm"
+          out=$(smoke/hello)
+          test "$out" = "hello from colm"
           inst/bin/ragel -o smoke/atoi.cpp examples/atoi.rl
           c++ -o smoke/atoi smoke/atoi.cpp
-          test "$(echo -1234 | smoke/atoi)" = "-1234"
+          out=$(echo -1234 | smoke/atoi)
+          test "$out" = "-1234"
