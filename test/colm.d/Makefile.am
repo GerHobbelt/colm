@@ -113,6 +113,8 @@ EXTRA_DIST = \
 	new1.lm \
 	ntignbt1.lm \
 	ntignbt2.lm \
+	ntignbt3.lm \
+	ntrejbt1.lm \
 	open1.lm \
 	open2.lm \
 	order1.lm \
@@ -128,6 +130,7 @@ EXTRA_DIST = \
 	pushemptybt1.lm \
 	pushignbt1.lm \
 	pushloc.lm \
+	pushmixbt1.lm \
 	ragelambig1.lm \
 	ragelambig2.lm \
 	ragelambig3.lm \
