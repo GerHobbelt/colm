@@ -101,6 +101,7 @@ EXTRA_DIST = \
 	map5.lm \
 	map6.lm \
 	map7.lm \
+	map8.lm \
 	matchex.lm \
 	maxlen.lm \
 	mediawiki/garticle.rl \
