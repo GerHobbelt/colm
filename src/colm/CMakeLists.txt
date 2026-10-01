@@ -240,11 +240,15 @@ if(COLM_INSTALL_COLM OR COLM_INSTALL_RAGEL)
 		NAMESPACE ${_PACKAGE_NAME}::
 		FILE "${PROJECT_BINARY_DIR}/${_PACKAGE_NAME}-targets.cmake")
 
+	# colm is 0.x and its installed headers can change in any minor release,
+	# so find_package(colm 0.14) must not accept 0.15. Only the requested
+	# major and minor version is accepted, at the requested patch level or
+	# later.
 	include(CMakePackageConfigHelpers)
 	write_basic_package_version_file(
 		"${PROJECT_BINARY_DIR}/${_PACKAGE_NAME}-config-version.cmake"
 		VERSION ${COLM_VERSION_NUMERIC}
-		COMPATIBILITY AnyNewerVersion)
+		COMPATIBILITY SameMinorVersion)
 
 	install(FILES
 		"${PROJECT_BINARY_DIR}/${_PACKAGE_NAME}-config.cmake"

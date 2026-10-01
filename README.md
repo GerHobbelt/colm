@@ -228,6 +228,11 @@ find_package(colm REQUIRED)   # colm::colm, colm::libcolm
 find_package(ragel REQUIRED)  # ragel::ragel, ragel::libfsm, ragel::libragel
 ```
 
+A version asked for in `find_package` must match the installed major and minor
+version, since a minor release of either component can break a dependent
+project. `find_package(colm 0.15)` accepts colm 0.15.x but not 0.16, and
+`find_package(ragel 7.1)` accepts ragel 7.1.x but not 7.2 or 8.0.
+
 The autotools build remains the reference build. Known differences:
 
 - The run-from-the-build-tree detection described below relies on libtool, so a
