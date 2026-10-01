@@ -160,7 +160,7 @@ if(COLM_INSTALL_RAGEL)
 
 	# A minor release of ragel can change the code generated for an existing
 	# specification (7.1.0 did), and the package carries libfsm's headers,
-	# whose API can change in any release. As for colm, only the requested
+	# whose API has no stability promise. As for colm, only the requested
 	# major and minor version is accepted.
 	include(CMakePackageConfigHelpers)
 	write_basic_package_version_file(
