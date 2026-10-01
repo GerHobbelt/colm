@@ -97,3 +97,68 @@ jobs:
           name: test-diffs
           path: test/*/working/*.diff
           if-no-files-found: ignore
+
+  # The CMake build, which the job above never touches. Each leg builds the
+  # whole tree, examples included, installs it, and checks that what it
+  # installed works. BUILD_SHARED_LIBS=OFF is CMake's default.
+  cmake:
+    name: cmake (BUILD_SHARED_LIBS=${{ matrix.shared }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shared: ['ON', 'OFF']
+    steps:
+      - uses: actions/checkout@v4
+
+      # The Dockerfile's list, less autotools. The runner image carries a
+      # cmake of its own that may come first on PATH, so configure prints
+      # the version it got.
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake
+
+      # The prefix has to be given here, not to cmake --install: colm bakes
+      # its include and library directories in, and the executables get
+      # their rpath, at configure time.
+      - name: configure
+        run: |
+          cmake --version
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=${{ matrix.shared }} \
+            -DCOLM_BUILD_EXAMPLES=ON \
+            -DCMAKE_INSTALL_PREFIX="$PWD/inst"
+
+      - name: build
+        run: cmake --build build -j$(nproc)
+
+      - name: install
+        run: cmake --install build
+
+      # The libcolm soname carries the whole colm version, numeric part only,
+      # so that a newer release installed beside an older one doesn't take
+      # over the older one's programs.
+      - name: check libcolm soname
+        if: matrix.shared == 'ON'
+        run: |
+          set -eux
+          version=$(sed -n 's/^COLM_VERSION="\(.*\)"$/\1/p' configure.ac)
+          numeric=$(echo "$version" | grep -oE '^[0-9]+(\.[0-9]+)*')
+          soname=$(readelf -d inst/lib/libcolm.so | sed -n 's/.*(SONAME).*\[\(.*\)\]$/\1/p')
+          test "$soname" = "libcolm.so.$numeric"
+
+      # Compile and run a colm program against the installed runtime, and a
+      # ragel example with the installed ragel.
+      - name: run installed colm and ragel
+        run: |
+          set -eux
+          mkdir smoke
+          echo 'print "hello from colm\n"' > smoke/hello.lm
+          inst/bin/colm -o smoke/hello smoke/hello.lm
+          test "$(smoke/hello)" = "hello from colm"
+          inst/bin/ragel -o smoke/atoi.cpp examples/atoi.rl
+          c++ -o smoke/atoi smoke/atoi.cpp
+          test "$(echo -1234 | smoke/atoi)" = "-1234"
