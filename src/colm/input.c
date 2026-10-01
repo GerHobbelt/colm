@@ -447,7 +447,10 @@ static int input_undo_consume_data( struct colm_program *prg, struct input_impl_
 	int remaining = length;
 
 	while ( true ) {
-		if ( is_stream( si->queue.head ) ) {
+		/* The queue can be empty. Undoing the sends that came after the
+		 * consumed text takes their buffers out, and the text's buffer may
+		 * be on the stash. */
+		if ( si->queue.head != 0 && is_stream( si->queue.head ) ) {
 			struct stream_impl *sub = si->queue.head->si;
 			int pushed_back = sub->funcs->undo_consume_data( prg, sub, data, remaining );
 			remaining -= pushed_back;

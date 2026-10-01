@@ -1,0 +1,132 @@
+#
+# Backtracking over sends whose text the receiving parser consumed whole. Its
+# lexer matches ";" without lookahead, so the parse after a send of "ab;"
+# takes all of it. Consuming what is sent next moves the text's buffer to the
+# stash, and undoing that send can leave the queue empty. Undoing the parse of
+# the text must then find its buffer on the stash. Input ending in ";" is
+# parsed as A1 first, then backs up to A2, undoing every send, and must give
+# the same tree as input ending in "!".
+#
+
+lex
+	ignore /[ \t\n\r\v]+/
+	token id /[a-zA-Z_][a-zA-Z0-9_]*/
+	literal `;
+end
+
+def tok
+	[id]
+|	[`;]
+
+def nested [tok*]
+
+context accum_bt
+
+NestedParser: accum<nested>
+
+lex
+	ignore /[ \t]+/
+	token word /[a-z]+/
+	literal `^ `& `% `@ `! `;
+	token NL /'\n'/
+end
+
+def A1 []
+def A2 []
+
+def item
+	# Text, then a tree.
+	[`^ word]
+	{
+		I: id = make_token( typeid<id>, 't' )
+		send NestedParser [$r2 ';']
+		send_tree NestedParser [I]
+	}
+
+	# Text, a tree, then more text.
+|	[`& word]
+	{
+		I: id = make_token( typeid<id>, 't' )
+		send NestedParser [$r2 ';']
+		send_tree NestedParser [I]
+		send NestedParser ['b;']
+	}
+
+	# Text, then a stream.
+|	[`% word]
+	{
+		send NestedParser [$r2 ';']
+		send NestedParser [open( 'accumbt5.in', 'r' )]
+	}
+
+	# Text, an empty stream, then more text.
+|	[`@ word]
+	{
+		send NestedParser [$r2 ';']
+		send NestedParser [open( '/dev/null', 'r' )]
+		send NestedParser ['b;']
+	}
+
+def two
+	[A1 item* `! NL]
+|	[A2 item* `; NL]
+
+end # accum_bt
+
+AccumBt: accum_bt = new accum_bt()
+AccumBt->NestedParser = new parser<nested>()
+
+parse Two: accum_bt::two( AccumBt )[ stdin ]
+
+send AccumBt->NestedParser [] eos
+Nested: nested = AccumBt->NestedParser->tree
+print( '[', Nested, ']\n' )
+
+##### IN #####
+^ab !
+##### EXP #####
+[ab;t]
+##### IN #####
+^ab ;
+##### EXP #####
+[ab;t]
+##### IN #####
+&ab !
+##### EXP #####
+[ab;tb;]
+##### IN #####
+&ab ;
+##### EXP #####
+[ab;tb;]
+##### IN #####
+%ab !
+##### EXP #####
+[ab;zz;]
+##### IN #####
+%ab ;
+##### EXP #####
+[ab;zz;]
+##### IN #####
+@ab !
+##### EXP #####
+[ab;b;]
+##### IN #####
+@ab ;
+##### EXP #####
+[ab;b;]
+##### IN #####
+^ab &cd %ef @gh !
+##### EXP #####
+[ab;tcd;tb;ef;zz;gh;b;]
+##### IN #####
+^ab &cd %ef @gh ;
+##### EXP #####
+[ab;tcd;tb;ef;zz;gh;b;]
+##### IN #####
+@ab %cd &ef ^gh !
+##### EXP #####
+[ab;b;cd;zz;ef;tb;gh;t]
+##### IN #####
+@ab %cd &ef ^gh ;
+##### EXP #####
+[ab;b;cd;zz;ef;tb;gh;t]
