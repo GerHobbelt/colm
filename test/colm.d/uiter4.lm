@@ -1,0 +1,39 @@
+#
+# A user iterator releases its args and locals when it is looped over in a
+# token action or a reduction action. Those are compiled for reverting, so
+# they run the iterator's revert copy, which ends with its own nil yield.
+#
+
+iter i( A: str )
+{
+	S: str = A + "!"
+	yield S
+}
+
+lex
+	token id /[a-z]+/ {
+		M: str = input->pull( match_length )
+		for T: str in i( M ) { print( T, "\n" ) }
+		for T: str in i( M ) { print( T, "\n" ) break }
+		input->push( make_token( typeid<id>, M ) )
+	}
+	ignore /[ \n]+/
+end
+
+def start
+	[id*]
+	{
+		for T: str in i( "r" ) { print( T, "\n" ) }
+		for T: str in i( "s" ) { print( T, "\n" ) break }
+	}
+
+parse S: start[ "a b" ]
+print( S, "\n" )
+##### EXP #####
+a!
+a!
+b!
+b!
+r!
+s!
+a b

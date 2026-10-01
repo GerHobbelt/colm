@@ -345,8 +345,6 @@ void colm_init_tree_iter( tree_iter_t *tree_iter, tree_t **stack_root,
 		long arg_size, long root_size, const ref_t *root_ref, int search_id );
 void colm_init_rev_tree_iter( rev_tree_iter_t *rev_triter, tree_t **stack_root,
 		long arg_size, long root_size, const ref_t *root_ref, int search_id, int children );
-void colm_init_user_iter( user_iter_t *user_iter, tree_t **stack_root, long root_size,
-		long arg_size, long search_id );
 
 void colm_tree_iter_destroy( struct colm_program *prg,
 		tree_t ***psp, tree_iter_t *iter );

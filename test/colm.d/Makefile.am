@@ -177,6 +177,7 @@ EXTRA_DIST = \
 	uiter1.lm \
 	uiter2.lm \
 	uiter3.lm \
+	uiter4.lm \
 	undofrag1.lm \
 	undofrag2.lm \
 	undofrag3.lm \

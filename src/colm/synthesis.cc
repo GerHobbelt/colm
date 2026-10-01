@@ -3260,7 +3260,7 @@ void Compiler::compileUserIter( Function *func, CodeVect &code )
 	/* Compile the block. */
 	block->compile( this, code );
 
-	/* Always yeild a nil at the end. This causes iteration to stop. Yield pops
+	/* Always yield a nil at the end. This causes iteration to stop. Yield pops
 	 * a ref, which is two words: the next pointer and the kid. */
 	code.append( IN_LOAD_NIL );
 	code.append( IN_LOAD_NIL );

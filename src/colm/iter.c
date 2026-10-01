@@ -208,7 +208,7 @@ void colm_init_rev_tree_iter( rev_tree_iter_t *rev_triter, tree_t **stack_root,
 	rev_triter->arg_size = arg_size;
 }
 
-void init_user_iter( user_iter_t *user_iter, tree_t **stack_root, long root_size,
+static void init_user_iter( user_iter_t *user_iter, tree_t **stack_root, long root_size,
 		long arg_size, long frame_id, long search_id )
 {
 	user_iter->type = IT_User;
