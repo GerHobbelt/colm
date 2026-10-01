@@ -44,6 +44,8 @@ static void usage()
 "                    -W0 -W1 -G0 -G1 -G2 -n -m -e --string-tables)\n"
 "  --stress SECS     aapl.d: run each stress program for SECS seconds (default: 5;\n"
 "                    0 skips them)\n"
+"  --valgrind        colm.d: run each program under valgrind, failing the case on a\n"
+"                    memory error or definite leak\n"
 "  --list            list the selected cases without running them\n"
 "  --commands        print the steps of the selected cases without running them\n"
 "  --keep            keep the generated files of passing cases\n"
@@ -277,6 +279,8 @@ int main( int argc, char **argv )
 			splitList( value, config.genflags );
 		else if ( arg == "--stress" )
 			config.stressSecs = atoi( value.c_str() );
+		else if ( arg == "--valgrind" )
+			config.valgrind = true;
 		else if ( arg == "--tap" )
 			config.tapFile = value;
 		else if ( arg == "--srcdir" )

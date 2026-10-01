@@ -13,6 +13,8 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+extern char **environ;
+
 /* Pipes must be close-on-exec: workers fork concurrently, and a child that
  * inherits another job's pipe end keeps that pipe from ever reaching EOF. */
 static bool makePipe( int fds[2] )
@@ -115,7 +117,26 @@ static void pump( int &inFd, const std::string *stdinData,
 	}
 }
 
-bool runProcess( const Words &argv, const std::string &cwd,
+/* The environment with the NAME=value settings in env replacing or added to
+ * ours. Built before the fork: the child can only assign it. */
+static void makeEnv( const Words &env, std::vector<char*> &envp )
+{
+	for ( char **e = environ; *e != 0; e++ ) {
+		bool replaced = false;
+		for ( size_t i = 0; i < env.size(); i++ ) {
+			size_t eq = env[i].find( '=' );
+			if ( eq != std::string::npos && strncmp( *e, env[i].c_str(), eq + 1 ) == 0 )
+				replaced = true;
+		}
+		if ( !replaced )
+			envp.push_back( *e );
+	}
+	for ( size_t i = 0; i < env.size(); i++ )
+		envp.push_back( const_cast<char*>( env[i].c_str() ) );
+	envp.push_back( 0 );
+}
+
+bool runProcess( const Words &argv, const std::string &cwd, const Words &env,
 		const std::string *stdinData, const std::string &stdinFile,
 		std::string *stdoutBuf, std::string *stderrBuf,
 		int &exitCode, std::string &errMsg )
@@ -131,6 +152,10 @@ bool runProcess( const Words &argv, const std::string &cwd,
 	for ( Words::const_iterator w = argv.begin(); w != argv.end(); w++ )
 		args.push_back( const_cast<char*>( w->c_str() ) );
 	args.push_back( 0 );
+
+	std::vector<char*> envp;
+	if ( !env.empty() )
+		makeEnv( env, envp );
 
 	/* Reports errno from between fork and exec. */
 	int errPipe[2] = { -1, -1 };
@@ -195,6 +220,9 @@ bool runProcess( const Words &argv, const std::string &cwd,
 
 		/* Children get default signal dispositions. */
 		signal( SIGPIPE, SIG_DFL );
+
+		if ( !envp.empty() )
+			environ = &envp[0];
 
 		execvp( args[0], &args[0] );
 
