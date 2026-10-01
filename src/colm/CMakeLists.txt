@@ -58,12 +58,15 @@ target_include_directories(libcolm
 	$<BUILD_INTERFACE:${COLM_INCLUDE_DIR}>
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
-# The colm runtime carries colm's version, not the suite's. This mirrors the
-# libtool -release string in Makefile.am.
+# The colm runtime carries colm's version, not the suite's. Its ABI can change
+# in any release, so the soname carries the whole version (libcolm.so.X.Y.Z)
+# and changes every release, as the libtool -release name in Makefile.am does.
+# The library keeps the plain name colm so that the -lcolm colm passes when it
+# links a program still finds it.
 set_target_properties(libcolm PROPERTIES
 	OUTPUT_NAME colm
 	VERSION ${COLM_VERSION_NUMERIC}
-	SOVERSION ${COLM_VERSION_MAJOR})
+	SOVERSION ${COLM_VERSION_NUMERIC})
 
 add_library(colm::libcolm ALIAS libcolm)
 
