@@ -101,6 +101,7 @@ EXTRA_DIST = \
 	map5.lm \
 	map6.lm \
 	matchex.lm \
+	matchtext1.lm \
 	maxlen.lm \
 	mediawiki/garticle.rl \
 	mediawiki/Makefile \
