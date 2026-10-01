@@ -20,7 +20,8 @@ void enumerateTrans( const Config &config, const Selection &sel, JobList &jobs )
 	std::string caseDir = joinPath( src, "case" );
 
 	static const char *langs[] = {
-		"asm", "crack", "c", "cs", "d", "go", "java", "julia", "ocaml", "zig"
+		"asm", "crack", "c", "cs", "d", "go", "java", "julia", "ocaml",
+		"ruby", "rust", "zig"
 	};
 	const int numLangs = sizeof(langs) / sizeof(langs[0]);
 
