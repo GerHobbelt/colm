@@ -3260,7 +3260,9 @@ void Compiler::compileUserIter( Function *func, CodeVect &code )
 	/* Compile the block. */
 	block->compile( this, code );
 
-	/* Always yeild a nil at the end. This causes iteration to stop. */
+	/* Always yield a nil at the end. This causes iteration to stop. Yield pops
+	 * a ref, which is two words: the next pointer and the kid. */
+	code.append( IN_LOAD_NIL );
 	code.append( IN_LOAD_NIL );
 	code.append( IN_YIELD );
 }
@@ -3284,8 +3286,6 @@ void Compiler::compileUserIter( Function *func )
 	/* Now that compilation is done variables are referenced. Make the local
 	 * trees descriptor. */
 	findLocals( block->localFrame, block );
-
-	/* FIXME: Need to deal with the freeing of local trees. */
 }
 
 /* Called for each type of function compile: revert and commit. */

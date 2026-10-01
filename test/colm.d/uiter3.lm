@@ -1,0 +1,26 @@
+#
+# Breaking out of a loop over a user iterator while a function the iterator
+# called is at a yield. The iterator's locals are in its own frame, not in the
+# frame of the function that yielded.
+#
+
+int g( R: ref<str> )
+{
+	N: int = 1
+	yield R
+	return N
+}
+
+iter i()
+{
+	S: str = "s"
+	g( S )
+	yield S
+}
+
+for T: str in i() { print( T, "\n" ) break }
+for T: str in i() { print( T, "\n" ) }
+##### EXP #####
+s
+s
+s

@@ -1,0 +1,36 @@
+#
+# A user iterator releases its locals when its loop runs to the end. The nil
+# yield that ends every iterator must push a whole ref, or it pops the last
+# word of the iterator's frame and the yield's result overwrites a local.
+#
+
+iter one()
+{
+	S: str = "1"
+	yield S
+}
+
+iter two()
+{
+	S: str = "2"
+	R: str = "3"
+	yield S
+	yield R
+}
+
+iter none()
+{
+	S: str = "4"
+}
+
+for T: str in one() { print( T, "\n" ) }
+for T: str in one() { print( T, "\n" ) }
+for T: str in two() { print( T, "\n" ) }
+for T: str in none() { print( T, "\n" ) }
+print( "done\n" )
+##### EXP #####
+1
+1
+2
+3
+done
