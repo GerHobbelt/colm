@@ -5,6 +5,8 @@ EXTRA_DIST = \
 	accumbt1.lm \
 	accumbt2.lm \
 	accumbt3.lm \
+	accumbt4.lm \
+	accumbt5.lm \
 	actlong1.lm \
 	argv1.lm \
 	argv2.lm \
@@ -199,6 +201,8 @@ EXTRA_DIST = \
 	void1.lm \
 	while1.lm \
 	xmlac.lm \
+	accumbt4.in \
+	accumbt5.in \
 	binary1.in \
 	inpush1a.in \
 	inpush1b.in \

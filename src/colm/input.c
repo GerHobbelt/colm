@@ -87,6 +87,15 @@ static bool call_destructor( struct seq_buf *buf )
 	return is_stream( buf ) && buf->own_si;
 }
 
+/* Free a buffer taken out of the input, with the stream it owns. A tree it
+ * holds is left to the caller. */
+static void free_seq_buf( struct colm_program *prg, tree_t **sp, struct seq_buf *buf )
+{
+	if ( call_destructor( buf ) )
+		buf->si->funcs->destructor( prg, sp, buf->si );
+	free( buf );
+}
+
 static void colm_input_destroy( program_t *prg, tree_t **sp, struct_t *s )
 {
 	input_t *input = (input_t*) s;
@@ -228,21 +237,15 @@ static void input_destructor( program_t *prg, tree_t **sp, struct input_impl_seq
 		if ( is_tree( buf ) )
 			colm_tree_downref( prg, sp, buf->tree );
 
-		if ( call_destructor( buf ) )
-			buf->si->funcs->destructor( prg, sp, buf->si );
-
 		struct seq_buf *next = buf->next;
-		free( buf );
+		free_seq_buf( prg, sp, buf );
 		buf = next;
 	}
 
 	buf = si->stash;
 	while ( buf != 0 ) {
 		struct seq_buf *next = buf->next;
-		if ( call_destructor( buf ) )
-			buf->si->funcs->destructor( prg, sp, buf->si );
-
-		free( buf );
+		free_seq_buf( prg, sp, buf );
 		buf = next;
 	}
 
@@ -444,7 +447,10 @@ static int input_undo_consume_data( struct colm_program *prg, struct input_impl_
 	int remaining = length;
 
 	while ( true ) {
-		if ( is_stream( si->queue.head ) ) {
+		/* The queue can be empty. Undoing the sends that came after the
+		 * consumed text takes their buffers out, and the text's buffer may
+		 * be on the stash. */
+		if ( si->queue.head != 0 && is_stream( si->queue.head ) ) {
 			struct stream_impl *sub = si->queue.head->si;
 			int pushed_back = sub->funcs->undo_consume_data( prg, sub, data, remaining );
 			remaining -= pushed_back;
@@ -565,19 +571,16 @@ static void input_prepend_data( struct colm_program *prg, struct input_impl_seq 
 	prepend_buf( prg, si, new_buf );
 }
 
-static int input_undo_prepend_data( struct colm_program *prg, struct input_impl_seq *si, int length )
+static int input_undo_prepend_data( struct colm_program *prg, tree_t **sp,
+		struct input_impl_seq *si, int length )
 {
 	debug( prg, REALM_INPUT, "input_undo_prepend_data: stream %p undo "
 			"append data length %d\n", si, length );
 
+	/* The buffer owns the text stream made by input_prepend_data. */
 	struct seq_buf *seq_buf = undo_prepend_buf( prg, si );
 	assert( seq_buf->type == SB_ACCUM );
-
-	/* The buffer owns the text stream made by input_prepend_data. Its
-	 * destructor has no use for sp. */
-	if ( call_destructor( seq_buf ) )
-		seq_buf->si->funcs->destructor( prg, 0, seq_buf->si );
-	free( seq_buf );
+	free_seq_buf( prg, sp, seq_buf );
 
 	return 0;
 }
@@ -596,7 +599,8 @@ static void input_prepend_tree( struct colm_program *prg, struct input_impl_seq 
 	prepend_buf( prg, si, new_buf );
 }
 
-static tree_t *input_undo_prepend_tree( struct colm_program *prg, struct input_impl_seq *si )
+static tree_t *input_undo_prepend_tree( struct colm_program *prg, tree_t **sp,
+		struct input_impl_seq *si )
 {
 	debug( prg, REALM_INPUT, "input_undo_prepend_tree: stream %p undo prepend tree\n", si );
 
@@ -604,7 +608,7 @@ static tree_t *input_undo_prepend_tree( struct colm_program *prg, struct input_i
 	assert( seq_buf->type == SB_TOKEN || seq_buf->type == SB_IGNORE );
 
 	tree_t *tree = seq_buf->tree;
-	free(seq_buf);
+	free_seq_buf( prg, sp, seq_buf );
 
 	debug( prg, REALM_INPUT, "  stream %p tree %p\n", si, tree );
 
@@ -626,12 +630,55 @@ static void input_prepend_stream( struct colm_program *prg, struct input_impl_se
 	assert( ((struct stream_impl_data*)new_buf->si)->type == 'D' );
 }
 
-static tree_t *input_undo_prepend_stream( struct colm_program *prg, struct input_impl_seq *is )
+static tree_t *input_undo_prepend_stream( struct colm_program *prg, tree_t **sp,
+		struct input_impl_seq *is )
 {
 	struct seq_buf *seq_buf = undo_prepend_buf( prg, is );
 	assert( seq_buf->type == SB_SOURCE );
-	free( seq_buf );
+	free_seq_buf( prg, sp, seq_buf );
 	return 0;
+}
+
+/*
+ * Append
+ */
+
+/* Put an appended buffer at the tail. */
+static void append_buf( struct colm_program *prg, struct input_impl_seq *si,
+		struct seq_buf *seq_buf )
+{
+	seq_buf->append_count = 1;
+	seq_buf->prev_append = si->appends;
+	si->appends = seq_buf;
+	input_stream_seq_append( si, seq_buf );
+}
+
+/* Count off the most recent append into the most recently appended buffer,
+ * and once none is left take the buffer back out and return it. All that came
+ * into the input since the append has been undone, so the buffer is the last
+ * one to be read. It is at the tail, or, if the queue is empty, on top of the
+ * stash: undoing a consume leaves there any buffer the consume moved there
+ * without taking from it, such as an empty one. */
+static struct seq_buf *undo_append_buf( struct colm_program *prg,
+		struct input_impl_seq *si )
+{
+	struct seq_buf *seq_buf = si->appends;
+	assert( seq_buf != 0 && seq_buf->append_count > 0 );
+
+	seq_buf->append_count -= 1;
+	if ( seq_buf->append_count > 0 )
+		return 0;
+
+	si->appends = seq_buf->prev_append;
+
+	if ( si->queue.tail == seq_buf )
+		input_stream_seq_pop_tail( si );
+	else {
+		assert( si->queue.head == 0 && si->stash == seq_buf );
+		input_stream_pop_stash( prg, si );
+	}
+
+	return seq_buf;
 }
 
 static void input_append_data( struct colm_program *prg, struct input_impl_seq *si,
@@ -639,7 +686,11 @@ static void input_append_data( struct colm_program *prg, struct input_impl_seq *
 {
 	debug( prg, REALM_INPUT, "input_append_data: stream %p append data length %d\n", si, length );
 
-	if ( si->queue.tail == 0 || si->queue.tail->type != SB_ACCUM ) { 
+	/* Add to the accum the last append made, if it is still at the tail. */
+	struct seq_buf *last = si->appends;
+	if ( last != 0 && last == si->queue.tail && last->type == SB_ACCUM )
+		last->append_count += 1;
+	else {
 		debug( prg, REALM_INPUT, "input_append_data: creating accum\n" );
 
 		struct stream_impl *sub_si = colm_impl_new_accum( "<text2>" );
@@ -649,45 +700,26 @@ static void input_append_data( struct colm_program *prg, struct input_impl_seq *
 		new_buf->si = sub_si;
 		new_buf->own_si = 1;
 
-		input_stream_seq_append( si, new_buf );
+		append_buf( prg, si, new_buf );
 	}
 
 	si->queue.tail->si->funcs->append_data( prg, si->queue.tail->si, data, length );
 }
 
-static tree_t *input_undo_append_data( struct colm_program *prg, struct input_impl_seq *si, int length )
+static tree_t *input_undo_append_data( struct colm_program *prg, tree_t **sp,
+		struct input_impl_seq *si, int length )
 {
 	debug( prg, REALM_INPUT, "input_undo_append_data: stream %p undo append data length %d\n", si, length );
 
-	while ( true ) {
-		struct seq_buf *buf = si->queue.tail;
+	/* All read from the text since the append has been sent back, so it is
+	 * at the end of the accum. */
+	struct seq_buf *seq_buf = si->appends;
+	assert( seq_buf != 0 && seq_buf->type == SB_ACCUM );
+	seq_buf->si->funcs->undo_append_data( prg, seq_buf->si, length );
 
-		if ( buf == 0 )
-			break;
+	if ( undo_append_buf( prg, si ) != 0 )
+		free_seq_buf( prg, sp, seq_buf );
 
-		if ( is_stream( buf ) ) {
-			struct stream_impl *sub = buf->si;
-			int slen = sub->funcs->undo_append_data( prg, sub, length );
-			//debug( REALM_INPUT, " got %d bytes from source\n", slen );
-			//consumed += slen;
-			length -= slen;
-		}
-		else if ( buf->type == SB_TOKEN )
-			break;
-		else if ( buf->type == SB_IGNORE )
-			break;
-		else {
-			assert(false);
-		}
-
-		if ( length == 0 ) {
-			//debug( REALM_INPUT, "exiting consume\n", length );
-			break;
-		}
-
-		struct seq_buf *seq_buf = input_stream_seq_pop_tail( si );
-		free( seq_buf );
-	}
 	return 0;
 }
 
@@ -696,20 +728,21 @@ static void input_append_tree( struct colm_program *prg, struct input_impl_seq *
 	debug( prg, REALM_INPUT, "input_append_tree: stream %p append tree %p\n", si, tree );
 
 	struct seq_buf *ad = new_seq_buf();
-
-	input_stream_seq_append( si, ad );
-
 	ad->type = SB_TOKEN;
 	ad->tree = tree;
+	append_buf( prg, si, ad );
 }
 
-static tree_t *input_undo_append_tree( struct colm_program *prg, struct input_impl_seq *si )
+static tree_t *input_undo_append_tree( struct colm_program *prg, tree_t **sp,
+		struct input_impl_seq *si )
 {
 	debug( prg, REALM_INPUT, "input_undo_append_tree: stream %p undo append tree\n", si );
 
-	struct seq_buf *seq_buf = input_stream_seq_pop_tail( si );
+	struct seq_buf *seq_buf = undo_append_buf( prg, si );
+	assert( seq_buf != 0 && seq_buf->type == SB_TOKEN );
+
 	tree_t *tree = seq_buf->tree;
-	free( seq_buf );
+	free_seq_buf( prg, sp, seq_buf );
 	return tree;
 }
 
@@ -719,21 +752,21 @@ static void input_append_stream( struct colm_program *prg, struct input_impl_seq
 	debug( prg, REALM_INPUT, "input_append_stream: stream %p append stream %p\n", si, stream );
 
 	struct seq_buf *ad = new_seq_buf();
-
-	input_stream_seq_append( si, ad );
-
 	ad->type = SB_SOURCE;
 	ad->si = stream_to_impl( stream );
+	append_buf( prg, si, ad );
 
 	assert( ((struct stream_impl_data*)ad->si)->type == 'D' );
 }
 
-static tree_t *input_undo_append_stream( struct colm_program *prg, struct input_impl_seq *si )
+static tree_t *input_undo_append_stream( struct colm_program *prg, tree_t **sp,
+		struct input_impl_seq *si )
 {
 	debug( prg, REALM_INPUT, "input_undo_append_stream: stream %p undo append stream\n", si );
 
-	struct seq_buf *seq_buf = input_stream_seq_pop_tail( si );
-	free( seq_buf );
+	struct seq_buf *seq_buf = undo_append_buf( prg, si );
+	assert( seq_buf != 0 && seq_buf->type == SB_SOURCE );
+	free_seq_buf( prg, sp, seq_buf );
 	return 0;
 }
 
