@@ -1,9 +1,9 @@
 #
 # Backtracking over text pushes mixed with pushed ignores. A pushed ignore
-# goes to the left ignore of the token after it, while the whitespace scanned
-# before it goes to the right ignore of the token before. Backing up over
-# both tokens must give all of it back to the input. Otherwise whitespace
-# goes missing, or the undo of a push can't find what it pushed.
+# after a token goes to that token's right ignore, together with the
+# whitespace scanned around it. Backing up over the token must give all of
+# it back to the input. Otherwise whitespace goes missing, or the undo of a
+# push can't find what it pushed.
 #
 
 lex

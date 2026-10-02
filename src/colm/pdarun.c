@@ -323,6 +323,11 @@ static void ignore_tree_art( program_t *prg, struct pda_run *pda_run, tree_t *tr
 
 	colm_transfer_reverse_code( pda_run, parse_tree );
 
+	/* A pushed ignore that follows a token is that token's right ignore, as
+	 * a scanned one is. */
+	if ( pda_run->pre_region >= 0 )
+		parse_tree->flags |= PF_RIGHT_IGNORE;
+
 	set_region( pda_run, empty_ignore, pda_run->accum_ignore );
 }
 
