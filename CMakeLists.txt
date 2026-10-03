@@ -119,6 +119,11 @@ endif()
 option(COLM_BUILD_EXAMPLES
 	"Build the ragel examples" OFF)
 
+# The cmake spelling of --enable-manual, for the colm manual only. Off by
+# default, since Asciidoctor is not usually installed.
+option(COLM_BUILD_MANUAL
+	"Build the colm manual with Asciidoctor" OFF)
+
 if(WIN32)
 	set(_default_build_standalone ON)
 else()
@@ -191,6 +196,10 @@ add_subdirectory(src)
 
 if(COLM_BUILD_EXAMPLES)
 	add_subdirectory(examples)
+endif()
+
+if(COLM_BUILD_MANUAL)
+	add_subdirectory(doc/colm)
 endif()
 
 # dist_doc_DATA in Makefile.am
