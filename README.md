@@ -160,7 +160,12 @@ See the [`examples/`](examples/) directory for sample Ragel programs.
 - autoconf
 - automake
 
-For the documentation, install [`asciidoc`](https://asciidoctor.org/) and [`fig2dev`](https://github.com/getlarky/fig2dev) as well.
+For the documentation (`./configure --enable-manual`), install
+[Asciidoctor](https://asciidoctor.org/) for the colm manual, and
+[`asciidoc`](https://asciidoc-py.github.io/) and
+[`fig2dev`](https://github.com/getlarky/fig2dev) for the ragel guide, as well.
+The colm manual's code examples are highlighted by
+[Rouge](https://rouge.jneen.net/) (`ruby-rouge`) when it is installed.
 
 ### Build instructions
 
@@ -211,6 +216,7 @@ Options:
 | `COLM_INSTALL_COLM` | `ON` | Install the colm program and its development files. |
 | `COLM_INSTALL_RAGEL` | `ON` | Install ragel, its host backends, libragel, libfsm and cgil. |
 | `COLM_BUILD_EXAMPLES` | `OFF` | Build the ragel examples under `examples/`. |
+| `COLM_BUILD_MANUAL` | `OFF` | Build the colm manual under `doc/colm/` with Asciidoctor. |
 | `BUILD_STANDALONE` | `ON` on Windows | Link the executables statically. |
 | `BUILD_SHARED_LIBS` | `OFF` | Build libcolm, libfsm and libragel as shared libraries. |
 
@@ -241,9 +247,10 @@ The autotools build remains the reference build. Known differences:
 - The run-from-the-build-tree detection described below relies on libtool, so a
   colm built by cmake always uses the install location to find its includes and
   runtime library. Install it before using it to compile colm programs.
-- The test suite under `test/`, the documentation under `doc/` (including the
-  ragel man page), and `colm-wrap` are autotools-only. A cmake install
-  therefore cannot serve as the `--with-colm` target of an autotools build.
+- The test suite under `test/`, the ragel guide and man page under
+  `doc/ragel/`, and `colm-wrap` are autotools-only. A cmake install therefore
+  cannot serve as the `--with-colm` target of an autotools build. The colm
+  manual builds either way, with `--enable-manual` or `COLM_BUILD_MANUAL`.
 - Libtool builds both a static and a shared library and versions all three
   with `-release` (`libcolm-<version>.so`). CMake builds one flavour, selected
   by `BUILD_SHARED_LIBS`, and versions all three with a soname that carries the

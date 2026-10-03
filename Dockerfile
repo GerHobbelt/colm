@@ -93,11 +93,11 @@ RUN set -eux; \
 
 # Documentation toolchain and release tooling.
 #
-#   asciidoc          asciidoc and a2x, plus the icons the colm manual pulls
-#                     from /usr/share/asciidoc/icons; configure requires it
-#                     for --enable-manual
-#   python3-pygments  pygmentize, the manual's source highlighter; also
-#                     required by configure for --enable-manual
+#   asciidoctor       the colm manual; configure requires it for
+#                     --enable-manual
+#   ruby-rouge        Rouge, the colm manual's source highlighter
+#   asciidoc          asciidoc and a2x, for the ragel guide; configure
+#                     requires it for --enable-manual
 #   fig2dev           the .fig diagrams in the ragel guide
 #   dblatex           the a2x pdf backend, for ragel-guide.pdf; by far the
 #                     largest piece, it pulls in tex live
@@ -108,7 +108,7 @@ RUN set -eux; \
 RUN set -eux; \
     apt-get update; \
     apt-get install -y \
-        asciidoc dblatex fig2dev python3-pygments gnupg; \
+        asciidoctor ruby-rouge asciidoc dblatex fig2dev gnupg; \
     rm -rf /var/lib/apt/lists/*
 
 # Zig, from the upstream binary tarballs. Not needed to build the tree; it is
