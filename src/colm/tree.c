@@ -1372,24 +1372,6 @@ struct tree_pair map_remove( program_t *prg, map_t *map, tree_t *key )
 	return result;
 }
 
-#if 0
-tree_t *map_unstore( program_t *prg, map_t *map, tree_t *key, tree_t *existing )
-{
-	tree_t *stored = 0;
-	if ( existing == 0 ) {
-		map_el_t *map_el = map_detach_by_key( prg, map, key );
-		// stored = mapEl->tree;
-		map_el_free( prg, map_el );
-	}
-	else {
-		map_el_t *map_el = map_impl_find( prg, map, key );
-		// stored = mapEl->tree;
-		//mapEl->tree = existing;
-	}
-	return stored;
-}
-#endif
-
 tree_t *map_find( program_t *prg, map_t *map, tree_t *key )
 {
 //	map_el_t *mapEl = mapImplFind( prg, map, key );
@@ -1476,60 +1458,6 @@ tree_t *get_list_mem_split( program_t *prg, list_t *list, word_t field )
 	}
 	return sv;
 }
-
-
-#if 0
-int map_insert( program_t *prg, map_t *map, tree_t *key, tree_t *element )
-{
-	map_el_t *map_el = map_insert_key( prg, map, key, 0 );
-
-	if ( map_el != 0 ) {
-		//mapEl->tree = element;
-		return true;
-	}
-
-	return false;
-}
-#endif
-
-#if 0
-void map_unremove( program_t *prg, map_t *map, tree_t *key, tree_t *element )
-{
-	map_el_t *map_el = map_insert_key( prg, map, key, 0 );
-	assert( map_el != 0 );
-	//mapEl->tree = element;
-}
-#endif
-
-#if 0
-tree_t *map_uninsert( program_t *prg, map_t *map, tree_t *key )
-{
-	map_el_t *el = map_detach_by_key( prg, map, key );
-//	tree_t *val = el->tree;
-	map_el_free( prg, el );
-//	return val;
-	return 0;
-}
-#endif
-
-#if 0
-tree_t *map_store( program_t *prg, map_t *map, tree_t *key, tree_t *element )
-{
-	tree_t *old_tree = 0;
-	map_el_t *el_in_tree = 0;
-	map_el_t *map_el = map_insert_key( prg, map, key, &el_in_tree );
-
-//	if ( mapEl != 0 )
-//		mapEl->tree = element;
-//	else {
-//		/* Element with key exists. Overwriting the value. */
-//		oldTree = elInTree->tree;
-//		elInTree->tree = element;
-//	}
-
-	return old_tree;
-}
-#endif
 
 static tree_t *tree_search_kid( program_t *prg, kid_t *kid, long id )
 {

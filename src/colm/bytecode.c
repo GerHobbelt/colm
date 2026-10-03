@@ -782,7 +782,9 @@ tree_t **colm_execute_code( program_t *prg, execution_t *exec, tree_t **sp, code
 {
 	/* When we exit we are going to verify that we did not eat up any stack
 	 * space. */
+#ifndef NDEBUG
 	tree_t **root = sp;
+#endif
 	code_t c;
 
 again:
@@ -1084,8 +1086,7 @@ again:
 			/* Get the iterator. */
 			user_iter_t *uiter = (user_iter_t*) vm_get_local(exec, field);
 
-			long yield_size = vm_ssize() - uiter->root_size;
-			assert( uiter->yield_size == yield_size );
+			assert( uiter->yield_size == (vm_ssize() - uiter->root_size) );
 
 			/* Fix the return instruction pointer. */
 			uiter->stack_root[-IFR_AA + IFR_RIN] = (SW)instr;
@@ -4389,14 +4390,12 @@ again:
 
 				debug( prg, REALM_BYTECODE, "FN_MAP_DETACH_BKT\n" );
 
-				/* Either both or neither. */
+				/* Either both or neither. Only the assert reads them. */
 				assert( ( key == 0 ) ^ ( val != 0 ) );
+				(void)key;
+				(void)val;
 
 				tree_t *obj = vm_pop_tree();
-				#if 0
-				if ( key != 0 )
-					map_unremove( prg, (map_t*)obj, key, val );
-				#endif
 
 				colm_tree_downref( prg, sp, obj );
 				break;

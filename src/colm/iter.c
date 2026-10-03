@@ -49,8 +49,7 @@ void colm_list_iter_destroy( program_t *prg, tree_t ***psp, generic_iter_t *iter
 	if ( (int)iter->type != 0 ) {
 		int i;
 		tree_t **sp = *psp;
-		long cur_stack_size = vm_ssize() - iter->root_size;
-		assert( iter->yield_size == cur_stack_size );
+		assert( iter->yield_size == (vm_ssize() - iter->root_size) );
 		vm_popn( iter->yield_size );
 		for ( i = 0; i < iter->arg_size; i++ ) {
 			//colm_tree_downref( prg, sp, vm_pop_tree() );
@@ -264,8 +263,7 @@ void colm_tree_iter_destroy( program_t *prg, tree_t ***psp, tree_iter_t *iter )
 	if ( (int)iter->type != 0 ) {
 		int i;
 		tree_t **sp = *psp;
-		long cur_stack_size = vm_ssize() - iter->root_size;
-		assert( iter->yield_size == cur_stack_size );
+		assert( iter->yield_size == (vm_ssize() - iter->root_size) );
 		vm_popn( iter->yield_size );
 		for ( i = 0; i < iter->arg_size; i++ )
 			colm_tree_downref( prg, sp, vm_pop_tree() );
@@ -279,8 +277,7 @@ void colm_rev_tree_iter_destroy( struct colm_program *prg, tree_t ***psp, rev_tr
 	if ( (int)riter->type != 0 ) {
 		int i;
 		tree_t **sp = *psp;
-		long cur_stack_size = vm_ssize() - riter->root_size;
-		assert( riter->yield_size == cur_stack_size );
+		assert( riter->yield_size == (vm_ssize() - riter->root_size) );
 		vm_popn( riter->yield_size );
 		for ( i = 0; i < riter->arg_size; i++ )
 			colm_tree_downref( prg, sp, vm_pop_tree() );
@@ -316,8 +313,7 @@ void colm_uiter_destroy( program_t *prg, tree_t ***psp, user_iter_t *uiter )
 
 		/* We should always be coming from a yield. The current stack size will be
 		 * nonzero and the stack size in the iterator will be correct. */
-		long cur_stack_size = vm_ssize() - uiter->root_size;
-		assert( uiter->yield_size == cur_stack_size );
+		assert( uiter->yield_size == (vm_ssize() - uiter->root_size) );
 
 		uiter_downref_locals( prg, sp, uiter );
 
@@ -337,8 +333,7 @@ void colm_uiter_unwind( program_t *prg, tree_t ***psp, user_iter_t *uiter )
 
 		/* We should always be coming from a yield. The current stack size will be
 		 * nonzero and the stack size in the iterator will be correct. */
-		long cur_stack_size = vm_ssize() - uiter->root_size;
-		assert( uiter->yield_size == cur_stack_size );
+		assert( uiter->yield_size == (vm_ssize() - uiter->root_size) );
 
 		long arg_size = uiter->arg_size;
 
