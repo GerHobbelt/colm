@@ -143,11 +143,16 @@ if(COLM_INSTALL_RAGEL)
 
 	# Once installed, ragel-config.cmake looks for the colm package in colm's
 	# package directory, found relative to its own. The two can be set apart.
+	# A prefix typed as a PATH or STRING on the command line can be relative,
+	# and file(RELATIVE_PATH) wants full paths. The path between two
+	# directories under the prefix doesn't depend on what a relative prefix
+	# is taken relative to.
+	get_filename_component(_prefix "${CMAKE_INSTALL_PREFIX}" ABSOLUTE)
 	set(_ragel_cmakedir "${CMAKE_INSTALL_CMAKEDIR_RAGEL}")
 	set(_colm_cmakedir "${CMAKE_INSTALL_CMAKEDIR}")
 	foreach(_var _ragel_cmakedir _colm_cmakedir)
 		if(NOT IS_ABSOLUTE "${${_var}}")
-			set(${_var} "${CMAKE_INSTALL_PREFIX}/${${_var}}")
+			set(${_var} "${_prefix}/${${_var}}")
 		endif()
 	endforeach()
 	file(RELATIVE_PATH COLM_CMAKEDIR_FROM_RAGEL
