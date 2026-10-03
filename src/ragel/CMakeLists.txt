@@ -141,6 +141,18 @@ if(COLM_INSTALL_RAGEL)
 			CACHE STRING "CMake package directory for ragel")
 	endif()
 
+	# Once installed, ragel-config.cmake looks for the colm package in colm's
+	# package directory, found relative to its own. The two can be set apart.
+	set(_ragel_cmakedir "${CMAKE_INSTALL_CMAKEDIR_RAGEL}")
+	set(_colm_cmakedir "${CMAKE_INSTALL_CMAKEDIR}")
+	foreach(_var _ragel_cmakedir _colm_cmakedir)
+		if(NOT IS_ABSOLUTE "${${_var}}")
+			set(${_var} "${CMAKE_INSTALL_PREFIX}/${${_var}}")
+		endif()
+	endforeach()
+	file(RELATIVE_PATH COLM_CMAKEDIR_FROM_RAGEL
+		"${_ragel_cmakedir}" "${_colm_cmakedir}")
+
 	configure_file(ragel-config.cmake.in
 		"${PROJECT_BINARY_DIR}/${_PACKAGE_NAME}-config.cmake" @ONLY)
 

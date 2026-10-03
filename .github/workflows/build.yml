@@ -262,8 +262,10 @@ jobs:
       # package, one minor version up, stands in for another colm installed
       # elsewhere. find_package(ragel) has to pass over it when it comes
       # first on the search path, and refuse it when the project has already
-      # loaded it. Only configure runs, so the copied library keeps its old
-      # soname. Each case configures a project of its own.
+      # loaded it. Found through ragel_DIR alone, in the install or in the
+      # build tree, ragel has to find the colm beside it. Only configure
+      # runs, so the copied library keeps its old soname. Each case
+      # configures a project of its own.
       - name: check ragel loads the colm it was built against
         run: |
           set -eu
@@ -308,3 +310,15 @@ jobs:
             -DWANT="ragel was built against colm $numeric, but colm $other is already loaded" \
             > /dev/null
           echo "colm $other already loaded: refused"
+          cmake -S ragelcolm -B ragelcolm/build3 \
+            -Dragel_DIR="$PWD/inst/lib/cmake/ragel" \
+            -DWANT="$PWD/inst/lib" > /dev/null
+          echo "ragel_DIR alone: colm beside ragel found"
+          cmake -S ragelcolm -B ragelcolm/build4 \
+            -Dragel_DIR="$PWD/inst/lib/cmake/ragel" -DCMAKE_PREFIX_PATH="$PWD/other" \
+            -DWANT="$PWD/inst/lib" > /dev/null
+          echo "ragel_DIR, colm $other on the search path: colm beside ragel found"
+          cmake -S ragelcolm -B ragelcolm/build5 \
+            -Dragel_DIR="$PWD/build" -DCMAKE_PREFIX_PATH="$PWD/other" \
+            -DWANT="$PWD/build/src/colm" > /dev/null
+          echo "build tree ragel_DIR, colm $other on the search path: colm beside ragel found"
