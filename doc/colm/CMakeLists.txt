@@ -14,7 +14,8 @@ endif()
 set(MANUAL_OPTIONS
 	-b html5
 	-a max-width=800px
-	-a source-highlighter=rouge)
+	-a source-highlighter=rouge
+	-a webfonts!)
 
 set(MANUAL_PAGES
 	0_00_welcome 0_06_scope 1_05_variables

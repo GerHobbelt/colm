@@ -164,8 +164,9 @@ For the documentation (`./configure --enable-manual`), install
 [Asciidoctor](https://asciidoctor.org/) for the colm manual, and
 [`asciidoc`](https://asciidoc-py.github.io/) and
 [`fig2dev`](https://github.com/getlarky/fig2dev) for the ragel guide, as well.
-The colm manual's code examples are highlighted by
-[Rouge](https://rouge.jneen.net/) (`ruby-rouge`) when it is installed.
+With [Rouge](https://rouge.jneen.net/) (`ruby-rouge`) installed, the manual's
+shell and vim examples are highlighted. Rouge has no lexer for colm, so the
+colm examples are not.
 
 ### Build instructions
 

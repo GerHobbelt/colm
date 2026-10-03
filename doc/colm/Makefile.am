@@ -3,9 +3,8 @@ ASCIIDOCTOR = @ASCIIDOCTOR@
 OUTPUT=html5
 OPTIONS=\
 	-a max-width=800px \
-	-a source-highlighter=rouge
-
-OUT_DIR=./output
+	-a source-highlighter=rouge \
+	-a webfonts!
 
 IN_FILES = \
 	0_00_welcome.adoc 0_06_scope.adoc 1_05_variables.adoc \
@@ -38,6 +37,10 @@ doc_DATA = $(OUT_FILES)
 endif
 
 SUFFIXES = .html .adoc
+
+# The pages include the example programs. Every page is rebuilt when one of
+# them changes, which is simpler than tracking which page includes which.
+$(OUT_FILES): $(CODE)
 
 .adoc.html:
 	$(ASCIIDOCTOR) -b $(OUTPUT) $(OPTIONS) -o $@ $<

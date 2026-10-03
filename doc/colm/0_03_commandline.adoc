@@ -3,7 +3,8 @@ Commandline
 
 Let's start colm with the '--help' command line argument.
 
-```$ ./colm --help
+```
+$ ./colm --help
 usage: colm [options] file
 general:
    -h, -H, -?, --help   print this usage and exit
