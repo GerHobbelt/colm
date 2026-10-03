@@ -46,8 +46,10 @@
 
 DEF_STREAM_FUNCS( stream_funcs_data, stream_impl_data );
 
-extern struct stream_funcs_data file_funcs;
-extern struct stream_funcs_data accum_funcs;
+static struct stream_funcs_data file_funcs;
+static struct stream_funcs_data accum_funcs;
+
+static struct stream_impl *colm_impl_consumed( char *name, int len );
 
 #ifdef HAVE_FOPENCOOKIE
 
@@ -77,7 +79,7 @@ static int cfc_close(void *cookie)
 	return 0;
 }
 
-FILE *colm_fd_open( int fd, const char *mode )
+static FILE *colm_fd_open( int fd, const char *mode )
 {
 	cookie_io_functions_t cf = {
 		cfc_read,
@@ -93,14 +95,14 @@ FILE *colm_fd_open( int fd, const char *mode )
 
 #else
 
-FILE *colm_fd_open( int fd, const char *mode )
+static FILE *colm_fd_open( int fd, const char *mode )
 {
 	return fdopen( fd, mode );
 }
 
 #endif
 
-void stream_impl_push_line( struct stream_impl_data *ss, int ll )
+static void stream_impl_push_line( struct stream_impl_data *ss, int ll )
 {
 	if ( ss->line_len == 0 ) {
 		ss->lines_cur = 0;
@@ -120,7 +122,7 @@ void stream_impl_push_line( struct stream_impl_data *ss, int ll )
 	ss->lines_cur += 1;
 }
 
-int stream_impl_pop_line( struct stream_impl_data *ss )
+static int stream_impl_pop_line( struct stream_impl_data *ss )
 {
 	int len = 0;
 	if ( ss->lines_cur > 0 ) {
@@ -355,7 +357,7 @@ static void data_undo_split_consumed( program_t *prg, struct stream_impl_data *s
 	free( so );
 }
 
-int data_append_data( struct colm_program *prg, struct stream_impl_data *sid,
+static int data_append_data( struct colm_program *prg, struct stream_impl_data *sid,
 		const alph_t *data, int length )
 {
 	struct run_buf *tail = sid->queue.tail;
@@ -379,7 +381,8 @@ int data_append_data( struct colm_program *prg, struct stream_impl_data *sid,
 	return length;
 }
 
-int data_undo_append_data( struct colm_program *prg, struct stream_impl_data *sid, int length )
+static int data_undo_append_data( struct colm_program *prg, struct stream_impl_data *sid,
+		int length )
 {
 	int consumed = 0;
 	int remaining = length;
@@ -673,17 +676,7 @@ static int accum_get_data_source( struct colm_program *prg, struct stream_impl_d
 	return take;
 }
 
-char stream_get_eof_sent( struct colm_program *prg, struct input_impl_seq *si )
-{
-	return si->eof_sent;
-}
-
-void stream_set_eof_sent( struct colm_program *prg, struct input_impl_seq *si, char eof_sent )
-{
-	si->eof_sent = eof_sent;
-}
-
-struct stream_funcs_data file_funcs = 
+static struct stream_funcs_data file_funcs =
 {
 	&data_get_parse_block,
 	&data_get_data,
@@ -708,7 +701,7 @@ struct stream_funcs_data file_funcs =
 	&data_set_option,
 };
 
-struct stream_funcs_data accum_funcs = 
+static struct stream_funcs_data accum_funcs =
 {
 	&data_get_parse_block,
 	&data_get_data,
@@ -784,7 +777,7 @@ static struct stream_impl *colm_impl_new_fd( char *name, long fd )
 	return (struct stream_impl*)si;
 }
 
-struct stream_impl *colm_impl_consumed( char *name, int len )
+static struct stream_impl *colm_impl_consumed( char *name, int len )
 {
 	struct stream_impl_data *si = (struct stream_impl_data*)
 			malloc(sizeof(struct stream_impl_data));
@@ -822,7 +815,7 @@ struct stream_impl *colm_impl_new_text( char *name, struct colm_location *loc, c
 	return (struct stream_impl*)si;
 }
 
-struct stream_impl *colm_impl_new_collect( char *name )
+static struct stream_impl *colm_impl_new_collect( char *name )
 {
 	struct stream_impl_data *ss = (struct stream_impl_data*)
 			malloc(sizeof(struct stream_impl_data));
@@ -890,7 +883,7 @@ stream_t *colm_stream_open_file( program_t *prg, tree_t *name, tree_t *mode )
 }
 
 
-void colm_stream_destroy( program_t *prg, tree_t **sp, struct_t *s )
+static void colm_stream_destroy( program_t *prg, tree_t **sp, struct_t *s )
 {
 	stream_t *stream = (stream_t*) s;
 	struct stream_impl *si = stream->impl;

@@ -26,6 +26,7 @@
 #include <colm/tree.h>
 #include <colm/bytecode.h>
 #include <colm/program.h>
+#include <colm/map.h>
 
 #include "internal.h"
 
@@ -379,7 +380,8 @@ void split_iter_cur( program_t *prg, tree_t ***psp, tree_iter_t *iter )
 	split_ref( prg, psp, &iter->ref );
 }
 
-void iter_find( program_t *prg, tree_t ***psp, tree_iter_t *iter, int try_first, int with_ignore )
+static void iter_find( program_t *prg, tree_t ***psp, tree_iter_t *iter,
+		int try_first, int with_ignore )
 {
 	int any_tree = iter->search_id == prg->rtd->any_id;
 	tree_t **top = iter->stack_root;
@@ -526,7 +528,7 @@ tree_t *tree_rev_iter_prev_child( program_t *prg, tree_t ***psp, rev_tree_iter_t
 	return (iter->ref.kid ? prg->true_val : prg->false_val );
 }
 
-void iter_find_repeat( program_t *prg, tree_t ***psp, tree_iter_t *iter, int try_first )
+static void iter_find_repeat( program_t *prg, tree_t ***psp, tree_iter_t *iter, int try_first )
 {
 	tree_t **sp = *psp;
 	int any_tree = iter->search_id == prg->rtd->any_id;
@@ -591,7 +593,7 @@ tree_t *tree_iter_next_repeat( program_t *prg, tree_t ***psp, tree_iter_t *iter 
 	return (iter->ref.kid ? prg->true_val : prg->false_val );
 }
 
-void iter_find_rev_repeat( program_t *prg, tree_t ***psp, tree_iter_t *iter, int try_first )
+static void iter_find_rev_repeat( program_t *prg, tree_t ***psp, tree_iter_t *iter, int try_first )
 {
 	tree_t **sp = *psp;
 	int any_tree = iter->search_id == prg->rtd->any_id;

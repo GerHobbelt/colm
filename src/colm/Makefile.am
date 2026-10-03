@@ -57,6 +57,7 @@ lib_LTLIBRARIES = libcolm.la
 noinst_LIBRARIES = libprog.a
 
 libcolm_la_SOURCES = $(RUNTIME_SRC)
+libcolm_la_CFLAGS = -Wall -Wmissing-prototypes
 libcolm_la_LDFLAGS = -release ${COLM_VERSION} -no-undefined
 
 if LINKER_NO_UNDEFINED
@@ -221,9 +222,15 @@ CLEANFILES = \
 distclean-local:
 	-rm -rf include
 
-EXTRA_DIST = prog.lm colm.lm loadfinal.cc colm-wrap.sh \
+EXTRA_DIST = prog.lm colm.lm loadfinal.cc colm-wrap.sh check-decls.sh \
 	CMakeLists.txt config.h.cmake.in defs.h.cmake.in version.h.cmake.in \
 	colm-config.cmake.in
+
+# Every function the runtime headers declare must be defined in libcolm.
+# colmex.h is C++, which -aux-info can't read.
+check-local: libcolm.la
+	$(SHELL) $(srcdir)/check-decls.sh libcolm.la '$(COMPILE)' \
+		$(RUNTIME_HDR:colmex.h=)
 
 colm-wrap: colm-wrap.sh
 	@$(top_srcdir)/sedsubst $< $@ -w,+x $(SED_SUBST)

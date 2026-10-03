@@ -161,7 +161,7 @@ static void flush_streams( program_t *prg )
 	}
 }
 
-void colm_parser_set_context( program_t *prg, tree_t **sp, parser_t *parser, struct_t *val )
+static void colm_parser_set_context( program_t *prg, tree_t **sp, parser_t *parser, struct_t *val )
 {
 	parser->pda_run->context = val;
 }

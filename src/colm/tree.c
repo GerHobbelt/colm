@@ -902,7 +902,7 @@ tree_t *split_tree( program_t *prg, tree_t *tree )
 
 /* We can't make recursive calls here since the tree we are freeing may be
  * very large. Need the VM stack. */
-void tree_free_rec( program_t *prg, tree_t **sp, tree_t *tree )
+static void tree_free_rec( program_t *prg, tree_t **sp, tree_t *tree )
 {
 	tree_t **top = vm_ptop();
 
@@ -962,64 +962,6 @@ void colm_tree_downref( program_t *prg, tree_t **sp, tree_t *tree )
 		tree->refs -= 1;
 		if ( tree->refs == 0 )
 			tree_free_rec( prg, sp, tree );
-	}
-}
-
-/* We can't make recursive calls here since the tree we are freeing may be
- * very large. Need the VM stack. */
-void object_free_rec( program_t *prg, tree_t **sp, tree_t *tree )
-{
-	tree_t **top = vm_ptop();
-
-free_tree:
-
-	switch ( tree->id ) {
-	case LEL_ID_STR: {
-		str_t *str = (str_t*) tree;
-		string_free( prg, str->value );
-		tree_free( prg, tree );
-		break;
-	}
-	case LEL_ID_PTR: {
-		tree_free( prg, tree );
-		break;
-	}
-	default: { 
-		if ( tree->id != LEL_ID_IGNORE )
-			string_free( prg, tree->tokdata );
-
-		/* Attributes and grammar-based children. */
-		kid_t *child = tree->child;
-		while ( child != 0 ) {
-			kid_t *next = child->next;
-			vm_push_tree( child->tree );
-			kid_free( prg, child );
-			child = next;
-		}
-
-		tree_free( prg, tree );
-		break;
-	}}
-
-	/* Any trees to downref? */
-	while ( sp != top ) {
-		tree = vm_pop_tree();
-		if ( tree != 0 ) {
-			assert( tree->refs > 0 );
-			tree->refs -= 1;
-			if ( tree->refs == 0 )
-				goto free_tree;
-		}
-	}
-}
-
-void object_downref( program_t *prg, tree_t **sp, tree_t *tree )
-{
-	if ( tree != 0 ) {
-		assert( tree->refs > 0 );
-		tree->refs -= 1;
-		if ( tree->refs == 0 )
-			object_free_rec( prg, sp, tree );
 	}
 }
 

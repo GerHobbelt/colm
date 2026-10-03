@@ -38,7 +38,7 @@
 #include <colm/struct.h>
 
 DEF_INPUT_FUNCS( input_funcs_seq, input_impl_seq );
-extern struct input_funcs_seq input_funcs;
+static struct input_funcs_seq input_funcs;
 
 static bool is_tree( struct seq_buf *b )
 {
@@ -164,7 +164,7 @@ static void undo_split( struct colm_program *prg, struct input_impl_seq *iis,
  * StreamImpl struct, this wraps the list of input streams.
  */
 
-void init_input_impl_seq( struct input_impl_seq *is, char *name )
+static void init_input_impl_seq( struct input_impl_seq *is, char *name )
 {
 	memset( is, 0, sizeof(struct input_impl_seq) );
 
@@ -225,7 +225,7 @@ static void input_stream_seq_prepend( struct input_impl_seq *is, struct seq_buf 
 	}
 }
 
-void input_set_eof_mark( struct colm_program *prg, struct input_impl_seq *si, char eof_mark )
+static void input_set_eof_mark( struct colm_program *prg, struct input_impl_seq *si, char eof_mark )
 {
 	si->eof_mark = eof_mark;
 }
@@ -770,7 +770,7 @@ static tree_t *input_undo_append_stream( struct colm_program *prg, tree_t **sp,
 	return 0;
 }
 
-struct input_funcs_seq input_funcs = 
+static struct input_funcs_seq input_funcs =
 {
 	&input_get_parse_block,
 	&input_get_data,
@@ -824,7 +824,7 @@ struct input_impl *colm_impl_new_generic( char *name )
 	return (struct input_impl*)ss;
 }
 
-input_t *colm_input_new_struct( program_t *prg )
+static input_t *colm_input_new_struct( program_t *prg )
 {
 	size_t memsize = sizeof(struct colm_input);
 	struct colm_input *input = (struct colm_input*) malloc( memsize );

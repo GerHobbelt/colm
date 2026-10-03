@@ -195,7 +195,7 @@ list_el_t *colm_list_detach( list_t *list, list_el_t *el )
 	return el;
 }
 
-void colm_list_destroy( struct colm_program *prg, tree_t **sp, struct colm_struct *s )
+static void colm_list_destroy( struct colm_program *prg, tree_t **sp, struct colm_struct *s )
 {
 }
 
