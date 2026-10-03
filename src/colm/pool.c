@@ -68,7 +68,7 @@ static void *pool_alloc_allocate( struct pool_alloc *pool_alloc )
 #endif
 }
 
-void pool_alloc_free( struct pool_alloc *pool_alloc, void *el )
+static void pool_alloc_free( struct pool_alloc *pool_alloc, void *el )
 {
 	#if 0
 	/* Some sanity checking. Best not to normally run with this on. */

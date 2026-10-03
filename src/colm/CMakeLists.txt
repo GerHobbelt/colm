@@ -191,6 +191,8 @@ if(NOT MSVC)
 		target_compile_options(${_target} PRIVATE -Wall)
 	endforeach()
 
+	target_compile_options(libcolm PRIVATE -Wall -Wmissing-prototypes)
+
 	# bootstrap0 relies on the implicit conversions the constructed
 	# initialisation code performs.
 	target_compile_options(bootstrap0 PRIVATE

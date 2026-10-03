@@ -38,8 +38,6 @@ void map_list_add_before( map_t *map, map_el_t *next_el, map_el_t *new_el );
 void map_list_add_after( map_t *map, map_el_t *prev_el, map_el_t *new_el );
 map_el_t *map_list_detach( map_t *map, map_el_t *el );
 void map_attach_rebal( map_t *map, map_el_t *element, map_el_t *parent_el, map_el_t *last_less );
-void map_delete_children_of( map_t *map, map_el_t *element );
-void map_empty( map_t *map );
 map_el_t *map_rebalance( map_t *map, map_el_t *n );
 void map_recalc_heights( map_t *map, map_el_t *element );
 map_el_t *mapFindFirstUnbalGP( map_t *map, map_el_t *element );
@@ -47,27 +45,14 @@ map_el_t *map_find_first_unbal_el( map_t *map, map_el_t *element );
 void map_remove_el( map_t *map, map_el_t *element, map_el_t *filler );
 void map_replace_el( map_t *map, map_el_t *element, map_el_t *replacement );
 map_el_t *map_insert_el( program_t *prg, map_t *map, map_el_t *element, map_el_t **last_found );
-map_el_t *map_insert_key( program_t *prg, map_t *map, tree_t *key, map_el_t **last_found );
 map_el_t *map_impl_find( program_t *prg, map_t *map, tree_t *key );
 map_el_t *map_detach_by_key( program_t *prg, map_t *map, tree_t *key );
 map_el_t *map_detach( program_t *prg, map_t *map, map_el_t *element );
-map_el_t *map_copy_branch( program_t *prg, map_t *map, map_el_t *el,
-		kid_t *old_next_down, kid_t **new_next_down );
 
 struct tree_pair map_remove( program_t *prg, map_t *map, tree_t *key );
 
-long cmp_tree( program_t *prg, const tree_t *tree1, const tree_t *tree2 );
-
-void map_impl_remove_el( program_t *prg, map_t *map, map_el_t *element );
-int map_impl_remove_key( program_t *prg, map_t *map, tree_t *key );
-
 tree_t *map_find( program_t *prg, map_t *map, tree_t *key );
 long map_length( map_t *map );
-tree_t *map_unstore( program_t *prg, map_t *map, tree_t *key, tree_t *existing );
-int map_insert( program_t *prg, map_t *map, tree_t *key, tree_t *element );
-void map_unremove( program_t *prg, map_t *map, tree_t *key, tree_t *element );
-tree_t *map_uninsert( program_t *prg, map_t *map, tree_t *key );
-tree_t *map_store( program_t *prg, map_t *map, tree_t *key, tree_t *element );
 
 map_el_t *colm_map_insert( program_t *prg, map_t *map, map_el_t *map_el );
 void colm_map_detach( program_t *prg, map_t *map, map_el_t *map_el );

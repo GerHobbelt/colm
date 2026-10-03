@@ -85,18 +85,6 @@ struct rt_code_vect
 	/* FIXME: leak when freed. */
 };
 
-void list_add_after( list_t *list, list_el_t *prev_el, list_el_t *new_el );
-void list_add_before( list_t *list, list_el_t *next_el, list_el_t *new_el );
-
-void list_prepend( list_t *list, list_el_t *new_el );
-void list_append( list_t *list, list_el_t *new_el );
-
-list_el_t *list_detach( list_t *list, list_el_t *el );
-list_el_t *list_detach_first(list_t *list );
-list_el_t *list_detach_last(list_t *list );
-
-long list_length(list_t *list);
-
 struct function_info
 {
 	long frame_id;
@@ -426,8 +414,6 @@ inline static void append_word( struct rt_code_vect *vect, word_t word )
 void colm_increment_steps( struct pda_run *pda_run );
 void colm_decrement_steps( struct pda_run *pda_run );
 
-void colm_clear_stream_impl( struct colm_program *prg, tree_t **sp, struct stream_impl *input_stream );
-
 #define PCR_START         1
 #define PCR_DONE          2
 #define PCR_REDUCTION     3
@@ -447,8 +433,6 @@ long colm_parse_loop( struct colm_program *prg, tree_t **sp, struct pda_run *pda
 
 long colm_parse_frag( struct colm_program *prg, tree_t **sp,
 		struct pda_run *pda_run, input_t *input, long entry );
-long colm_parse_finish( struct colm_program *prg, tree_t **sp,
-		struct pda_run *pda_run, stream_t *input, long entry );
 long colm_parse_undo_frag( struct colm_program *prg, tree_t **sp, struct pda_run *pda_run,
 		input_t *input, long entry, long steps );
 
