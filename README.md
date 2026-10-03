@@ -236,6 +236,11 @@ version alone means `.0`, so `find_package(ragel 7)` does not find 7.1. Both
 ends of a version range must be in the installed minor version: `7.1...<7.2`
 finds 7.1.x, `7.1...<8` does not.
 
+`ragel::libragel` links the colm runtime, so `find_package(ragel)` loads the
+colm package too, at exactly the colm version ragel was built with. It passes
+over any other colm on the search path, and fails if the project has already
+found a different colm version.
+
 The autotools build remains the reference build. Known differences:
 
 - The run-from-the-build-tree detection described below relies on libtool, so a

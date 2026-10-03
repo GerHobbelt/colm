@@ -256,3 +256,55 @@ jobs:
           test "$out" = "hello from colm"
           out=$(echo -1234 | consumer/build/atoi)
           test "$out" = "-1234"
+
+      # The libcolm soname carries the whole colm version, so libragel needs
+      # exactly the colm it was built against. A copy of the installed colm
+      # package, one minor version up, stands in for another colm installed
+      # elsewhere. find_package(ragel) has to pass over it when it comes
+      # first on the search path, and refuse it when the project has already
+      # loaded it. Only configure runs, so the copied library keeps its old
+      # soname. Each case configures a project of its own.
+      - name: check ragel loads the colm it was built against
+        run: |
+          set -eu
+          version=$(sed -n 's/^COLM_VERSION="\(.*\)"$/\1/p' configure.ac)
+          numeric=$(echo "$version" | grep -oE '^[0-9]+(\.[0-9]+)*')
+          major=${numeric%%.*}
+          minor=$(echo "$numeric" | cut -d. -f2)
+          other=$major.$((minor + 1)).0
+          mkdir -p other/bin other/lib/cmake
+          cp inst/bin/colm other/bin/
+          cp -r inst/lib/cmake/colm other/lib/cmake/
+          if [ "${{ matrix.shared }}" = ON ]; then
+            cp inst/lib/libcolm.so.$numeric other/lib/libcolm.so.$other
+          else
+            cp inst/lib/libcolm.a other/lib/
+          fi
+          sed -i "s/${numeric//./\\.}/$other/g" other/lib/cmake/colm/*.cmake
+          mkdir ragelcolm
+          cat > ragelcolm/CMakeLists.txt <<'EOF'
+          cmake_minimum_required(VERSION 3.16)
+          project(ragelcolm NONE)
+          if(PRELOAD)
+            find_package(colm ${PRELOAD} EXACT REQUIRED)
+          endif()
+          find_package(ragel QUIET)
+          if(ragel_FOUND)
+            get_target_property(libcolm colm::libcolm LOCATION)
+            get_filename_component(got "${libcolm}" DIRECTORY)
+          else()
+            set(got "${ragel_NOT_FOUND_MESSAGE}")
+          endif()
+          if(NOT got STREQUAL WANT)
+            message(FATAL_ERROR "got: ${got}\nwant: ${WANT}")
+          endif()
+          EOF
+          cmake -S ragelcolm -B ragelcolm/build1 \
+            -DCMAKE_PREFIX_PATH="$PWD/other;$PWD/inst" \
+            -DWANT="$PWD/inst/lib" > /dev/null
+          echo "colm $other first on the search path: passed over"
+          cmake -S ragelcolm -B ragelcolm/build2 \
+            -DCMAKE_PREFIX_PATH="$PWD/inst;$PWD/other" -DPRELOAD=$other \
+            -DWANT="ragel was built against colm $numeric, but colm $other is already loaded" \
+            > /dev/null
+          echo "colm $other already loaded: refused"
