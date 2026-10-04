@@ -192,7 +192,9 @@ if test "x$build_manual" = "xyes"; then
 	fi
 
 	dnl The ragel guide is still built with asciidoc (asciidoc-py). Its figures
-	dnl are drawn with fig2dev, and a2x makes its PDF with dblatex.
+	dnl are drawn with fig2dev, and a2x makes its PDF with dblatex. doc/ragel
+	dnl runs asciidoc, a2x and fig2dev through the variables set here, but a2x
+	dnl looks for dblatex on PATH itself, so DBLATEX only checks that it's there.
 	if test "x$install_ragel" = "xyes"; then
 		AC_CHECK_PROG([ASCIIDOC], [asciidoc], [asciidoc])
 		if test "x$ASCIIDOC" = x; then

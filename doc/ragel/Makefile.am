@@ -46,10 +46,10 @@ doc_DATA = ragel-guide.html ragel-guide.pdf
 endif
 
 .fig.png:
-	fig2dev -L png -S 4 $< $@
+	$(FIG2DEV) -L png -S 4 $< $@
 
 ragel-guide.html: ragel-guide.txt
-	asciidoc -d book $<
+	$(ASCIIDOC) -d book $<
 
 ragel-guide.html: bmconcat.png bmregex.png dropdown.png exdoneact.png \
 	exoutact1.png exstrongsubtr.png lines2.png smallscanner.png bmnull.png \
@@ -61,6 +61,6 @@ ragel-guide.html: bmconcat.png bmregex.png dropdown.png exdoneact.png \
 	opstar.png
 
 ragel-guide.pdf: ragel-guide.txt
-	a2x --verbose -f pdf -d book $<
+	$(A2X) --verbose -f pdf -d book $<
 
 endif
