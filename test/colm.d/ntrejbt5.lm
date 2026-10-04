@@ -6,6 +6,13 @@
 # as backing up takes away, the count reaches the no-commit value before the
 # undo is done, and the inner parser fails.
 #
+# Each item sends two ids. The inner parser reduces an id only once the token
+# after it arrives, so when the undo starts the last item's ids are not yet
+# reduced. That leaves two rejected reductions on the inner stack per item
+# before the last: none for `a ;`, which undoes sends with nothing rejected,
+# two for `a b ;` and four for `a b c ;`. `a b !` undoes no send. The first
+# and last runs are controls.
+#
 
 context ctx
 	lex
