@@ -2,8 +2,25 @@
 
 # libragel links the colm runtime, so the exported targets name colm::libcolm.
 # The colm package is installed alongside this one in every configuration,
-# including a ragel-only install.
+# including a ragel-only install, so it is looked for there too: in the same
+# directory in the build tree, and in colm's package directory once installed.
+# Those hints come after the project's search path.
+#
+# The libcolm soname carries the whole colm version, so libragel needs exactly
+# the colm it was built against. Asking for that version passes over any other
+# colm that comes first on the search path. A colm the project has already
+# loaded can't be swapped out, because colm::libcolm stays defined, so a
+# different version of it is refused here.
 include(CMakeFindDependencyMacro)
-find_dependency(colm)
+if(DEFINED colm_VERSION AND NOT colm_VERSION VERSION_EQUAL "@COLM_VERSION_NUMERIC@")
+	set(${CMAKE_FIND_PACKAGE_NAME}_FOUND FALSE)
+	string(CONCAT ${CMAKE_FIND_PACKAGE_NAME}_NOT_FOUND_MESSAGE
+		"ragel was built against colm @COLM_VERSION_NUMERIC@, "
+		"but colm ${colm_VERSION} is already loaded")
+	return()
+endif()
+find_dependency(colm @COLM_VERSION_NUMERIC@ EXACT
+	HINTS "${CMAKE_CURRENT_LIST_DIR}"
+		"${CMAKE_CURRENT_LIST_DIR}/@COLM_CMAKEDIR_FROM_RAGEL@")
 
 include("${CMAKE_CURRENT_LIST_DIR}/@_PACKAGE_NAME@-targets.cmake")
