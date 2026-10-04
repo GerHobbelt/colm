@@ -1,0 +1,58 @@
+/*
+ * Copyright 2026 Adrian Thurston <thurston@colm.net>
+ */
+
+/*
+ * manual: the colm manual's example programs, doc/colm/code/NAME.lm. Each is
+ * compiled and run as a colm.d case is, with NAME.in, if there is one, on its
+ * standard input, and its output is compared against NAME.exp. The chapters
+ * include the program and its expected output from these files, so the output
+ * they show is the output tested here. The cases live outside test/, but the
+ * results go to manual/working under the test build directory, beside the
+ * other suites'.
+ */
+
+#include "harness.h"
+
+void enumerateManual( const Config &config, const Selection &sel, JobList &jobs )
+{
+	const char *suite = "manual";
+	std::string src = joinPath( config.topSrcdir, "doc/colm/code" );
+	std::string wk = config.working( suite );
+
+	std::vector<std::string> names;
+	if ( !listCaseDir( suite, src, names, jobs ) )
+		return;
+
+	for ( size_t i = 0; i < names.size(); i++ ) {
+		if ( !hasSuffix( names[i], ".lm" ) )
+			continue;
+		if ( !sel.selects( names[i] ) )
+			continue;
+
+		std::string root = stripSuffix( names[i], ".lm" );
+		Job *job = new Job( suite, root );
+		job->reportPath = joinPath( wk, root + ".diff" );
+		jobs.append( job );
+
+		ColmProgram prog;
+		if ( !readFile( joinPath( src, names[i] ), prog.text ) ) {
+			job->error( "cannot read " + names[i] );
+			continue;
+		}
+
+		/* An example without expected output is a mistake, not a program
+		 * expected to print nothing. */
+		ColmRun run;
+		if ( !readFile( joinPath( src, root + ".exp" ), run.expected ) ) {
+			job->error( "cannot read " + root + ".exp" );
+			continue;
+		}
+
+		if ( fileExists( joinPath( src, root + ".in" ) ) )
+			run.stdinFile = joinPath( src, root + ".in" );
+
+		colmCompile( config, job, prog );
+		colmRun( config, job, run );
+	}
+}

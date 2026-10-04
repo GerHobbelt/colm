@@ -19,9 +19,19 @@ IN_FILES = \
 	0_05_fizzbuzz.adoc 1_04_functions.adoc 2_03_def.adoc \
 	3_05_reduction.adoc 8_05_contributing.adoc
 
+# The example programs, each with the output it prints (.exp) and the input
+# it reads (.in), if any. The test harness's manual suite runs them, and the
+# pages include the programs and their output.
 CODE = \
-	code/assign.lm     code/fizzbuzz.lm     code/nested_scope.lm  code/reference.lm \
-	code/figure_44.lm  code/hello_world.lm  code/poker.lm         code/scope.lm
+	code/assign.lm           code/assign.exp           code/assign.in \
+	code/figure_44.lm        code/figure_44.exp \
+	code/fizzbuzz.lm         code/fizzbuzz.exp \
+	code/hello_world.lm      code/hello_world.exp \
+	code/hello_world_ext.lm  code/hello_world_ext.exp \
+	code/nested_scope.lm     code/nested_scope.exp \
+	code/poker.lm            code/poker.exp \
+	code/reference.lm        code/reference.exp \
+	code/scope.lm            code/scope.exp
 
 
 OUT_FILES = $(IN_FILES:.adoc=.html)
@@ -38,8 +48,9 @@ endif
 
 SUFFIXES = .html .adoc
 
-# The pages include the example programs. Every page is rebuilt when one of
-# them changes, which is simpler than tracking which page includes which.
+# The pages include the example programs and their output. Every page is
+# rebuilt when one of them changes, which is simpler than tracking which page
+# includes which.
 $(OUT_FILES): $(CODE)
 
 .adoc.html:

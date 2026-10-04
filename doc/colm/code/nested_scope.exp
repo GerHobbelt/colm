@@ -1,0 +1,7 @@
+in global global
+before block1 global
+in block1 block1
+in loop block1a
+in block1 block1a
+in A block1a
+in global global
