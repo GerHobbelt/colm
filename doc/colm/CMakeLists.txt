@@ -11,11 +11,16 @@ if(NOT ASCIIDOCTOR)
 		"Asciidoctor, or turn the manual off with -DCOLM_BUILD_MANUAL=OFF.")
 endif()
 
+# The install page shows the release and colm's version, which the top-level
+# CMakeLists.txt reads out of configure.ac.
 set(MANUAL_OPTIONS
 	-b html5
 	-a max-width=800px
 	-a source-highlighter=rouge
-	-a webfonts!)
+	-a webfonts!
+	-a suite-release=${SUITE_VERSION}
+	-a colm-version=${COLM_VERSION}
+	-a "colm-pubdate=${COLM_PUBDATE}")
 
 set(MANUAL_PAGES
 	0_00_welcome 0_06_scope 1_05_variables

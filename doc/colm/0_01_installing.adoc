@@ -1,10 +1,14 @@
 = Installing
+// The build passes these in from configure.ac. The values here are for
+// rendering the page on its own.
 :suite-release: 2026.08
+:colm-version: 0.15.0
+:colm-pubdate: August 2026
 
 Colm is distributed in the Colm Suite, along with the Ragel State Machine
 Compiler. Suite releases are named for the year and month they were made, and
 the components in them carry their own version numbers. Release
-{suite-release} contains colm 0.15.0.
+{suite-release} contains colm {colm-version}.
 
 == Getting the source
 
@@ -16,6 +20,36 @@ at colm.net, each with a PGP signature and a SHA-256 checksum.
 wget https://www.colm.net/files/colm-suite/{suite-release}/colm-suite-{suite-release}.tar.gz
 wget https://www.colm.net/files/colm-suite/{suite-release}/colm-suite-{suite-release}.tar.gz.sha256
 sha256sum -c colm-suite-{suite-release}.tar.gz.sha256
+----
+
+The checksum shows the download is intact. To check who made it as well,
+verify the release's signature against the key colm.net publishes:
+
+[source,bash,subs="attributes+"]
+----
+wget https://www.colm.net/files/colm-suite/{suite-release}/colm-suite-{suite-release}.tar.gz.asc
+wget https://www.colm.net/files/thurston.asc
+gpg --import thurston.asc
+gpg --verify colm-suite-{suite-release}.tar.gz.asc colm-suite-{suite-release}.tar.gz
+----
+
+gpg should report a good signature from Adrian Thurston, made with the key that
+has this fingerprint:
+
+----
+C326 0F00 1EE3 780F 1BC3  D4F6 50FE 4727 7DC1 96FB
+----
+
+The key comes from colm.net, as the release does, so compare its fingerprint with
+a copy from somewhere else, such as https://keyserver.ubuntu.com/[the Ubuntu
+keyserver]. Until you certify the key, gpg also warns that it is not certified
+with a trusted signature. Comparing the fingerprint is the check that warning
+asks for.
+
+Then unpack the release:
+
+[source,bash,subs="attributes+"]
+----
 tar -xzf colm-suite-{suite-release}.tar.gz
 cd colm-suite-{suite-release}
 ----
@@ -36,19 +70,7 @@ make
 sudo make install
 ----
 
-This installs colm and ragel under `/opt/colm`. Put its `bin` directory on your
-`PATH`:
-
-[source,bash]
-----
-export PATH=/opt/colm/bin:$PATH
-colm --version
-----
-
-----
-Colm version 0.15.0 August 2026
-Copyright (c) 2007-2026 by Dr. Adrian D. Thurston
-----
+This installs colm and ragel under `/opt/colm`.
 
 Without `--prefix`, the suite installs under `/usr/local`. On Debian, Ubuntu and
 other systems that list `/usr/local/lib` in their loader configuration, run
@@ -88,6 +110,22 @@ https://github.com/adrian-thurston/colm-suite#building-with-cmake[Building with
 CMake] lists the options and the other differences from the autotools build.
 
 == Running colm
+
+Either build above installs colm in `/opt/colm/bin`. Put that directory on your
+`PATH`, and check that colm runs:
+
+[source,bash]
+----
+export PATH=/opt/colm/bin:$PATH
+colm --version
+----
+
+The first line it prints is:
+
+[subs="attributes+"]
+----
+Colm version {colm-version} {colm-pubdate}
+----
 
 Colm compiles a program to C, then compiles the C with gcc, against the colm
 headers and the colm runtime library, libcolm, that were installed with it. So

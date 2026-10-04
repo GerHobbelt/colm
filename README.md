@@ -177,6 +177,12 @@ $ make
 $ make install
 ```
 
+Without `--prefix`, the suite installs under `/usr/local`. On Debian, Ubuntu and
+other systems that list `/usr/local/lib` in `/etc/ld.so.conf`, run
+`sudo ldconfig` after `make install`, or colm and ragel won't find their
+libraries. The colm manual's
+[FAQ](doc/colm/9_00_q_and_a.adoc#libcolm-not-found) explains why.
+
 ### Installing one half of the suite
 
 Colm and ragel install together by default. The two halves can be installed
