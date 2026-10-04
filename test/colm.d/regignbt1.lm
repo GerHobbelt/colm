@@ -3,7 +3,9 @@
 # whitespace after it. When the parser backs up over b, b's left ignore goes
 # to accum_ignore, and then detach_right_ignore takes the right ignore off a,
 # the token under b. Those came before the ignores already accumulated, so
-# they must go on the end of the list, not replace it.
+# they must go on the end of the list, not replace it. Here the append comes
+# after backing up over a terminal (and once after an unreduce, in the parse
+# error run). regignbt2 covers the append after an unreduce.
 #
 # This needs two lexical regions. After a token, the scanner reads ignores
 # in its own region, and they become its right ignore. With one region these
@@ -13,10 +15,12 @@
 # as b's left ignore. The spaces at the ends of the IN and EXP lines are
 # those right ignores, so keep them.
 #
-# With the comment ignore in its region, a can have a right ignore of two
-# trees, a space and a comment. The last two runs are a sequence that needs
-# no backing up, and a parse error after backing up, where dropped ignores
-# show only as losses.
+# With the comment ignores, a can have a right ignore of two trees, a space
+# and a comment, and b a left ignore of three. The two runs with a comment in
+# b's left ignore make accum_ignore hold more than one ignore when the append
+# runs, so it has to walk to the end of the list. There is also a sequence
+# that needs no backing up, and a parse error after backing up, where dropped
+# ignores show only as losses.
 #
 
 lex
@@ -29,6 +33,7 @@ lex
 	token b /'b'/
 	literal `!
 	ignore /[ \n]+/
+	ignore /'#' [^\n]*/
 end
 
 def flat
@@ -104,3 +109,21 @@ a
   b ! a
 ##### EXP #####
 error: <stdin>:2:5: parse error
+##### IN #####
+a  
+ #x
+  b a b
+##### EXP #####
+flat: [a  
+ #x
+  b a b
+]
+##### IN #####
+a # c
+#d
+ b a b
+##### EXP #####
+flat: [a # c
+#d
+ b a b
+]

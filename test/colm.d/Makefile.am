@@ -150,6 +150,7 @@ EXTRA_DIST = \
 	ref2.lm \
 	ref3.lm \
 	regignbt1.lm \
+	regignbt2.lm \
 	reor1.lm \
 	reor2.lm \
 	reparse.lm \
