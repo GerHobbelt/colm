@@ -1,0 +1,76 @@
+#
+# A for loop's iter call is evaluated before the loop variable exists, so it
+# resolves names in the enclosing scope. A loop variable named after the tree
+# it iterates over hides that tree in the loop body only.
+#
+
+lex
+	token id / 'a' .. 'z' /
+	literal `( `)
+	ignore / '\n' | '\t' | ' ' /
+end
+
+def item
+	[id]
+|	[`( id* `)]
+
+def start
+	[item*]
+
+parse P: start[stdin]
+
+for P: id in P
+	print( 'default: ', ^P, '\n' )
+
+for P: id in triter( P )
+	print( 'triter: ', ^P, '\n' )
+
+for P: item* in child( P )
+	print( 'child: ', ^P, '\n' )
+
+for X: item in P {
+	print( 'nested:' )
+	for X: id in X
+		print( ' ', ^X )
+	print( '\n' )
+}
+
+void show( S: start )
+{
+	for S: id in S
+		print( 'function: ', ^S, '\n' )
+	print( 'param: ', ^S, '\n' )
+}
+
+show( P )
+
+Q: start = P
+for P: id in Q
+	print( 'body: ', ^P, '\n' )
+
+print( 'outer: ', ^P, '\n' )
+##### IN #####
+a ( b c ) d
+##### EXP #####
+default: a
+default: b
+default: c
+default: d
+triter: a
+triter: b
+triter: c
+triter: d
+child: a ( b c ) d
+nested: a
+nested: b c
+nested: d
+function: a
+function: b
+function: c
+function: d
+param: a ( b c ) d
+body: a
+body: b
+body: c
+body: d
+outer: a ( b c ) d

@@ -248,13 +248,17 @@ struct LoadColm
 			break;
 		}
 		case statement::For: {
+			/* The iter call is evaluated before the loop variable exists, so
+			 * walk it in the enclosing scope. Walked inside the loop's scope,
+			 * a name in it that matches the loop variable would find the loop
+			 * variable instead of the outer one. */
+			IterCall *iterCall = walkIterCall( Statement.iter_call() );
+
 			pushScope();
 
 			String forDecl = Statement.id().text().c_str();
 			TypeRef *typeRef = walkTypeRef( Statement.type_ref() );
 			StmtList *stmtList = walkBlockOrSingle( Statement.block_or_single() );
-
-			IterCall *iterCall = walkIterCall( Statement.iter_call() );
 
 			stmt = forScope( Statement.id().loc(), forDecl,
 					curScope(), typeRef, iterCall, stmtList );

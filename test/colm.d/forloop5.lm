@@ -1,0 +1,30 @@
+#
+# A loop variable can take the name of the list it iterates over, or of a
+# variable passed to a user iterator. The iter call still sees the outer one.
+#
+
+iter dup( S: str )
+{
+	yield S
+	yield S
+}
+
+new L: list<str>()
+L->push_tail( "x" )
+L->push_tail( "y" )
+
+for L: str in L
+	print( 'list: ', L, '\n' )
+print( 'outer: ', L->length, '\n' )
+
+S: str = "s"
+for S: str in dup( S )
+	print( 'dup: ', S, '\n' )
+print( 'outer: ', S, '\n' )
+##### EXP #####
+list: x
+list: y
+outer: 2
+dup: s
+dup: s
+outer: s
