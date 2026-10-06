@@ -1,0 +1,113 @@
+#
+# A for loop's iter call is evaluated before the loop variable exists, so it
+# resolves names in the enclosing scope. A loop variable named after the tree
+# it iterates over hides that tree in the loop body only.
+#
+# The default iterator's implicit triter call finds the built-in iterator, even
+# with a loop variable or another local named triter. A capture written in the
+# iter call is declared in the enclosing scope: it outlives the loop and can
+# take the loop variable's name.
+#
+
+lex
+	token id / 'a' .. 'z' /
+	literal `( `)
+	ignore / '\n' | '\t' | ' ' /
+end
+
+def item
+	[id]
+|	[`( id* `)]
+
+def start
+	[item*]
+
+parse P: start[stdin]
+
+for P: id in P
+	print( 'default: ', ^P, '\n' )
+
+for P: id in triter( P )
+	print( 'triter: ', ^P, '\n' )
+
+for P: item* in child( P )
+	print( 'child: ', ^P, '\n' )
+
+for X: item in P {
+	print( 'nested:' )
+	for X: id in X
+		print( ' ', ^X )
+	print( '\n' )
+}
+
+void show( S: start )
+{
+	for S: id in S
+		print( 'function: ', ^S, '\n' )
+	print( 'param: ', ^S, '\n' )
+}
+
+show( P )
+
+Q: start = P
+for P: id in Q
+	print( 'body: ', ^P, '\n' )
+
+for triter: id in P
+	print( 'named: ', ^triter, '\n' )
+
+void enclosing( S: start )
+{
+	triter: int = 1
+	for X: id in S
+		print( 'enclosing: ', ^X, '\n' )
+}
+
+enclosing( P )
+
+for X: id in parse T: start[ "e ( f )" ]
+	print( 'capture: ', ^X, '\n' )
+print( 'after: ', ^T, '\n' )
+
+for U: id in parse U: start[ "g h" ]
+	print( 'same: ', ^U, '\n' )
+
+print( 'outer: ', ^P, '\n' )
+##### IN #####
+a ( b c ) d
+##### EXP #####
+default: a
+default: b
+default: c
+default: d
+triter: a
+triter: b
+triter: c
+triter: d
+child: a ( b c ) d
+nested: a
+nested: b c
+nested: d
+function: a
+function: b
+function: c
+function: d
+param: a ( b c ) d
+body: a
+body: b
+body: c
+body: d
+named: a
+named: b
+named: c
+named: d
+enclosing: a
+enclosing: b
+enclosing: c
+enclosing: d
+capture: e
+capture: f
+after: e ( f )
+same: g
+same: h
+outer: a ( b c ) d

@@ -551,8 +551,11 @@ void LangStmt::chooseDefaultIter( Compiler *pd, IterCall *iterCall ) const
 {
 	/* This is two-part, It gets rewritten before evaluation in synthesis. */
 
-	/* The iterator name. */
-	LangVarRef *callVarRef = LangVarRef::cons( loc, 0, context, scope, "triter" );
+	/* The iterator name. Look it up in the root namespace, where
+	 * makeDefaultIterators() declares it. In the statement's scope, a local
+	 * named triter, the loop variable included, would be found instead. */
+	LangVarRef *callVarRef = LangVarRef::cons( loc, 0, context,
+			pd->rootNamespace->rootScope, "triter" );
 
 	/* The parameters. */
 	CallArgVect *callExprVect = new CallArgVect;
