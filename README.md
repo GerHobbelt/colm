@@ -196,6 +196,8 @@ $ ./configure --disable-install-ragel   # colm only
 The whole tree is still built either way. Ragel's parsers are written in colm,
 so colm has to be built before ragel can be, and building everything keeps the
 test suite runnable from the build tree. Only the install step is narrowed.
+The manuals are the exception: with `--enable-manual`, only the installed
+half's manual is built, and configure checks only for its tools.
 
 Two things go out in both cases and cannot be excluded from a ragel-only
 install: the colm runtime library, which the ragel programs link, and the aapl
