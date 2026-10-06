@@ -1,10 +1,15 @@
 ASCIIDOCTOR = @ASCIIDOCTOR@
 
 OUTPUT=html5
+
+# The install page and the FAQ show versions from configure.ac.
 OPTIONS=\
 	-a max-width=800px \
 	-a source-highlighter=rouge \
-	-a webfonts!
+	-a webfonts! \
+	-a suite-release=$(PACKAGE_VERSION) \
+	-a colm-version=$(COLM_VERSION) \
+	-a 'colm-pubdate=$(COLM_PUBDATE)'
 
 IN_FILES = \
 	0_00_welcome.adoc 0_06_scope.adoc 1_05_variables.adoc \
@@ -41,6 +46,10 @@ SUFFIXES = .html .adoc
 # The pages include the example programs. Every page is rebuilt when one of
 # them changes, which is simpler than tracking which page includes which.
 $(OUT_FILES): $(CODE)
+
+# The install page and the FAQ show the versions that OPTIONS passes in, so
+# they are rendered again when configure writes a Makefile with new ones.
+0_01_installing.html 9_00_q_and_a.html: Makefile
 
 .adoc.html:
 	$(ASCIIDOCTOR) -b $(OUTPUT) $(OPTIONS) -o $@ $<
