@@ -11,7 +11,7 @@ if(NOT ASCIIDOCTOR)
 		"Asciidoctor, or turn the manual off with -DCOLM_BUILD_MANUAL=OFF.")
 endif()
 
-# The install page shows the release and colm's version, which the top-level
+# The install page and the FAQ show versions, which the top-level
 # CMakeLists.txt reads out of configure.ac.
 set(MANUAL_OPTIONS
 	-b html5
