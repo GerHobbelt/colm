@@ -152,7 +152,9 @@ AM_CONDITIONAL([WITH_RAGEL_KELBT], [test "x$RAGEL_KELBT" = "xyes"])
 dnl
 dnl Which halves of the suite to install. The build always covers the whole
 dnl tree: ragel's parsers are written in colm, so colm must be built either
-dnl way. These options control only what "make install" copies out.
+dnl way. These options control only what "make install" copies out. The
+dnl manuals are the exception: with --enable-manual, only the installed
+dnl half's manual is built, and configure checks only for its tools (below).
 dnl
 dnl The colm runtime library and the aapl headers are installed in both cases.
 dnl Ragel links libcolm and the installed libfsm headers include aapl, so
