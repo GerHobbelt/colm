@@ -1359,13 +1359,6 @@ tree_t *set_list_mem( list_t *list, half_t field, tree_t *value )
 	return existing;
 }
 
-tree_t *map_find( program_t *prg, map_t *map, tree_t *key )
-{
-//	map_el_t *mapEl = mapImplFind( prg, map, key );
-//	return mapEl == 0 ? 0 : mapEl->tree;
-	return 0;
-}
-
 long map_length( map_t *map )
 {
 	return map->tree_size;
