@@ -3,6 +3,11 @@
 # resolves names in the enclosing scope. A loop variable named after the tree
 # it iterates over hides that tree in the loop body only.
 #
+# The default iterator's implicit triter call finds the built-in iterator, even
+# with a loop variable or another local named triter. A capture written in the
+# iter call is declared in the enclosing scope: it outlives the loop and can
+# take the loop variable's name.
+#
 
 lex
 	token id / 'a' .. 'z' /
@@ -48,6 +53,25 @@ Q: start = P
 for P: id in Q
 	print( 'body: ', ^P, '\n' )
 
+for triter: id in P
+	print( 'named: ', ^triter, '\n' )
+
+void enclosing( S: start )
+{
+	triter: int = 1
+	for X: id in S
+		print( 'enclosing: ', ^X, '\n' )
+}
+
+enclosing( P )
+
+for X: id in parse T: start[ "e ( f )" ]
+	print( 'capture: ', ^X, '\n' )
+print( 'after: ', ^T, '\n' )
+
+for U: id in parse U: start[ "g h" ]
+	print( 'same: ', ^U, '\n' )
+
 print( 'outer: ', ^P, '\n' )
 ##### IN #####
 a ( b c ) d
@@ -73,4 +97,17 @@ body: a
 body: b
 body: c
 body: d
+named: a
+named: b
+named: c
+named: d
+enclosing: a
+enclosing: b
+enclosing: c
+enclosing: d
+capture: e
+capture: f
+after: e ( f )
+same: g
+same: h
 outer: a ( b c ) d

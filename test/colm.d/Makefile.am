@@ -65,6 +65,7 @@ EXTRA_DIST = \
 	forloop3.lm \
 	forloop4.lm \
 	forloop5.lm \
+	forloop6.lm \
 	func1.lm \
 	func2.lm \
 	func3.lm \

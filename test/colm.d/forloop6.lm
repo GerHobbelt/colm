@@ -1,0 +1,37 @@
+#
+# A context field named triter doesn't take the place of the default
+# iterator's implicit triter call in a for loop inside the context.
+#
+
+context ctx
+	triter: int
+
+	lex
+		token id / 'a' .. 'z' /
+		literal `( `)
+		ignore / '\n' | '\t' | ' ' /
+	end
+
+	def item
+		[id]
+	|	[`( id* `)]
+
+	def start
+		[item*]
+		{
+			for X: id in r1
+				print( 'context: ', ^X, '\n' )
+		}
+end
+
+C: ctx = new ctx()
+parse P: ctx::start( C )[stdin]
+print( 'parsed: ', ^P, '\n' )
+##### IN #####
+a ( b c ) d
+##### EXP #####
+context: a
+context: b
+context: c
+context: d
+parsed: a ( b c ) d
