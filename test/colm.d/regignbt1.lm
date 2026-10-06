@@ -39,8 +39,8 @@ end
 def flat
 	[a] | [b]
 
-# Unless the input ends in !, the sequence fails and the parser backs up over
-# every token it shifted, into flat*.
+# Unless the input ends in !, the sequence fails. The parser backs up to the
+# first b and reduces the first a to flat instead.
 def start
 	[a b a b `!]
 |	[flat*]
