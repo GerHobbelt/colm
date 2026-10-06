@@ -41,9 +41,13 @@ CLEANFILES = ragel.1
 
 if BUILD_MANUAL
 
+# configure checks for the guide's tools only when ragel is installed.
+# Otherwise their variables are empty, and make would take each recipe's
+# leading option as its ignore-errors prefix and build nothing, so the rules
+# are only defined here.
 if INSTALL_RAGEL
+
 doc_DATA = ragel-guide.html ragel-guide.pdf
-endif
 
 .fig.png:
 	$(FIG2DEV) -L png -S 4 $< $@
@@ -62,5 +66,7 @@ ragel-guide.html: bmconcat.png bmregex.png dropdown.png exdoneact.png \
 
 ragel-guide.pdf: ragel-guide.txt
 	$(A2X) --verbose -f pdf -d book $<
+
+endif
 
 endif

@@ -182,6 +182,15 @@ dnl Tools for the manuals. The colm manual is built only when colm is
 dnl installed, and the ragel guide only when ragel is, so check only for the
 dnl tools of the manuals that will be built.
 dnl
+dnl The rules run the tools through these variables, so a user can pick one
+dnl (FIG2DEV=/opt/x/bin/fig2dev). Declaring them lists them in --help and
+dnl keeps a preset one when config.status --recheck reruns configure.
+dnl
+AC_ARG_VAR([ASCIIDOCTOR], [asciidoctor, for the colm manual])
+AC_ARG_VAR([ASCIIDOC], [asciidoc, for the ragel guide])
+AC_ARG_VAR([A2X], [a2x, for the ragel guide's PDF])
+AC_ARG_VAR([FIG2DEV], [fig2dev, for the ragel guide's figures])
+
 if test "x$build_manual" = "xyes"; then
 	dnl The colm manual is built with Asciidoctor.
 	if test "x$install_colm" = "xyes"; then
