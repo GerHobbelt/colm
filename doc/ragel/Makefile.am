@@ -37,7 +37,7 @@ EXTRA_DIST = ragel-guide.txt ragel.1.in \
 ragel.1: ragel.1.in Makefile
 	@$(top_srcdir)/sedsubst $< $@ -w,+x $(SED_SUBST)
 
-CLEANFILES = ragel.1 *.png.tmp
+CLEANFILES = ragel.1 *.png.tmp ragel-guide.html.tmp
 
 if BUILD_MANUAL
 
@@ -56,8 +56,11 @@ doc_DATA = ragel-guide.html ragel-guide.pdf
 .fig.png:
 	$(FIG2DEV) -L png -S 4 $< $@.tmp && mv -f $@.tmp $@
 
+# asciidoc still writes the HTML when it reports an error in its input, so it
+# writes to a temporary file too. With -o, a VPATH build's HTML goes in the
+# build directory, beside its figures, rather than beside ragel-guide.txt.
 ragel-guide.html: ragel-guide.txt
-	$(ASCIIDOC) -d book $<
+	$(ASCIIDOC) -d book -o $@.tmp $< && mv -f $@.tmp $@
 
 ragel-guide.html: bmconcat.png bmregex.png dropdown.png exdoneact.png \
 	exoutact1.png exstrongsubtr.png lines2.png smallscanner.png bmnull.png \
