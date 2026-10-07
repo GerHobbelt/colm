@@ -37,7 +37,7 @@ EXTRA_DIST = ragel-guide.txt ragel.1.in \
 ragel.1: ragel.1.in Makefile
 	@$(top_srcdir)/sedsubst $< $@ -w,+x $(SED_SUBST)
 
-CLEANFILES = ragel.1
+CLEANFILES = ragel.1 *.png.tmp
 
 if BUILD_MANUAL
 
@@ -49,8 +49,12 @@ if INSTALL_RAGEL
 
 doc_DATA = ragel-guide.html ragel-guide.pdf
 
+# fig2dev opens the PNG before it pipes the figure through gs and pnmtopng,
+# so when they fail it leaves an empty file that the next make takes as built.
+# It writes to a temporary file instead, which is renamed only on success.
+# make clean removes the temporary files that failed runs leave behind.
 .fig.png:
-	$(FIG2DEV) -L png -S 4 $< $@
+	$(FIG2DEV) -L png -S 4 $< $@.tmp && mv -f $@.tmp $@
 
 ragel-guide.html: ragel-guide.txt
 	$(ASCIIDOC) -d book $<
