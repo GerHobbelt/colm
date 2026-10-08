@@ -62,7 +62,10 @@ doc_DATA = ragel-guide.html ragel-guide.pdf
 ragel-guide.html: ragel-guide.txt
 	$(ASCIIDOC) -d book -o $@.tmp $< && mv -f $@.tmp $@
 
-ragel-guide.html: bmconcat.png bmregex.png dropdown.png exdoneact.png \
+# The HTML links the figures and dblatex embeds them in the PDF, so both
+# wait for the figures and are rebuilt when one of them changes.
+ragel-guide.html ragel-guide.pdf: \
+	bmconcat.png bmregex.png dropdown.png exdoneact.png \
 	exoutact1.png exstrongsubtr.png lines2.png smallscanner.png bmnull.png \
 	comments1.png entryguard.png exinter.png exoutact2.png exsubtr.png \
 	lmkleene.png stembed.png bmnum.png comments2.png exaction.png \
