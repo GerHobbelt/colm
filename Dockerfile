@@ -93,15 +93,17 @@ RUN set -eux; \
 
 # Documentation toolchain and release tooling.
 #
-#   asciidoctor       the colm manual; configure requires it for
-#                     --enable-manual
+#   asciidoctor       the colm manual
 #   ruby-rouge        Rouge, the colm manual's source highlighter
-#   asciidoc          asciidoc and a2x, for the ragel guide; configure
-#                     requires it for --enable-manual
+#   asciidoc          asciidoc and a2x, for the ragel guide
 #   fig2dev           the .fig diagrams in the ragel guide
 #   dblatex           the a2x pdf backend, for ragel-guide.pdf; by far the
 #                     largest piece, it pulls in tex live
 #   gnupg             gpg, for signing and verifying release tarballs
+#
+# configure --enable-manual checks for asciidoctor when colm is installed,
+# and for asciidoc, a2x, fig2dev and dblatex when ragel is. Of the
+# documentation packages, only ruby-rouge is optional.
 #
 # Recommends are left on here: dblatex and asciidoc lean on recommended
 # tex and font packages that are painful to enumerate by hand.

@@ -37,9 +37,12 @@ EXTRA_DIST = $(IN_FILES) $(CODE) CMakeLists.txt
 
 if BUILD_MANUAL
 
+# configure checks for asciidoctor only when colm is installed. Otherwise
+# ASCIIDOCTOR is empty, and make would take the recipe's leading "-b" as its
+# ignore-errors prefix and build nothing, so the rules are only defined here.
 if INSTALL_COLM
+
 doc_DATA = $(OUT_FILES)
-endif
 
 SUFFIXES = .html .adoc
 
@@ -53,5 +56,7 @@ $(OUT_FILES): $(CODE)
 
 .adoc.html:
 	$(ASCIIDOCTOR) -b $(OUTPUT) $(OPTIONS) -o $@ $<
+
+endif
 
 endif
