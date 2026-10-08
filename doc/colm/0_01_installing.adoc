@@ -146,7 +146,7 @@ colm hello_world.lm
 ----
 
 ----
-hello world
+include::code/hello_world.exp[]
 ----
 
 `colm hello_world.lm` writes the C program to `hello_world.c` and the executable

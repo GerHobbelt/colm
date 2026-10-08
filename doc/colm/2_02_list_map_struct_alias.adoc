@@ -15,9 +15,7 @@ include::code/poker.lm[]
 When we run this we get:
 
 ----
-ok john 18
-
-	spades King
+include::code/poker.exp[]
 ----
 
 NOTE: this also illustrates how to iterate through a 'list' and access elements in a 'map'.

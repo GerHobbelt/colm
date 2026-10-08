@@ -1,11 +1,12 @@
-# The test harness: enumerates every suite under test/ into one work queue
-# and runs it. It is independent of the colm and ragel under test.
+# The test harness: enumerates every suite under test/, and the manual's
+# example programs, into one work queue and runs it. It is independent of the
+# colm and ragel under test.
 
 noinst_PROGRAMS = harness
 
 harness_SOURCES = \
 	main.cc run.cc process.cc casefile.cc diff.cc util.cc \
-	aapl.cc cgil.cc colm.cc ragel.cc rlhc.cc rlparse.cc trans.cc \
+	aapl.cc cgil.cc colm.cc manual.cc ragel.cc rlhc.cc rlparse.cc trans.cc \
 	harness.h
 
 nodist_harness_SOURCES = config.h

@@ -18,6 +18,7 @@ Suite suites[] = {
 	{ "aapl.d", enumerateAapl },
 	{ "cgil.d", enumerateCgil },
 	{ "colm.d", enumerateColm },
+	{ "manual", enumerateManual },
 	{ "ragel.d", enumerateRagel },
 	{ "rlhc.d", enumerateRlhc },
 	{ "rlparse.d", enumerateRlparse },
@@ -30,9 +31,11 @@ static void usage()
 	printf(
 "usage: harness [options] [selection ...]\n"
 "\n"
-"Runs the test suites under test/. A selection is a suite (colm.d), a case\n"
-"file in a suite (colm.d/argv1.lm, ragel.d/atoi1.rl, rlhc.d/case/x.in), or,\n"
-"when run from inside a suite directory, a bare case file name.\n"
+"Runs the test suites under test/, and the manual suite: the colm manual's\n"
+"example programs in doc/colm/code. A selection is a suite (colm.d), a case\n"
+"file in a suite (colm.d/argv1.lm, ragel.d/atoi1.rl, rlhc.d/case/x.in,\n"
+"manual/fizzbuzz.lm), or, when run from inside a suite directory, a bare case\n"
+"file name.\n"
 "\n"
 "  -j N              run N cases at once (default: MAKEFLAGS, then the CPU count)\n"
 "  -v                report every case, not only failures\n"
@@ -44,8 +47,8 @@ static void usage()
 "                    -W0 -W1 -G0 -G1 -G2 -n -m -e --string-tables)\n"
 "  --stress SECS     aapl.d: run each stress program for SECS seconds (default: 5;\n"
 "                    0 skips them)\n"
-"  --valgrind        colm.d: run each program under valgrind, failing the case on a\n"
-"                    memory error or definite leak\n"
+"  --valgrind        colm.d and manual: run each program under valgrind, failing\n"
+"                    the case on a memory error or definite leak\n"
 "  --list            list the selected cases without running them\n"
 "  --commands        print the steps of the selected cases without running them\n"
 "  --keep            keep the generated files of passing cases\n"
@@ -53,8 +56,9 @@ static void usage()
 "  --srcdir DIR      the test source directory (default: the configured one)\n"
 "  --builddir DIR    the test build directory (default: the configured one)\n"
 "\n"
-"Results go to working/ under each suite's build directory: a .diff file per\n"
-"failing case with the differences and the commands run.\n"
+"Results go to working/ under each suite's build directory, test/manual for the\n"
+"manual: a .diff file per failing case with the differences and the commands\n"
+"run.\n"
 "\n"
 "Exit status: 0 all passed, 1 the harness could not run a case, 2 a case failed.\n"
 	);
@@ -198,6 +202,7 @@ int main( int argc, char **argv )
 	Config config;
 	config.srcdir = joinPath( HARNESS_TOP_SRCDIR, "test" );
 	config.builddir = joinPath( HARNESS_TOP_BUILDDIR, "test" );
+	config.topSrcdir = HARNESS_TOP_SRCDIR;
 	config.topBuilddir = HARNESS_TOP_BUILDDIR;
 	config.cc = HARNESS_CC;
 	config.cxx = HARNESS_CXX;

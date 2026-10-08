@@ -26,11 +26,7 @@ Please Note:
 
 That gives us:
 ----
-hello 0 0
-hello 1 1
-hello 2 2
-hello 8 3
-hello 9 4
+include::code/figure_44.exp[]
 ----
 
 == Real FizzBuzz
@@ -60,24 +56,5 @@ Please note:
 
 That gives us
 ----
-FizzBuzz
-1
-2
-Fizz
-4
-Buzz
-Fizz
-7
-8
-Fizz
-Buzz
-11
-Fizz
-13
-14
-FizzBuzz
-16
-17
-Fizz
-19
+include::code/fizzbuzz.exp[]
 ----

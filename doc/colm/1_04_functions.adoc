@@ -17,9 +17,6 @@ include::code/reference.lm[]
 Compiling and running would give us:
 
 ----
-in global global
-in SA global
-in SA sa
-in global sa
+include::code/reference.exp[]
 ----
 

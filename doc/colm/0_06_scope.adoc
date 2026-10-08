@@ -19,15 +19,7 @@ We run it with
 
 That gives us:
 ----
-in global global
-in A global
-in B a
-in B b
-in A a
-in global global
-in C NIL
-in C c
-in global c
+include::code/scope.exp[]
 ----
 
 The thesis also mentions that variables can be passed by reference instead of by value.
@@ -40,15 +32,7 @@ include::code/nested_scope.lm[]
 
 That gives us:
 ----
-in global global
-in A global
-in B a
-in B b
-in A a
-in global global
-in C NIL
-in C c
-in global c
+include::code/scope.exp[]
 ----
 
 [source,bash]
@@ -59,11 +43,5 @@ in global c
 
 It seems that this is still the case.
 ----
-in global global
-before block1 global
-in block1 block1
-in loop block1a
-in block1 block1a
-in A block1a
-in global global
+include::code/nested_scope.exp[]
 ----
