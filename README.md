@@ -177,6 +177,12 @@ $ make
 $ make install
 ```
 
+Without `--prefix`, the suite installs under `/usr/local`. On Debian, Ubuntu and
+other systems that list `/usr/local/lib` in `/etc/ld.so.conf`, run
+`sudo ldconfig` after `make install`, or colm and ragel won't find their
+libraries. The colm manual's
+[FAQ](doc/colm/9_00_q_and_a.adoc#libcolm-not-found) explains why.
+
 ### Installing one half of the suite
 
 Colm and ragel install together by default. The two halves can be installed
@@ -245,9 +251,14 @@ finds 7.1.x, `7.1...<8` does not.
 
 `ragel::libragel` links the colm runtime, so `find_package(ragel)` loads the
 colm package too, at exactly the colm version ragel was built with. It passes
-over any other colm on the search path, and fails if the project has already
-found a different colm version. It also looks for colm beside the ragel package,
-so setting `ragel_DIR` to an install or a build tree is enough.
+over any other colm on the search path. It also looks for colm beside the ragel
+package, so setting `ragel_DIR` to an install or a build tree is enough.
+
+Once a project has loaded colm, through `find_package(colm)` or
+`find_package(ragel)`, its colm targets stay, even when it was found inside a
+function or under the name `Colm`. So a later `find_package(colm)` fails if the
+colm already loaded is a different version, and `find_package(ragel)` fails if
+it isn't the colm ragel was built with.
 
 The autotools build remains the reference build. Known differences:
 

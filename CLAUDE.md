@@ -108,11 +108,13 @@ cd test/ragel.d && ../harness/harness atoi1.rl     # from inside a suite
 ./test/harness/harness --suite colm.d --valgrind   # colm.d programs under valgrind
 ./test/harness/harness --suite manual              # the manual's example programs
 ./test/harness/harness -v --tap results.tap        # every result, TAP output
+./test/harness/harness -j 4 --suite colm.d         # 4 cases at once
 ```
 
 The harness (`test/harness/`) enumerates all eight suites into one work queue
-and runs them in parallel. Failures leave a `.diff` file in the suite's
-`working/` directory with the differences and the commands run.
+and runs them in parallel, `-j N` cases at once (by default the `-j` of
+`make -j N check`, else the CPU count). Failures leave a `.diff` file in the
+suite's `working/` directory with the differences and the commands run.
 
 Seven suites are the directories under `test/`. The eighth, `manual`, runs
 the colm manual's example programs, `doc/colm/code/NAME.lm`, with `NAME.in`
@@ -125,6 +127,11 @@ Each colm.d and manual run sets `COLM_LEAK_CHECK`, so a program that loses
 pool items (kids, trees, heads, ...) fails its case. A colm.d case's `LOST`
 section lists known losses that don't. `--valgrind` also catches memory errors
 and malloc leaks.
+
+A fix comes with a test case that fails without it: Colm cases go in
+`test/colm.d`, Ragel cases in `test/ragel.d`. For a change to the runtime's
+memory handling (`src/colm/*.c`), also run the cases it touches with
+`--valgrind`.
 
 ## Code Architecture
 
@@ -199,6 +206,21 @@ and malloc leaks.
 - Function blocks start on new line
 - C-style comments for documentation
 - C++ style comments for disabled code
+
+## Commits and Issues
+
+- Commit subjects name the area, then what changed, e.g.
+  `colm: detach the right ignore under a nonterminal after unreducing it`.
+- Issue titles name the area, then what is wrong, not the fix, e.g.
+  `colm: calling exit inside a token action segfaults`.
+
+## Changing the Runtime
+
+- Runtime bugs hide in three places: reference counts (`refs`), who owns
+  ignore lists and trees, and the reverse code (`rcode`) and `undo_*` paths
+  that backtracking runs. Check all three for any change.
+- Installed headers and the libraries' exported symbols are public interface:
+  change them only on purpose, and say so in the PR.
 
 ## Important Notes
 

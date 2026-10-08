@@ -63,6 +63,9 @@ EXTRA_DIST = \
 	forloop1.lm \
 	forloop2.lm \
 	forloop3.lm \
+	forloop4.lm \
+	forloop5.lm \
+	forloop6.lm \
 	func1.lm \
 	func2.lm \
 	func3.lm \
@@ -104,6 +107,7 @@ EXTRA_DIST = \
 	map6.lm \
 	map7.lm \
 	map8.lm \
+	map9.lm \
 	matchex.lm \
 	matchtext1.lm \
 	maxlen.lm \
@@ -123,6 +127,7 @@ EXTRA_DIST = \
 	ntrejbt2.lm \
 	ntrejbt3.lm \
 	ntrejbt4.lm \
+	ntrejbt5.lm \
 	open1.lm \
 	open2.lm \
 	order1.lm \
@@ -149,6 +154,8 @@ EXTRA_DIST = \
 	ref1.lm \
 	ref2.lm \
 	ref3.lm \
+	regignbt1.lm \
+	regignbt2.lm \
 	reor1.lm \
 	reor2.lm \
 	reparse.lm \
@@ -194,6 +201,7 @@ EXTRA_DIST = \
 	undolist1.lm \
 	undomap1.lm \
 	undomap2.lm \
+	undomap3.lm \
 	undopush1.lm \
 	undosplit1.lm \
 	undosplit2.lm \
