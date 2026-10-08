@@ -297,6 +297,11 @@ $ make check
 ```
 
 Test suites are under `test/` with subdirectories for each component (`colm.d`, `ragel.d`, `aapl.d`, etc.).
+One more, `manual`, runs the colm manual's example programs,
+`doc/colm/code/NAME.lm`, with `NAME.in` on stdin if there is one, and compares
+their output with `NAME.exp`. The chapters include those files, so a new example
+needs its `.exp` (and `.in`) there too, listed in `doc/colm/Makefile.am` and
+`doc/colm/CMakeLists.txt`.
 
 
 ## Syntax highlighting
