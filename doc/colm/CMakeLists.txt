@@ -11,11 +11,16 @@ if(NOT ASCIIDOCTOR)
 		"Asciidoctor, or turn the manual off with -DCOLM_BUILD_MANUAL=OFF.")
 endif()
 
+# The install page and the FAQ show versions, which the top-level
+# CMakeLists.txt reads out of configure.ac.
 set(MANUAL_OPTIONS
 	-b html5
 	-a max-width=800px
 	-a source-highlighter=rouge
-	-a webfonts!)
+	-a webfonts!
+	-a suite-release=${SUITE_VERSION}
+	-a colm-version=${COLM_VERSION}
+	-a "colm-pubdate=${COLM_PUBDATE}")
 
 set(MANUAL_PAGES
 	0_00_welcome 0_06_scope 1_05_variables
@@ -30,11 +35,19 @@ set(MANUAL_PAGES
 	0_05_fizzbuzz 1_04_functions 2_03_def
 	3_05_reduction 8_05_contributing)
 
-# The example programs the pages include. Every page is rebuilt when one of
-# them changes, which is simpler than tracking which page includes which.
+# The example programs, with their output (.exp) and input (.in), which the
+# pages include. Every page is rebuilt when one of them changes, which is
+# simpler than tracking which page includes which.
 set(MANUAL_CODE
-	code/assign.lm code/fizzbuzz.lm code/nested_scope.lm code/reference.lm
-	code/figure_44.lm code/hello_world.lm code/poker.lm code/scope.lm)
+	code/assign.lm           code/assign.exp           code/assign.in
+	code/figure_44.lm        code/figure_44.exp
+	code/fizzbuzz.lm         code/fizzbuzz.exp
+	code/hello_world.lm      code/hello_world.exp
+	code/hello_world_ext.lm  code/hello_world_ext.exp
+	code/nested_scope.lm     code/nested_scope.exp
+	code/poker.lm            code/poker.exp
+	code/reference.lm        code/reference.exp
+	code/scope.lm            code/scope.exp)
 list(TRANSFORM MANUAL_CODE PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")
 
 set(MANUAL_HTML)

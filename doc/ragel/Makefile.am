@@ -37,21 +37,35 @@ EXTRA_DIST = ragel-guide.txt ragel.1.in \
 ragel.1: ragel.1.in Makefile
 	@$(top_srcdir)/sedsubst $< $@ -w,+x $(SED_SUBST)
 
-CLEANFILES = ragel.1
+CLEANFILES = ragel.1 *.png.tmp ragel-guide.html.tmp
 
 if BUILD_MANUAL
 
+# configure checks for the guide's tools only when ragel is installed.
+# Otherwise their variables are empty, and make would take each recipe's
+# leading option as its ignore-errors prefix and build nothing, so the rules
+# are only defined here.
 if INSTALL_RAGEL
+
 doc_DATA = ragel-guide.html ragel-guide.pdf
-endif
 
+# fig2dev opens the PNG before it pipes the figure through gs and pnmtopng,
+# so when they fail it leaves an empty file that the next make takes as built.
+# It writes to a temporary file instead, which is renamed only on success.
+# make clean removes the temporary files that failed runs leave behind.
 .fig.png:
-	fig2dev -L png -S 4 $< $@
+	$(FIG2DEV) -L png -S 4 $< $@.tmp && mv -f $@.tmp $@
 
+# asciidoc still writes the HTML when it reports an error in its input, so it
+# writes to a temporary file too. With -o, a VPATH build's HTML goes in the
+# build directory, beside its figures, rather than beside ragel-guide.txt.
 ragel-guide.html: ragel-guide.txt
-	asciidoc -d book $<
+	$(ASCIIDOC) -d book -o $@.tmp $< && mv -f $@.tmp $@
 
-ragel-guide.html: bmconcat.png bmregex.png dropdown.png exdoneact.png \
+# The HTML links the figures and dblatex embeds them in the PDF, so both
+# wait for the figures and are rebuilt when one of them changes.
+ragel-guide.html ragel-guide.pdf: \
+	bmconcat.png bmregex.png dropdown.png exdoneact.png \
 	exoutact1.png exstrongsubtr.png lines2.png smallscanner.png bmnull.png \
 	comments1.png entryguard.png exinter.png exoutact2.png exsubtr.png \
 	lmkleene.png stembed.png bmnum.png comments2.png exaction.png \
@@ -61,6 +75,8 @@ ragel-guide.html: bmconcat.png bmregex.png dropdown.png exdoneact.png \
 	opstar.png
 
 ragel-guide.pdf: ragel-guide.txt
-	a2x --verbose -f pdf -d book $<
+	$(A2X) --verbose -f pdf -d book $<
+
+endif
 
 endif

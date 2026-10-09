@@ -31,6 +31,10 @@ struct Config
 	/* The test source and build directories (the test/ directories). */
 	std::string srcdir;
 	std::string builddir;
+
+	/* The top of the source tree, which holds the manual's examples, and of
+	 * the build tree. */
+	std::string topSrcdir;
 	std::string topBuilddir;
 
 	std::string cc, cxx;
@@ -69,7 +73,7 @@ struct Config
 	/* aapl.d: how long each stress program runs. Zero skips them. */
 	int stressSecs;
 
-	/* colm.d: run the programs under valgrind. */
+	/* colm.d and manual: run the programs under valgrind. */
 	bool valgrind;
 
 	Config()
@@ -230,7 +234,43 @@ void enumerateRlhc( const Config &config, const Selection &sel, JobList &jobs );
 void enumerateRlparse( const Config &config, const Selection &sel, JobList &jobs );
 void enumerateTrans( const Config &config, const Selection &sel, JobList &jobs );
 void enumerateColm( const Config &config, const Selection &sel, JobList &jobs );
+void enumerateManual( const Config &config, const Selection &sel, JobList &jobs );
 void enumerateRagel( const Config &config, const Selection &sel, JobList &jobs );
+
+/*
+ * Colm programs, as colm.d and the manual compile and run them.
+ */
+
+/* The program, its compilation arguments, and the C functions it calls (CALL)
+ * and the host program it is linked into (HOST), if it has them. */
+struct ColmProgram
+{
+	std::string text;
+	Words comp;
+	bool hasCall, hasHost;
+	std::string call, host;
+
+	ColmProgram() : hasCall(false), hasHost(false) {}
+};
+
+/* One run of the compiled program. */
+struct ColmRun
+{
+	Words args;
+	std::string stdinFile;   /* empty: no input */
+	int exitValue;
+	std::string lost;        /* the leak reports that don't fail the run */
+	std::string expected;
+	std::string label;
+
+	ColmRun() : exitValue(0) {}
+};
+
+/* colmCompile adds the steps that compile the program to working/NAME in the
+ * job's suite build directory, NAME being the job's name. colmRun adds a run
+ * of it, checked for its output, its exit value and its leak reports. */
+void colmCompile( const Config &config, Job *job, const ColmProgram &prog );
+void colmRun( const Config &config, Job *job, const ColmRun &run );
 
 /*
  * Case files: the common section and directive language.

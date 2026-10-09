@@ -37,7 +37,7 @@ When we execute it:
 We'll see:
 
 ----
-hello world
+include::code/hello_world.exp[]
 ----
 
 We can strip the file to check if we can reduce the executable.
@@ -57,7 +57,7 @@ TIP: It turns out that print is also a function that can have multiple arguments
 [source,chapel]
 .hello_world_ext.lm
 ----
-print( 'hello ', "world\r\n" )
+include::code/hello_world_ext.lm[]
 ----
 
 We also notice that:

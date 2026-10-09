@@ -87,12 +87,6 @@ typedef struct colm_ref
 	struct colm_ref *next;
 } ref_t;
 
-struct tree_pair
-{
-	tree_t *key;
-	tree_t *val;
-};
-
 typedef struct colm_parse_tree
 {
 	short id;

@@ -26,6 +26,8 @@
  * fails the case. Valgrind sees inside the pools only when the runtime is
  * configured with --enable-pool-malloc, which leaves the runtime's own counts
  * at zero.
+ *
+ * colmCompile and colmRun build these steps for the manual suite too.
  */
 
 #include "harness.h"
@@ -88,6 +90,112 @@ static void stage( const std::string &src, const std::string &build )
 	}
 }
 
+/* Write the program to working/ROOT.lm in its suite's build directory and
+ * compile it to working/ROOT, ROOT being the job's name. Paths are relative to
+ * the build directory the steps run in, as colm.d's cases themselves expect. */
+void colmCompile( const Config &config, Job *job, const ColmProgram &prog )
+{
+	const std::string &root = job->name;
+	std::string build = config.suiteBuild( job->suite.c_str() );
+	std::string wk = config.working( job->suite.c_str() );
+	std::string lm = "working/" + root + ".lm";
+
+	job->steps.push_back( Step::writeFile( joinPath( wk, root + ".lm" ), prog.text ) );
+
+	Words adds;
+	if ( prog.hasCall ) {
+		job->steps.push_back( Step::writeFile( joinPath( wk, root + ".call.c" ), prog.call ) );
+		adds.push_back( "-a" );
+		adds.push_back( "working/" + root + ".call.c" );
+	}
+
+	if ( prog.hasHost ) {
+		job->steps.push_back( Step::writeFile( joinPath( wk, root + ".host.cc" ), prog.host ) );
+
+		std::string parse = "working/" + root + ".parse";
+		std::string iface = "working/" + root + ".if";
+
+		Words argv;
+		argv.push_back( config.colmBin );
+		argv.insert( argv.end(), prog.comp.begin(), prog.comp.end() );
+		argv.push_back( "-c" );
+		argv.push_back( "-o" );
+		argv.push_back( parse + ".c" );
+		argv.push_back( "-e" );
+		argv.push_back( iface + ".h" );
+		argv.push_back( "-x" );
+		argv.push_back( iface + ".cc" );
+		argv.push_back( lm );
+		job->steps.push_back( Step::exec( Step::Compile, argv, build ).capture( CaptureLog ) );
+
+		argv.clear();
+		argv.push_back( config.cc );
+		argv.push_back( "-c" );
+		argv.insert( argv.end(), config.colmCppflags.begin(), config.colmCppflags.end() );
+		argv.insert( argv.end(), config.colmLdflags.begin(), config.colmLdflags.end() );
+		argv.push_back( "-o" );
+		argv.push_back( parse + ".o" );
+		argv.push_back( parse + ".c" );
+		job->steps.push_back( Step::exec( Step::Compile, argv, build ).capture( CaptureLog ) );
+
+		argv.clear();
+		argv.push_back( config.cxx );
+		argv.push_back( "-I." );
+		argv.insert( argv.end(), config.colmCppflags.begin(), config.colmCppflags.end() );
+		argv.insert( argv.end(), config.colmLdflags.begin(), config.colmLdflags.end() );
+		argv.push_back( "-o" );
+		argv.push_back( "working/" + root );
+		argv.push_back( iface + ".cc" );
+		argv.push_back( "working/" + root + ".host.cc" );
+		argv.push_back( parse + ".o" );
+		argv.push_back( "-lcolm" );
+		job->steps.push_back( Step::exec( Step::Compile, argv, build ).capture( CaptureLog ) );
+	}
+	else {
+		Words argv;
+		argv.push_back( config.colmBin );
+		argv.push_back( "-B" );
+		argv.push_back( config.topBuilddir );
+		argv.insert( argv.end(), prog.comp.begin(), prog.comp.end() );
+		argv.insert( argv.end(), adds.begin(), adds.end() );
+		argv.push_back( lm );
+		job->steps.push_back( Step::exec( Step::Compile, argv, build ).capture( CaptureLog ) );
+	}
+
+	job->artifacts.push_back( joinPath( wk, root ) );
+	job->artifacts.push_back( joinPath( wk, root + ".*" ) );
+	job->artifacts.push_back( joinPath( wk, root + "-*" ) );
+}
+
+/* Run the program colmCompile built, with COLM_LEAK_CHECK set, and compare its
+ * output. */
+void colmRun( const Config &config, Job *job, const ColmRun &run )
+{
+	std::string build = config.suiteBuild( job->suite.c_str() );
+
+	int errorExit = -1;
+	Words argv;
+	if ( config.valgrind ) {
+		errorExit = valgrindExit;
+		char opt[64];
+		snprintf( opt, sizeof(opt), "--error-exitcode=%d", valgrindExit );
+		argv.push_back( "valgrind" );
+		argv.push_back( "-q" );
+		argv.push_back( opt );
+		argv.push_back( "--leak-check=full" );
+		argv.push_back( "--show-leak-kinds=definite" );
+		argv.push_back( "--errors-for-leak-kinds=definite" );
+	}
+	argv.push_back( "./working/" + job->name );
+	argv.insert( argv.end(), run.args.begin(), run.args.end() );
+
+	job->steps.push_back( Step::exec( Step::Run, argv, build )
+			.stdinFrom( run.stdinFile ).capture( CaptureOutput ).exit( run.exitValue )
+			.environment( "COLM_LEAK_CHECK=1" )
+			.errorsFrom( errorExit, "message: warning: ", run.lost ).labelled( run.label ) );
+	job->steps.push_back( Step::compare( run.expected, run.label ) );
+}
+
 void enumerateColm( const Config &config, const Selection &sel, JobList &jobs )
 {
 	const char *suite = "colm.d";
@@ -120,79 +228,16 @@ void enumerateColm( const Config &config, const Selection &sel, JobList &jobs )
 			continue;
 		}
 
-		/* Paths are relative to the build directory the steps run in, as the
-		 * cases themselves expect. */
-		std::string lm = "working/" + root + ".lm";
-		std::string bin = "./working/" + root;
-
-		job->steps.push_back( Step::writeFile( joinPath( wk, root + ".lm" ), noEol( cf.preamble ) ) );
+		ColmProgram prog;
+		prog.text = noEol( cf.preamble );
+		prog.hasCall = section( cf, "CALL", 0, prog.call );
+		prog.hasHost = section( cf, "HOST", 0, prog.host );
 
 		std::string body;
-		Words adds;
-		if ( section( cf, "CALL", 0, body ) ) {
-			job->steps.push_back( Step::writeFile( joinPath( wk, root + ".call.c" ), body ) );
-			adds.push_back( "-a" );
-			adds.push_back( "working/" + root + ".call.c" );
-		}
-
-		bool host = section( cf, "HOST", 0, body );
-		if ( host )
-			job->steps.push_back( Step::writeFile( joinPath( wk, root + ".host.cc" ), body ) );
-
-		Words comp;
 		if ( section( cf, "COMP", 0, body ) )
-			comp = splitWords( body );
+			prog.comp = splitWords( body );
 
-		if ( host ) {
-			std::string parse = "working/" + root + ".parse";
-			std::string iface = "working/" + root + ".if";
-
-			Words argv;
-			argv.push_back( config.colmBin );
-			argv.insert( argv.end(), comp.begin(), comp.end() );
-			argv.push_back( "-c" );
-			argv.push_back( "-o" );
-			argv.push_back( parse + ".c" );
-			argv.push_back( "-e" );
-			argv.push_back( iface + ".h" );
-			argv.push_back( "-x" );
-			argv.push_back( iface + ".cc" );
-			argv.push_back( lm );
-			job->steps.push_back( Step::exec( Step::Compile, argv, build ).capture( CaptureLog ) );
-
-			argv.clear();
-			argv.push_back( config.cc );
-			argv.push_back( "-c" );
-			argv.insert( argv.end(), config.colmCppflags.begin(), config.colmCppflags.end() );
-			argv.insert( argv.end(), config.colmLdflags.begin(), config.colmLdflags.end() );
-			argv.push_back( "-o" );
-			argv.push_back( parse + ".o" );
-			argv.push_back( parse + ".c" );
-			job->steps.push_back( Step::exec( Step::Compile, argv, build ).capture( CaptureLog ) );
-
-			argv.clear();
-			argv.push_back( config.cxx );
-			argv.push_back( "-I." );
-			argv.insert( argv.end(), config.colmCppflags.begin(), config.colmCppflags.end() );
-			argv.insert( argv.end(), config.colmLdflags.begin(), config.colmLdflags.end() );
-			argv.push_back( "-o" );
-			argv.push_back( "working/" + root );
-			argv.push_back( iface + ".cc" );
-			argv.push_back( "working/" + root + ".host.cc" );
-			argv.push_back( parse + ".o" );
-			argv.push_back( "-lcolm" );
-			job->steps.push_back( Step::exec( Step::Compile, argv, build ).capture( CaptureLog ) );
-		}
-		else {
-			Words argv;
-			argv.push_back( config.colmBin );
-			argv.push_back( "-B" );
-			argv.push_back( config.topBuilddir );
-			argv.insert( argv.end(), comp.begin(), comp.end() );
-			argv.insert( argv.end(), adds.begin(), adds.end() );
-			argv.push_back( lm );
-			job->steps.push_back( Step::exec( Step::Compile, argv, build ).capture( CaptureLog ) );
-		}
+		colmCompile( config, job, prog );
 
 		/* One run per expected output. With none at all, one run against an
 		 * empty expected output. */
@@ -206,63 +251,34 @@ void enumerateColm( const Config &config, const Selection &sel, JobList &jobs )
 		}
 
 		for ( int nth = 0; nth < total; nth++ ) {
-			std::string expected;
-			section( cf, "EXP", nth, expected );
+			ColmRun run;
+			section( cf, "EXP", nth, run.expected );
 
-			Words args;
 			if ( section( cf, "ARGS", nth, body ) )
-				args = splitWords( body );
+				run.args = splitWords( body );
 
-			std::string stdinFile;
 			if ( section( cf, "IN", nth, body ) ) {
 				char num[32];
 				snprintf( num, sizeof(num), "-%d.in", nth );
-				stdinFile = joinPath( wk, root + num );
-				job->steps.push_back( Step::writeFile( stdinFile, body ) );
+				run.stdinFile = joinPath( wk, root + num );
+				job->steps.push_back( Step::writeFile( run.stdinFile, body ) );
 			}
 			else if ( fileExists( joinPath( src, root + ".in" ) ) ) {
-				stdinFile = joinPath( src, root + ".in" );
+				run.stdinFile = joinPath( src, root + ".in" );
 			}
 
-			int exitValue = 0;
 			if ( section( cf, "EXIT", nth, body ) && !trim( body ).empty() )
-				exitValue = atoi( trim( body ).c_str() );
+				run.exitValue = atoi( trim( body ).c_str() );
 
-			std::string lost;
-			section( cf, "LOST", nth, lost );
+			section( cf, "LOST", nth, run.lost );
 
-			int errorExit = -1;
-			Words argv;
-			if ( config.valgrind ) {
-				errorExit = valgrindExit;
-				char opt[64];
-				snprintf( opt, sizeof(opt), "--error-exitcode=%d", valgrindExit );
-				argv.push_back( "valgrind" );
-				argv.push_back( "-q" );
-				argv.push_back( opt );
-				argv.push_back( "--leak-check=full" );
-				argv.push_back( "--show-leak-kinds=definite" );
-				argv.push_back( "--errors-for-leak-kinds=definite" );
-			}
-			argv.push_back( bin );
-			argv.insert( argv.end(), args.begin(), args.end() );
-
-			std::string label;
 			if ( total > 1 ) {
 				char num[32];
 				snprintf( num, sizeof(num), "run %d", nth );
-				label = num;
+				run.label = num;
 			}
 
-			job->steps.push_back( Step::exec( Step::Run, argv, build )
-					.stdinFrom( stdinFile ).capture( CaptureOutput ).exit( exitValue )
-					.environment( "COLM_LEAK_CHECK=1" )
-					.errorsFrom( errorExit, "message: warning: ", lost ).labelled( label ) );
-			job->steps.push_back( Step::compare( expected, label ) );
+			colmRun( config, job, run );
 		}
-
-		job->artifacts.push_back( joinPath( wk, root ) );
-		job->artifacts.push_back( joinPath( wk, root + ".*" ) );
-		job->artifacts.push_back( joinPath( wk, root + "-*" ) );
 	}
 }

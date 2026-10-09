@@ -162,8 +162,13 @@ See the [`examples/`](examples/) directory for sample Ragel programs.
 
 For the documentation (`./configure --enable-manual`), install
 [Asciidoctor](https://asciidoctor.org/) for the colm manual, and
-[`asciidoc`](https://asciidoc-py.github.io/) and
-[`fig2dev`](https://github.com/getlarky/fig2dev) for the ragel guide, as well.
+[`asciidoc`](https://asciidoc-py.github.io/),
+[`fig2dev`](https://github.com/getlarky/fig2dev) and
+[dblatex](https://dblatex.sourceforge.net/) for the ragel guide, as well. The
+guide's PDF is made by `a2x`, which comes with `asciidoc`, using dblatex. Each
+manual is built only when its half of the suite is installed (see [Installing
+one half of the suite](#installing-one-half-of-the-suite)), and configure checks
+only for the tools of the manuals it will build.
 With [Rouge](https://rouge.jneen.net/) (`ruby-rouge`) installed, the manual's
 shell and vim examples are highlighted. Rouge has no lexer for colm, so the
 colm examples are not.
@@ -176,6 +181,12 @@ $ ./configure
 $ make
 $ make install
 ```
+
+Without `--prefix`, the suite installs under `/usr/local`. On Debian, Ubuntu and
+other systems that list `/usr/local/lib` in `/etc/ld.so.conf`, run
+`sudo ldconfig` after `make install`, or colm and ragel won't find their
+libraries. The colm manual's
+[FAQ](doc/colm/9_00_q_and_a.adoc#libcolm-not-found) explains why.
 
 ### Installing one half of the suite
 
@@ -191,6 +202,8 @@ $ ./configure --disable-install-ragel   # colm only
 The whole tree is still built either way. Ragel's parsers are written in colm,
 so colm has to be built before ragel can be, and building everything keeps the
 test suite runnable from the build tree. Only the install step is narrowed.
+The manuals are the exception: with `--enable-manual`, only the installed
+half's manual is built, and configure checks only for its tools.
 
 Two things go out in both cases and cannot be excluded from a ragel-only
 install: the colm runtime library, which the ragel programs link, and the aapl
@@ -245,9 +258,14 @@ finds 7.1.x, `7.1...<8` does not.
 
 `ragel::libragel` links the colm runtime, so `find_package(ragel)` loads the
 colm package too, at exactly the colm version ragel was built with. It passes
-over any other colm on the search path, and fails if the project has already
-found a different colm version. It also looks for colm beside the ragel package,
-so setting `ragel_DIR` to an install or a build tree is enough.
+over any other colm on the search path. It also looks for colm beside the ragel
+package, so setting `ragel_DIR` to an install or a build tree is enough.
+
+Once a project has loaded colm, through `find_package(colm)` or
+`find_package(ragel)`, its colm targets stay, even when it was found inside a
+function or under the name `Colm`. So a later `find_package(colm)` fails if the
+colm already loaded is a different version, and `find_package(ragel)` fails if
+it isn't the colm ragel was built with.
 
 The autotools build remains the reference build. Known differences:
 
@@ -286,6 +304,11 @@ $ make check
 ```
 
 Test suites are under `test/` with subdirectories for each component (`colm.d`, `ragel.d`, `aapl.d`, etc.).
+One more, `manual`, runs the colm manual's example programs,
+`doc/colm/code/NAME.lm`, with `NAME.in` on stdin if there is one, and compares
+their output with `NAME.exp`. The chapters include those files, so a new example
+needs its `.exp` (and `.in`) there too, listed in `doc/colm/Makefile.am` and
+`doc/colm/CMakeLists.txt`.
 
 
 ## Syntax highlighting

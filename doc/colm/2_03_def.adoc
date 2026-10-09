@@ -22,9 +22,7 @@ echo -e 'b=3;a=1;\n c=2;' |./assign
 This gives us:
 
 ----
-b->3
-a->1
-c->2
+include::code/assign.exp[]
 ----
 
 NOTE: this also illustrates how to read from 'stdin'.

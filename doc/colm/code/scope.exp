@@ -1,0 +1,9 @@
+in global global
+in A global
+in B a
+in B b
+in A a
+in global global
+in C NIL
+in C c
+in global c

@@ -1,10 +1,15 @@
 ASCIIDOCTOR = @ASCIIDOCTOR@
 
 OUTPUT=html5
+
+# The install page and the FAQ show versions from configure.ac.
 OPTIONS=\
 	-a max-width=800px \
 	-a source-highlighter=rouge \
-	-a webfonts!
+	-a webfonts! \
+	-a suite-release=$(PACKAGE_VERSION) \
+	-a colm-version=$(COLM_VERSION) \
+	-a 'colm-pubdate=$(COLM_PUBDATE)'
 
 IN_FILES = \
 	0_00_welcome.adoc 0_06_scope.adoc 1_05_variables.adoc \
@@ -19,9 +24,19 @@ IN_FILES = \
 	0_05_fizzbuzz.adoc 1_04_functions.adoc 2_03_def.adoc \
 	3_05_reduction.adoc 8_05_contributing.adoc
 
+# The example programs, each with the output it prints (.exp) and the input
+# it reads (.in), if any. The test harness's manual suite runs them, and the
+# pages include the programs and their output.
 CODE = \
-	code/assign.lm     code/fizzbuzz.lm     code/nested_scope.lm  code/reference.lm \
-	code/figure_44.lm  code/hello_world.lm  code/poker.lm         code/scope.lm
+	code/assign.lm           code/assign.exp           code/assign.in \
+	code/figure_44.lm        code/figure_44.exp \
+	code/fizzbuzz.lm         code/fizzbuzz.exp \
+	code/hello_world.lm      code/hello_world.exp \
+	code/hello_world_ext.lm  code/hello_world_ext.exp \
+	code/nested_scope.lm     code/nested_scope.exp \
+	code/poker.lm            code/poker.exp \
+	code/reference.lm        code/reference.exp \
+	code/scope.lm            code/scope.exp
 
 
 OUT_FILES = $(IN_FILES:.adoc=.html)
@@ -32,17 +47,27 @@ EXTRA_DIST = $(IN_FILES) $(CODE) CMakeLists.txt
 
 if BUILD_MANUAL
 
+# configure checks for asciidoctor only when colm is installed. Otherwise
+# ASCIIDOCTOR is empty, and make would take the recipe's leading "-b" as its
+# ignore-errors prefix and build nothing, so the rules are only defined here.
 if INSTALL_COLM
+
 doc_DATA = $(OUT_FILES)
-endif
 
 SUFFIXES = .html .adoc
 
-# The pages include the example programs. Every page is rebuilt when one of
-# them changes, which is simpler than tracking which page includes which.
+# The pages include the example programs and their output. Every page is
+# rebuilt when one of them changes, which is simpler than tracking which page
+# includes which.
 $(OUT_FILES): $(CODE)
+
+# The install page and the FAQ show the versions that OPTIONS passes in, so
+# they are rendered again when configure writes a Makefile with new ones.
+0_01_installing.html 9_00_q_and_a.html: Makefile
 
 .adoc.html:
 	$(ASCIIDOCTOR) -b $(OUTPUT) $(OPTIONS) -o $@ $<
+
+endif
 
 endif

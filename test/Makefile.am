@@ -7,5 +7,10 @@ EXTRA_DIST = dist.sh
 check-local:
 	harness/harness
 
+# The manual suite's cases are the examples in doc/colm/code. The harness puts
+# its results in manual/working here.
+clean-local:
+	rm -Rf manual
+
 dist: dist.sh
 	@$(top_srcdir)/sedsubst $< $@ -w,+x $(SED_SUBST)

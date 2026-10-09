@@ -63,6 +63,9 @@ EXTRA_DIST = \
 	forloop1.lm \
 	forloop2.lm \
 	forloop3.lm \
+	forloop4.lm \
+	forloop5.lm \
+	forloop6.lm \
 	func1.lm \
 	func2.lm \
 	func3.lm \
@@ -124,6 +127,7 @@ EXTRA_DIST = \
 	ntrejbt2.lm \
 	ntrejbt3.lm \
 	ntrejbt4.lm \
+	ntrejbt5.lm \
 	open1.lm \
 	open2.lm \
 	order1.lm \
