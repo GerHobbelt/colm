@@ -225,7 +225,7 @@ struct run_buf *new_run_buf( int sz )
 }
 
 /* Keep the position up to date after consuming text. */
-void update_position_data( struct stream_impl_data *is, const alph_t *data, long length )
+static void update_position_data( struct stream_impl_data *is, const alph_t *data, long length )
 {
 	int i;
 	for ( i = 0; i < length; i++ ) {
@@ -243,12 +243,16 @@ void update_position_data( struct stream_impl_data *is, const alph_t *data, long
 }
 
 /* Keep the position up to date after sending back text. */
-void undo_position_data( struct stream_impl_data *is, const alph_t *data, long length )
+static void undo_position_data( struct stream_impl_data *is, const alph_t *data, long length )
 {
 	/* FIXME: this needs to fetch the position information from the parsed
 	 * token and restore based on that.. */
+
+	/* Walk backwards from the end of the data. A newline pops back to the
+	 * column the previous line ended at, from which the rest of the data
+	 * retreats. */
 	int i;
-	for ( i = 0; i < length; i++ ) {
+	for ( i = length - 1; i >= 0; i-- ) {
 		if ( data[i] == '\n' ) {
 			is->line -= 1;
 			is->column = stream_impl_pop_line( is );
@@ -600,7 +604,8 @@ static int data_consume_data( struct colm_program *prg, struct stream_impl_data 
 static int data_undo_consume_data( struct colm_program *prg, struct stream_impl_data *sid,
 		const alph_t *data, int length )
 {
-	debug( prg, REALM_PARSE, "data_undo_consume_data: sending back %d bytes: %*s\n", length, length, data);
+	debug( prg, REALM_PARSE, "data_undo_consume_data: sending back %d bytes: %.*s\n",
+			length, length, data );
 
 	const alph_t *end = data + length;
 	int amount = length;
@@ -624,12 +629,12 @@ static int data_undo_consume_data( struct colm_program *prg, struct stream_impl_
 
 	if ( remaining > 0 ) {
 		end -= remaining;
-		struct run_buf *new_buf = new_run_buf( 0 );
+		struct run_buf *new_buf = new_run_buf( remaining );
 		new_buf->length = remaining;
 		undo_position_data( sid, end, remaining );
 		memcpy( new_buf->data, end, remaining );
 		si_data_push_head( sid, new_buf );
-		sid->consumed -= amount;
+		sid->consumed -= remaining;
 	}
 
 	debug( prg, REALM_INPUT, "data_undo_consume_data: stream %p "

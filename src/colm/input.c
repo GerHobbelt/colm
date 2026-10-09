@@ -112,7 +112,7 @@ static struct seq_buf *input_stream_pop_stash( struct colm_program *prg, struct 
 	return seq_buf;
 }
 
-static int maybe_split( struct colm_program *prg, struct input_impl_seq *iis )
+static struct seq_buf *maybe_split( struct colm_program *prg, struct input_impl_seq *iis )
 {
 	struct seq_buf *head = iis->queue.head;
 	if ( head != 0 && is_stream( head ) ) {
@@ -128,7 +128,7 @@ static int maybe_split( struct colm_program *prg, struct input_impl_seq *iis )
 			new_buf->own_si = 1;
 
 			input_stream_stash_head( prg, iis, new_buf );
-			return 1;
+			return new_buf;
 		}
 	}
 	return 0;
@@ -137,9 +137,12 @@ static int maybe_split( struct colm_program *prg, struct input_impl_seq *iis )
 /* Called after popping a prepended buffer whose prepend split the head. All
  * that happened since the prepend has been undone, so the split-off is on top
  * of the stash and the stream it came from is at the head again. */
-static void undo_split( struct colm_program *prg, struct input_impl_seq *iis )
+static void undo_split( struct colm_program *prg, struct input_impl_seq *iis,
+		struct seq_buf *split_off )
 {
-	struct seq_buf *split_off = input_stream_pop_stash( prg, iis );
+	assert( iis->stash == split_off );
+	input_stream_pop_stash( prg, iis );
+
 	struct seq_buf *head = iis->queue.head;
 	assert( head != 0 && is_stream( head ) );
 
@@ -509,12 +512,47 @@ static void input_undo_consume_tree( struct colm_program *prg, struct input_impl
 /*
  * Prepend
  */
+
+/* Put a pushed buffer at the head, first splitting the consumed count off the
+ * head if it is partly consumed. */
+static void prepend_buf( struct colm_program *prg, struct input_impl_seq *si,
+		struct seq_buf *seq_buf )
+{
+	seq_buf->split_off = maybe_split( prg, si );
+	seq_buf->prev_prepend = si->prepends;
+	si->prepends = seq_buf;
+	input_stream_seq_prepend( si, seq_buf );
+}
+
+/* Take the most recently prepended buffer back out. All that happened since
+ * the prepend has been undone, but undoing a consume leaves on the stash any
+ * buffer the consume moved there without taking from it, such as an empty one.
+ * The prepended buffer can be one of those. Everything on the stash above it
+ * came from behind it in the queue, so put it all back before the pop. */
+static struct seq_buf *undo_prepend_buf( struct colm_program *prg,
+		struct input_impl_seq *si )
+{
+	struct seq_buf *seq_buf = si->prepends;
+	assert( seq_buf != 0 );
+	si->prepends = seq_buf->prev_prepend;
+
+	while ( si->queue.head != seq_buf ) {
+		assert( si->stash != 0 );
+		struct seq_buf *b = input_stream_pop_stash( prg, si );
+		input_stream_seq_prepend( si, b );
+	}
+
+	input_stream_seq_pop_head( si );
+	if ( seq_buf->split_off != 0 )
+		undo_split( prg, si, seq_buf->split_off );
+
+	return seq_buf;
+}
+
 static void input_prepend_data( struct colm_program *prg, struct input_impl_seq *si,
 		struct colm_location *loc, const alph_t *data, long length )
 {
 	debug( prg, REALM_INPUT, "input_prepend_data: stream %p prepend data length %d\n", si, length );
-
-	int split = maybe_split( prg, si );
 
 	char *name = loc != 0 ? (char*)loc->name : "<text1>";
 	struct stream_impl *sub_si = colm_impl_new_text( name, loc, data, length );
@@ -523,9 +561,8 @@ static void input_prepend_data( struct colm_program *prg, struct input_impl_seq 
 	new_buf->type = SB_ACCUM;
 	new_buf->si = sub_si;
 	new_buf->own_si = 1;
-	new_buf->split = split;
 
-	input_stream_seq_prepend( si, new_buf );
+	prepend_buf( prg, si, new_buf );
 }
 
 static int input_undo_prepend_data( struct colm_program *prg, struct input_impl_seq *si, int length )
@@ -533,9 +570,13 @@ static int input_undo_prepend_data( struct colm_program *prg, struct input_impl_
 	debug( prg, REALM_INPUT, "input_undo_prepend_data: stream %p undo "
 			"append data length %d\n", si, length );
 
-	struct seq_buf *seq_buf = input_stream_seq_pop_head( si );
-	if ( seq_buf->split )
-		undo_split( prg, si );
+	struct seq_buf *seq_buf = undo_prepend_buf( prg, si );
+	assert( seq_buf->type == SB_ACCUM );
+
+	/* The buffer owns the text stream made by input_prepend_data. Its
+	 * destructor has no use for sp. */
+	if ( call_destructor( seq_buf ) )
+		seq_buf->si->funcs->destructor( prg, 0, seq_buf->si );
 	free( seq_buf );
 
 	return 0;
@@ -546,28 +587,21 @@ static void input_prepend_tree( struct colm_program *prg, struct input_impl_seq 
 {
 	debug( prg, REALM_INPUT, "input_prepend_tree: stream %p prepend tree %p\n", si, tree );
 
-	int split = maybe_split( prg, si );
-
 	/* Create a new buffer for the data. This is the easy implementation.
 	 * Something better is needed here. It puts a max on the amount of
 	 * data that can be pushed back to the inputStream. */
 	struct seq_buf *new_buf = new_seq_buf();
 	new_buf->type = ignore ? SB_IGNORE : SB_TOKEN;
 	new_buf->tree = tree;
-	new_buf->split = split;
-	input_stream_seq_prepend( si, new_buf );
+	prepend_buf( prg, si, new_buf );
 }
 
 static tree_t *input_undo_prepend_tree( struct colm_program *prg, struct input_impl_seq *si )
 {
 	debug( prg, REALM_INPUT, "input_undo_prepend_tree: stream %p undo prepend tree\n", si );
 
-	assert( si->queue.head != 0 );
-	assert( si->queue.head->type == SB_TOKEN || si->queue.head->type == SB_IGNORE );
-
-	struct seq_buf *seq_buf = input_stream_seq_pop_head( si );
-	if ( seq_buf->split )
-		undo_split( prg, si );
+	struct seq_buf *seq_buf = undo_prepend_buf( prg, si );
+	assert( seq_buf->type == SB_TOKEN || seq_buf->type == SB_IGNORE );
 
 	tree_t *tree = seq_buf->tree;
 	free(seq_buf);
@@ -581,25 +615,21 @@ static tree_t *input_undo_prepend_tree( struct colm_program *prg, struct input_i
 static void input_prepend_stream( struct colm_program *prg, struct input_impl_seq *si,
 		struct colm_stream *stream )
 {
-	int split = maybe_split( prg, si );
-
 	/* Create a new buffer for the data. This is the easy implementation.
 	 * Something better is needed here. It puts a max on the amount of
 	 * data that can be pushed back to the inputStream. */
 	struct seq_buf *new_buf = new_seq_buf();
 	new_buf->type = SB_SOURCE;
 	new_buf->si = stream_to_impl( stream );
-	new_buf->split = split;
-	input_stream_seq_prepend( si, new_buf );
+	prepend_buf( prg, si, new_buf );
 
 	assert( ((struct stream_impl_data*)new_buf->si)->type == 'D' );
 }
 
 static tree_t *input_undo_prepend_stream( struct colm_program *prg, struct input_impl_seq *is )
 {
-	struct seq_buf *seq_buf = input_stream_seq_pop_head( is );
-	if ( seq_buf->split )
-		undo_split( prg, is );
+	struct seq_buf *seq_buf = undo_prepend_buf( prg, is );
+	assert( seq_buf->type == SB_SOURCE );
 	free( seq_buf );
 	return 0;
 }

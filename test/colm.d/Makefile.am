@@ -15,6 +15,9 @@ EXTRA_DIST = \
 	balance3.lm \
 	binary1.lm \
 	broken/travs2.lm \
+	btcross1.lm \
+	btloc1.lm \
+	btlong1.lm \
 	btpat1.lm \
 	btscan1.lm \
 	btscan2.lm \
@@ -119,6 +122,8 @@ EXTRA_DIST = \
 	prints.lm \
 	pull1.lm \
 	pull2.lm \
+	pushemptybt1.lm \
+	pushignbt1.lm \
 	pushloc.lm \
 	ragelambig1.lm \
 	ragelambig2.lm \
@@ -168,6 +173,7 @@ EXTRA_DIST = \
 	undolist1.lm \
 	undomap1.lm \
 	undomap2.lm \
+	undopush1.lm \
 	undosplit1.lm \
 	undosplit2.lm \
 	utf8.lm \
