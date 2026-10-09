@@ -68,17 +68,23 @@ struct input_funcs \
 	struct LangEl *(*consume_lang_el)( struct colm_program *prg, struct _input_impl *si, long *bind_id, alph_t **data, long *length ); \
 	void (*undo_consume_lang_el)( struct colm_program *prg, struct _input_impl *si ); \
 	void (*prepend_data)( struct colm_program *prg, struct _input_impl *si, struct colm_location *loc, const alph_t *data, long len ); \
-	int (*undo_prepend_data)( struct colm_program *prg, struct _input_impl *si, int length ); \
+	int (*undo_prepend_data)( struct colm_program *prg, struct colm_tree **sp, \
+			struct _input_impl *si, int length ); \
 	void (*prepend_tree)( struct colm_program *prg, struct _input_impl *si, struct colm_tree *tree, int ignore ); \
-	struct colm_tree *(*undo_prepend_tree)( struct colm_program *prg, struct _input_impl *si ); \
+	struct colm_tree *(*undo_prepend_tree)( struct colm_program *prg, struct colm_tree **sp, \
+			struct _input_impl *si ); \
 	void (*prepend_stream)( struct colm_program *prg, struct _input_impl *si, struct colm_stream *stream ); \
-	struct colm_tree *(*undo_prepend_stream)( struct colm_program *prg, struct _input_impl *si ); \
+	struct colm_tree *(*undo_prepend_stream)( struct colm_program *prg, struct colm_tree **sp, \
+			struct _input_impl *si ); \
 	void (*append_data)( struct colm_program *prg, struct _input_impl *si, const alph_t *data, long length ); \
-	struct colm_tree *(*undo_append_data)( struct colm_program *prg, struct _input_impl *si, int length ); \
+	struct colm_tree *(*undo_append_data)( struct colm_program *prg, struct colm_tree **sp, \
+			struct _input_impl *si, int length ); \
 	void (*append_tree)( struct colm_program *prg, struct _input_impl *si, struct colm_tree *tree ); \
-	struct colm_tree *(*undo_append_tree)( struct colm_program *prg, struct _input_impl *si ); \
+	struct colm_tree *(*undo_append_tree)( struct colm_program *prg, struct colm_tree **sp, \
+			struct _input_impl *si ); \
 	void (*append_stream)( struct colm_program *prg, struct _input_impl *si, struct colm_stream *stream ); \
-	struct colm_tree *(*undo_append_stream)( struct colm_program *prg, struct _input_impl *si ); \
+	struct colm_tree *(*undo_append_stream)( struct colm_program *prg, struct colm_tree **sp, \
+			struct _input_impl *si ); \
 	void (*set_eof_mark)( struct colm_program *prg, struct _input_impl *si, char eof_mark ); \
 	void (*transfer_loc)( struct colm_program *prg, struct colm_location *loc, struct _input_impl *si ); \
 	void (*destructor)( struct colm_program *prg, struct colm_tree **sp, struct _input_impl *si ); \
@@ -144,6 +150,11 @@ struct seq_buf
 	/* The next older buffer in the input's list of prepends. */
 	struct seq_buf *prev_prepend;
 
+	/* The next older buffer in the input's list of appends, and how many
+	 * appends not yet undone went into this one. */
+	struct seq_buf *prev_append;
+	int append_count;
+
 	struct colm_tree *tree;
 	struct stream_impl *si;
 	struct seq_buf *next, *prev;
@@ -168,6 +179,10 @@ struct input_impl_seq
 	/* Prepended buffers, most recent first. Pushes are undone in reverse
 	 * order, so the undo of a prepend takes the first. */
 	struct seq_buf *prepends;
+
+	/* Appended buffers, most recent first. Sends are undone in reverse order
+	 * too, so the undo of an append takes the first. */
+	struct seq_buf *appends;
 
 	int consumed;
 	int auto_trim;
