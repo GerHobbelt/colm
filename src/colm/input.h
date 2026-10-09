@@ -49,7 +49,6 @@ struct colm_location;
 struct colm_program;
 struct colm_struct;
 struct colm_str;
-struct colm_stream;
 
 struct input_impl;
 struct stream_impl;
@@ -241,19 +240,13 @@ struct stream_impl_data
 	int auto_trim;
 };
 
-void stream_impl_push_line( struct stream_impl_data *ss, int ll );
-int stream_impl_pop_line( struct stream_impl_data *ss );
-
 struct input_impl *colm_impl_new_generic( char *name );
-
-struct stream_impl *colm_stream_impl( struct colm_struct *s );
 
 struct colm_str *collect_string( struct colm_program *prg, struct colm_stream *s );
 struct colm_stream *colm_stream_open_collect( struct colm_program *prg );
 
 char *colm_filename_add( struct colm_program *prg, const char *fn );
 struct stream_impl *colm_impl_new_accum( char *name );
-struct stream_impl *colm_impl_consumed( char *name, int len );
 struct stream_impl *colm_impl_new_text( char *name, struct colm_location *loc, const alph_t *data, int len );
 
 #ifdef __cplusplus

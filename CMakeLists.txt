@@ -69,7 +69,6 @@ if(NOT _configure_ac MATCHES "[\r\n]LIBFSM_VERSION=\"([^\"]*)\"")
 endif()
 set(LIBFSM_VERSION "${CMAKE_MATCH_1}")
 string(REGEX MATCH "^[0-9]+(\\.[0-9]+)*" LIBFSM_VERSION_NUMERIC "${LIBFSM_VERSION}")
-string(REGEX MATCH "^[0-9]+" LIBFSM_VERSION_MAJOR "${LIBFSM_VERSION_NUMERIC}")
 
 project(colm-suite
 	VERSION ${SUITE_VERSION_NUMERIC}
@@ -119,6 +118,11 @@ endif()
 
 option(COLM_BUILD_EXAMPLES
 	"Build the ragel examples" OFF)
+
+# The cmake spelling of --enable-manual, for the colm manual only. Off by
+# default, since Asciidoctor is not usually installed.
+option(COLM_BUILD_MANUAL
+	"Build the colm manual with Asciidoctor" OFF)
 
 if(WIN32)
 	set(_default_build_standalone ON)
@@ -192,6 +196,10 @@ add_subdirectory(src)
 
 if(COLM_BUILD_EXAMPLES)
 	add_subdirectory(examples)
+endif()
+
+if(COLM_BUILD_MANUAL)
+	add_subdirectory(doc/colm)
 endif()
 
 # dist_doc_DATA in Makefile.am

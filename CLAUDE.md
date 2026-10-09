@@ -105,12 +105,17 @@ make check
 cd test/ragel.d && ../harness/harness atoi1.rl     # from inside a suite
 ./test/harness/harness --lang java --genflags -T0  # ragel.d matrix selection
 ./test/harness/harness --suite aapl.d --stress 60  # aapl.d stress programs, 60s each
+./test/harness/harness --suite colm.d --valgrind   # colm.d programs under valgrind
 ./test/harness/harness -v --tap results.tap        # every result, TAP output
 ```
 
 The harness (`test/harness/`) enumerates all seven suites into one work queue
 and runs them in parallel. Failures leave a `.diff` file in the suite's
 `working/` directory with the differences and the commands run.
+
+Each colm.d run sets `COLM_LEAK_CHECK`, so a program that loses pool items
+(kids, trees, heads, ...) fails its case. A case's `LOST` section lists known
+losses that don't. `--valgrind` also catches memory errors and malloc leaks.
 
 ## Code Architecture
 

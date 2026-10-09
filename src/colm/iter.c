@@ -26,6 +26,7 @@
 #include <colm/tree.h>
 #include <colm/bytecode.h>
 #include <colm/program.h>
+#include <colm/map.h>
 
 #include "internal.h"
 
@@ -48,8 +49,7 @@ void colm_list_iter_destroy( program_t *prg, tree_t ***psp, generic_iter_t *iter
 	if ( (int)iter->type != 0 ) {
 		int i;
 		tree_t **sp = *psp;
-		long cur_stack_size = vm_ssize() - iter->root_size;
-		assert( iter->yield_size == cur_stack_size );
+		assert( iter->yield_size == (vm_ssize() - iter->root_size) );
 		vm_popn( iter->yield_size );
 		for ( i = 0; i < iter->arg_size; i++ ) {
 			//colm_tree_downref( prg, sp, vm_pop_tree() );
@@ -208,8 +208,8 @@ void colm_init_rev_tree_iter( rev_tree_iter_t *rev_triter, tree_t **stack_root,
 	rev_triter->arg_size = arg_size;
 }
 
-void init_user_iter( user_iter_t *user_iter, tree_t **stack_root, long root_size,
-		long arg_size, long search_id )
+static void init_user_iter( user_iter_t *user_iter, tree_t **stack_root, long root_size,
+		long arg_size, long frame_id, long search_id )
 {
 	user_iter->type = IT_User;
 	user_iter->stack_root = stack_root;
@@ -218,6 +218,7 @@ void init_user_iter( user_iter_t *user_iter, tree_t **stack_root, long root_size
 	user_iter->root_size = root_size;
 	user_iter->resume = 0;
 	user_iter->frame = 0;
+	user_iter->frame_id = frame_id;
 	user_iter->search_id = search_id;
 
 	user_iter->ref.kid = 0;
@@ -236,7 +237,7 @@ user_iter_t *colm_uiter_create( program_t *prg, tree_t ***psp, struct function_i
 	tree_t **stack_root = vm_ptop();
 	long root_size = vm_ssize();
 
-	init_user_iter( uiter, stack_root, root_size, fi->arg_size, search_id );
+	init_user_iter( uiter, stack_root, root_size, fi->arg_size, fi->frame_id, search_id );
 
 	*psp = sp;
 	return uiter;
@@ -245,7 +246,7 @@ user_iter_t *colm_uiter_create( program_t *prg, tree_t ***psp, struct function_i
 void uiter_init( program_t *prg, tree_t **sp, user_iter_t *uiter, 
 		struct function_info *fi, int revert_on )
 {
-	/* Set up the first yeild so when we resume it starts at the beginning. */
+	/* Set up the first yield so when we resume it starts at the beginning. */
 	uiter->ref.kid = 0;
 	uiter->yield_size = vm_ssize() - uiter->root_size;
 	//	uiter->frame = &uiter->stackRoot[-IFR_AA];
@@ -262,8 +263,7 @@ void colm_tree_iter_destroy( program_t *prg, tree_t ***psp, tree_iter_t *iter )
 	if ( (int)iter->type != 0 ) {
 		int i;
 		tree_t **sp = *psp;
-		long cur_stack_size = vm_ssize() - iter->root_size;
-		assert( iter->yield_size == cur_stack_size );
+		assert( iter->yield_size == (vm_ssize() - iter->root_size) );
 		vm_popn( iter->yield_size );
 		for ( i = 0; i < iter->arg_size; i++ )
 			colm_tree_downref( prg, sp, vm_pop_tree() );
@@ -277,13 +277,32 @@ void colm_rev_tree_iter_destroy( struct colm_program *prg, tree_t ***psp, rev_tr
 	if ( (int)riter->type != 0 ) {
 		int i;
 		tree_t **sp = *psp;
-		long cur_stack_size = vm_ssize() - riter->root_size;
-		assert( riter->yield_size == cur_stack_size );
+		assert( riter->yield_size == (vm_ssize() - riter->root_size) );
 		vm_popn( riter->yield_size );
 		for ( i = 0; i < riter->arg_size; i++ )
 			colm_tree_downref( prg, sp, vm_pop_tree() );
 		riter->type = 0;
 		*psp = sp;
+	}
+}
+
+/* Release the iterator's tree locals and args, as IN_RET does for a function.
+ * Its frame and the args must still be on the stack. The frame is the one
+ * IN_UITER_CREATE pushed after the iterator. It is not uiter->frame: a yield
+ * from a function the iterator called sets that to the function's frame. */
+static void uiter_downref_locals( program_t *prg, tree_t **sp, user_iter_t *uiter )
+{
+	struct frame_info *fi = &prg->rtd->frame_info[uiter->frame_id];
+	tree_t **frame = &uiter->stack_root[-IFR_AA];
+	tree_t **call_args = (tree_t**)frame[FR_CA];
+	long i;
+	for ( i = fi->locals_len-1; i >= 0; i-- ) {
+		if ( fi->locals[i].type == LI_Tree ) {
+			long offset = fi->locals[i].offset;
+			tree_t *tree = offset >= FR_AA ?
+					call_args[offset - FR_AA] : frame[offset];
+			colm_tree_downref( prg, sp, tree );
+		}
 	}
 }
 
@@ -294,8 +313,9 @@ void colm_uiter_destroy( program_t *prg, tree_t ***psp, user_iter_t *uiter )
 
 		/* We should always be coming from a yield. The current stack size will be
 		 * nonzero and the stack size in the iterator will be correct. */
-		long cur_stack_size = vm_ssize() - uiter->root_size;
-		assert( uiter->yield_size == cur_stack_size );
+		assert( uiter->yield_size == (vm_ssize() - uiter->root_size) );
+
+		uiter_downref_locals( prg, sp, uiter );
 
 		vm_popn( uiter->yield_size );
 		vm_popn( sizeof(user_iter_t) / sizeof(word_t) );
@@ -313,10 +333,11 @@ void colm_uiter_unwind( program_t *prg, tree_t ***psp, user_iter_t *uiter )
 
 		/* We should always be coming from a yield. The current stack size will be
 		 * nonzero and the stack size in the iterator will be correct. */
-		long cur_stack_size = vm_ssize() - uiter->root_size;
-		assert( uiter->yield_size == cur_stack_size );
+		assert( uiter->yield_size == (vm_ssize() - uiter->root_size) );
 
 		long arg_size = uiter->arg_size;
+
+		uiter_downref_locals( prg, sp, uiter );
 
 		vm_popn( uiter->yield_size );
 		vm_popn( sizeof(user_iter_t) / sizeof(word_t) );
@@ -354,7 +375,8 @@ void split_iter_cur( program_t *prg, tree_t ***psp, tree_iter_t *iter )
 	split_ref( prg, psp, &iter->ref );
 }
 
-void iter_find( program_t *prg, tree_t ***psp, tree_iter_t *iter, int try_first, int with_ignore )
+static void iter_find( program_t *prg, tree_t ***psp, tree_iter_t *iter,
+		int try_first, int with_ignore )
 {
 	int any_tree = iter->search_id == prg->rtd->any_id;
 	tree_t **top = iter->stack_root;
@@ -501,7 +523,7 @@ tree_t *tree_rev_iter_prev_child( program_t *prg, tree_t ***psp, rev_tree_iter_t
 	return (iter->ref.kid ? prg->true_val : prg->false_val );
 }
 
-void iter_find_repeat( program_t *prg, tree_t ***psp, tree_iter_t *iter, int try_first )
+static void iter_find_repeat( program_t *prg, tree_t ***psp, tree_iter_t *iter, int try_first )
 {
 	tree_t **sp = *psp;
 	int any_tree = iter->search_id == prg->rtd->any_id;
@@ -566,7 +588,7 @@ tree_t *tree_iter_next_repeat( program_t *prg, tree_t ***psp, tree_iter_t *iter 
 	return (iter->ref.kid ? prg->true_val : prg->false_val );
 }
 
-void iter_find_rev_repeat( program_t *prg, tree_t ***psp, tree_iter_t *iter, int try_first )
+static void iter_find_rev_repeat( program_t *prg, tree_t ***psp, tree_iter_t *iter, int try_first )
 {
 	tree_t **sp = *psp;
 	int any_tree = iter->search_id == prg->rtd->any_id;

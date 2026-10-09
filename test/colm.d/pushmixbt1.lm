@@ -1,0 +1,81 @@
+#
+# Backtracking over text pushes mixed with pushed ignores. A pushed ignore
+# after a token goes to that token's right ignore, together with the
+# whitespace scanned around it. Backing up over the token must give all of
+# it back to the input. Otherwise whitespace goes missing, or the undo of a
+# push can't find what it pushed.
+#
+
+lex
+	token id /[b-z]+/
+
+	# Replace "#x" with "b".
+	token hash /'#' [a-z]+/
+	{
+		input->pull( match_length )
+		input->push( 'b' )
+	}
+
+	# Replace "~x" with a space, pushed as an ignore.
+	token tilde /'~' [a-z]+/
+	{
+		input->pull( match_length )
+		input->push_ignore( make_token( typeid<ws>, ' ' ) )
+	}
+
+	literal `{ `}
+	ignore ws /[ \n]+/
+end
+
+# Braces must balance here. When they don't, the parser backtracks over
+# everything and takes flat instead.
+def item
+	[id]
+|	[`{ item* `}]
+
+def flat
+	[id] | [`{] | [`}]
+
+def start
+	[item*]
+|	[flat*]
+
+parse S: start[ stdin ]
+if S {
+	if match S [item*]
+		print( 'items: [', S, ']\n' )
+	else
+		print( 'flat: [', S, ']\n' )
+}
+else
+	print( 'error: ', error, '\n' )
+##### IN #####
+c { #x ~x c }
+##### EXP #####
+items: [c { b   c }
+]
+##### IN #####
+c { #x ~x {
+##### EXP #####
+flat: [c { b   {
+]
+##### IN #####
+{{#x ~x c
+##### EXP #####
+flat: [{{b   c
+]
+##### IN #####
+c { ~x #x {
+##### EXP #####
+flat: [c {   b {
+]
+##### IN #####
+{ #x ~x ~y #z {
+##### EXP #####
+flat: [{ b     b {
+]
+##### IN #####
+#x ~x { c
+##### EXP #####
+flat: [b   { c
+]

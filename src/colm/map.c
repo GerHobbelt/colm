@@ -208,43 +208,6 @@ void map_attach_rebal( map_t *map, map_el_t *element, map_el_t *parent_el, map_e
 	}
 }
 
-#if 0
-/* Recursively delete all the children of a element. */
-void map_delete_children_of( map_t *map, map_el_t *element )
-{
-	/* Recurse left. */
-	if ( element->left ) {
-		map_delete_children_of( map, element->left );
-
-		/* Delete left element. */
-		delete element->left;
-		element->left = 0;
-	}
-
-	/* Recurse right. */
-	if ( element->right ) {
-		map_delete_children_of( map, element->right );
-
-		/* Delete right element. */
-		delete element->right;
-		element->left = 0;
-	}
-}
-
-void map_empty( map_t *map )
-{
-	if ( map->root ) {
-		/* Recursively delete from the tree structure. */
-		map_delete_children_of( map, map->root );
-		delete map->root;
-		map->root = 0;
-		map->tree_size = 0;
-
-		map_list_abandon( map );
-	}
-}
-#endif
-
 /* rebalance from a element whose gradparent is unbalanced. Only
  * call on a element that has a grandparent. */
 map_el_t *map_rebalance( map_t *map, map_el_t *n )
@@ -526,36 +489,6 @@ void map_remove_el( map_t *map, map_el_t *element, map_el_t *filler )
 	return;
 }
 
-#if 0
-/* Recursive worker for tree copying. */
-map_el_t *map_copy_branch( program_t *prg, map_t *map, map_el_t *el, kid_t *old_next_down, kid_t **new_next_down )
-{
-	/* Duplicate element. Either the base element's copy constructor or defaul
-	 * constructor will get called. Both will suffice for initting the
-	 * pointers to null when they need to be. */
-	map_el_t *new_el = map_el_allocate( prg );
-
-	if ( (kid_t*)el == old_next_down )
-		*new_next_down = (kid_t*)new_el;
-
-	/* If the left tree is there, copy it. */
-	if ( new_el->left ) {
-		new_el->left = map_copy_branch( prg, map, new_el->left, old_next_down, new_next_down );
-		new_el->left->parent = new_el;
-	}
-
-	map_list_add_after( map, map->tail, new_el );
-
-	/* If the right tree is there, copy it. */
-	if ( new_el->right ) {
-		new_el->right = map_copy_branch( prg, map, new_el->right, old_next_down, new_next_down );
-		new_el->right->parent = new_el;
-	}
-
-	return new_el;
-}
-#endif
-
 static long map_cmp( program_t *prg, map_t *map, const tree_t *tree1, const tree_t *tree2 )
 {
 	if ( map->generic_info->key_type == TYPE_TREE ) {
@@ -609,49 +542,6 @@ map_el_t *map_insert_el( program_t *prg, map_t *map, map_el_t *element, map_el_t
 	}
 }
 
-#if 0
-map_el_t *map_insert_key( program_t *prg, map_t *map, tree_t *key, map_el_t **last_found )
-{
-	long key_relation;
-	map_el_t *cur_el = map->root, *parent_el = 0;
-	map_el_t *last_less = 0;
-
-	while ( true ) {
-		if ( cur_el == 0 ) {
-			/* We are at an external element and did not find the key we were
-			 * looking for. Create the new element, attach it underneath the leaf
-			 * and rebalance. */
-			map_el_t *element = map_el_allocate( prg );
-			element->key = key;
-			map_attach_rebal( map, element, parent_el, last_less );
-
-			if ( last_found != 0 )
-				*last_found = element;
-			return element;
-		}
-
-		key_relation = map_cmp( prg, map, key, cur_el->key );
-
-		/* Do we go left? */
-		if ( key_relation < 0 ) {
-			parent_el = last_less = cur_el;
-			cur_el = cur_el->left;
-		}
-		/* Do we go right? */
-		else if ( key_relation > 0 ) {
-			parent_el = cur_el;
-			cur_el = cur_el->right;
-		}
-		/* We have hit the target. */
-		else {
-			if ( last_found != 0 )
-				*last_found = cur_el;
-			return 0;
-		}
-	}
-}
-#endif
-
 map_el_t *colm_map_insert( program_t *prg, map_t *map, map_el_t *map_el )
 {
 	return map_insert_el( prg, map, map_el, 0 );
@@ -674,7 +564,7 @@ map_el_t *colm_vmap_remove( program_t *prg, map_t *map, tree_t *key )
 	map_el_t *map_el = colm_map_find( prg, map, key );
 	if ( map_el != 0 )
 		colm_map_detach( prg, map, map_el );
-	return 0;
+	return map_el;
 }
 
 tree_t *colm_vmap_find( program_t *prg, map_t *map, tree_t *key )

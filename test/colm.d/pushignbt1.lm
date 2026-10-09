@@ -1,8 +1,8 @@
 #
 # Backtracking over ignores that a token action pushed as trees. The parser
-# must give a pushed nonterminal ignore back to the input, and must keep the
-# left ignores of a token it backs up over when it then detaches the right
-# ignores of the token before it.
+# must give a pushed nonterminal ignore back to the input. A pushed ignore
+# after a token is part of that token's right ignore, so backing up over the
+# token detaches it together with the whitespace around it.
 #
 
 lex

@@ -1,0 +1,96 @@
+#
+# An ignore that a token action pushes after a token is that token's right
+# ignore, as a scanned one is. At the end of the input no token follows to
+# take it as a left ignore, so without that it was dropped, along with the
+# ignores scanned after it. Each item is printed on its own as well, to show
+# which token holds the pushed ignore when another token follows it: `b ~x c`
+# must split as the scanned `b   c` does.
+#
+
+lex
+	ignore ws /[ ]+/
+	token id /[a-z]+/
+
+	# Replace the match with one space, pushed as an ignore.
+	token tx /'~x'/
+	{
+		input->pull( match_length )
+		input->push_ignore( make_token( typeid<ws>, ' ' ) )
+	}
+
+	token ty /'~y'/
+end
+
+def item
+	[id]
+|	[ty]
+
+def start
+	[item*]
+
+parse S: start[ stdin ]
+print( '[', S, ']\n' )
+
+for I: item in S
+	print( '<', I, '>' )
+print( '\n' )
+##### IN #####
+b ~y c--noeol
+##### EXP #####
+[b ~y c]
+<b ><~y ><c>
+##### IN #####
+b ~x c--noeol
+##### EXP #####
+[b   c]
+<b   ><c>
+##### IN #####
+b    --noeol
+##### EXP #####
+[b    ]
+<b    >
+##### IN #####
+b ~x--noeol
+##### EXP #####
+[b  ]
+<b  >
+##### IN #####
+b ~x  --noeol
+##### EXP #####
+[b    ]
+<b    >
+##### IN #####
+b~x--noeol
+##### EXP #####
+[b ]
+<b >
+##### IN #####
+b ~x ~x--noeol
+##### EXP #####
+[b    ]
+<b    >
+##### IN #####
+b ~x ~y--noeol
+##### EXP #####
+[b   ~y]
+<b   ><~y>
+##### IN #####
+~x b ~x--noeol
+##### EXP #####
+[  b  ]
+<  b  >
+##### IN #####
+b   c--noeol
+##### EXP #####
+[b   c]
+<b   ><c>
+##### IN #####
+b ~x  c--noeol
+##### EXP #####
+[b    c]
+<b    ><c>
+##### IN #####
+b  ~x c--noeol
+##### EXP #####
+[b    c]
+<b    ><c>

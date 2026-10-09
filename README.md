@@ -160,7 +160,13 @@ See the [`examples/`](examples/) directory for sample Ragel programs.
 - autoconf
 - automake
 
-For the documentation, install [`asciidoc`](https://asciidoctor.org/) and [`fig2dev`](https://github.com/getlarky/fig2dev) as well.
+For the documentation (`./configure --enable-manual`), install
+[Asciidoctor](https://asciidoctor.org/) for the colm manual, and
+[`asciidoc`](https://asciidoc-py.github.io/) and
+[`fig2dev`](https://github.com/getlarky/fig2dev) for the ragel guide, as well.
+With [Rouge](https://rouge.jneen.net/) (`ruby-rouge`) installed, the manual's
+shell and vim examples are highlighted. Rouge has no lexer for colm, so the
+colm examples are not.
 
 ### Build instructions
 
@@ -211,6 +217,7 @@ Options:
 | `COLM_INSTALL_COLM` | `ON` | Install the colm program and its development files. |
 | `COLM_INSTALL_RAGEL` | `ON` | Install ragel, its host backends, libragel, libfsm and cgil. |
 | `COLM_BUILD_EXAMPLES` | `OFF` | Build the ragel examples under `examples/`. |
+| `COLM_BUILD_MANUAL` | `OFF` | Build the colm manual under `doc/colm/` with Asciidoctor. |
 | `BUILD_STANDALONE` | `ON` on Windows | Link the executables statically. |
 | `BUILD_SHARED_LIBS` | `OFF` | Build libcolm, libfsm and libragel as shared libraries. |
 
@@ -228,20 +235,35 @@ find_package(colm REQUIRED)   # colm::colm, colm::libcolm
 find_package(ragel REQUIRED)  # ragel::ragel, ragel::libfsm, ragel::libragel
 ```
 
+A version asked for in `find_package` must match the installed major and minor
+version, since a minor release of either component can break a dependent
+project. `find_package(colm 0.15)` accepts colm 0.15.x but not 0.16, and
+`find_package(ragel 7.1)` accepts ragel 7.1.x but not 7.2 or 8.0. A major
+version alone means `.0`, so `find_package(ragel 7)` does not find 7.1. Both
+ends of a version range must be in the installed minor version: `7.1...<7.2`
+finds 7.1.x, `7.1...<8` does not.
+
+`ragel::libragel` links the colm runtime, so `find_package(ragel)` loads the
+colm package too, at exactly the colm version ragel was built with. It passes
+over any other colm on the search path, and fails if the project has already
+found a different colm version. It also looks for colm beside the ragel package,
+so setting `ragel_DIR` to an install or a build tree is enough.
+
 The autotools build remains the reference build. Known differences:
 
 - The run-from-the-build-tree detection described below relies on libtool, so a
   colm built by cmake always uses the install location to find its includes and
   runtime library. Install it before using it to compile colm programs.
-- The test suite under `test/`, the documentation under `doc/` (including the
-  ragel man page), and `colm-wrap` are autotools-only. A cmake install
-  therefore cannot serve as the `--with-colm` target of an autotools build.
-- Libtool builds both a static and a shared library and versions libcolm and
-  libfsm with `-release` (`libcolm-<version>.so`). CMake builds one flavour,
-  selected by `BUILD_SHARED_LIBS`, and versions all three with a soname. The
-  libcolm soname carries the whole version (`libcolm.so.<version>`), so like
-  the libtool name it changes every release; libfsm and libragel carry only a
-  major version (`libfsm.so.1`).
+- The test suite under `test/`, the ragel guide and man page under
+  `doc/ragel/`, and `colm-wrap` are autotools-only. A cmake install therefore
+  cannot serve as the `--with-colm` target of an autotools build. The colm
+  manual builds either way, with `--enable-manual` or `COLM_BUILD_MANUAL`.
+- Libtool builds both a static and a shared library and versions all three
+  with `-release` (`libcolm-<version>.so`). CMake builds one flavour, selected
+  by `BUILD_SHARED_LIBS`, and versions all three with a soname that carries the
+  whole version (`libcolm.so.<version>`). Either way the name changes with
+  every release of the library's own component: libcolm takes colm's version,
+  libragel ragel's, and libfsm its own.
 - `--enable-pool-malloc`, `--with-ragel-kelbt`, `--with-colm` and the
   large-file-support checks have no cmake equivalent.
 

@@ -279,28 +279,36 @@ int colm_delete_program( program_t *prg )
 
 	colm_tree_downref( prg, sp, prg->error );
 
+	/* Report the pool items never freed. A DEBUG build always does. Others do
+	 * when COLM_LEAK_CHECK is set, as the test harness sets it for colm.d. */
 #if DEBUG
-	long kid_lost = kid_num_lost( prg );
-	long tree_lost = tree_num_lost( prg );
-	long parse_tree_lost = parse_tree_num_lost( &prg->parse_tree_pool );
-	long head_lost = head_num_lost( prg );
-	long location_lost = location_num_lost( prg );
-
-	if ( kid_lost )
-		message( "warning: lost kids: %ld\n", kid_lost );
-
-	if ( tree_lost )
-		message( "warning: lost trees: %ld\n", tree_lost );
-
-	if ( parse_tree_lost )
-		message( "warning: lost parse trees: %ld\n", parse_tree_lost );
-
-	if ( head_lost )
-		message( "warning: lost heads: %ld\n", head_lost );
-
-	if ( location_lost )
-		message( "warning: lost locations: %ld\n", location_lost );
+	int report_lost = 1;
+#else
+	int report_lost = getenv( "COLM_LEAK_CHECK" ) != 0;
 #endif
+
+	if ( report_lost ) {
+		long kid_lost = kid_num_lost( prg );
+		long tree_lost = tree_num_lost( prg );
+		long parse_tree_lost = parse_tree_num_lost( &prg->parse_tree_pool );
+		long head_lost = head_num_lost( prg );
+		long location_lost = location_num_lost( prg );
+
+		if ( kid_lost )
+			message( "warning: lost kids: %ld\n", kid_lost );
+
+		if ( tree_lost )
+			message( "warning: lost trees: %ld\n", tree_lost );
+
+		if ( parse_tree_lost )
+			message( "warning: lost parse trees: %ld\n", parse_tree_lost );
+
+		if ( head_lost )
+			message( "warning: lost heads: %ld\n", head_lost );
+
+		if ( location_lost )
+			message( "warning: lost locations: %ld\n", location_lost );
+	}
 
 	kid_clear( prg );
 	tree_clear( prg );

@@ -1,0 +1,55 @@
+#
+# A token action that keeps its match_text after it pulls the match. The
+# string must be a copy of its own, not a pointer to where the scanner put
+# the match for the action, which the tokens after it can reuse.
+#
+
+global Kept: list<str> = new list<str>()
+
+lex
+	ignore /[ \n]+/
+	token id /'#'/
+	token num /[0-9]+/
+	token raw /[a-z]+/
+	{
+		T: str = match_text
+		Kept->push_tail( T )
+		input->pull( match_length )
+		input->push( make_token( typeid<id>, T ) )
+	}
+end
+
+def item
+	[id]
+|	[num]
+
+def start
+	[item*]
+
+void items( S: start )
+{
+	for I: item in S
+		print( '[', $I, ']' )
+	print( '\n' )
+}
+
+# Ignores between the matches.
+parse S1: start["abc def ghi"]
+items( S1 )
+
+# Plain tokens between them, with and without ignores.
+parse S2: start["abc 12 def 345 ghi"]
+items( S2 )
+
+parse S3: start["abc12def345ghi"]
+items( S3 )
+
+# The strings kept from all three parses.
+for T: str in Kept
+	print( '[', T, ']' )
+print( '\n' )
+##### EXP #####
+[abc][def][ghi]
+[abc][12][def][345][ghi]
+[abc][12][def][345][ghi]
+[abc][def][ghi][abc][def][ghi][abc][def][ghi]

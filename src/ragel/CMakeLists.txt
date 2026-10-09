@@ -28,10 +28,13 @@ target_link_libraries(libragel PUBLIC libfsm colm::libcolm)
 target_compile_definitions(libragel PRIVATE
 	BINDIR="${CMAKE_INSTALL_FULL_BINDIR}")
 
+# libragel carries ragel's version, not the suite's. Its C++ ABI can change in
+# any release, so the soname carries the whole version (libragel.so.X.Y.Z) and
+# changes every release, as the libtool -release name in Makefile.am does.
 set_target_properties(libragel PROPERTIES
 	OUTPUT_NAME ragel
-	VERSION ${PROJECT_VERSION}
-	SOVERSION ${PROJECT_VERSION_MAJOR})
+	VERSION ${RAGEL_VERSION_NUMERIC}
+	SOVERSION ${RAGEL_VERSION_NUMERIC})
 
 if(BUILD_STANDALONE)
 	# libragel acts as an intermediate library, so flags applied here
@@ -138,6 +141,23 @@ if(COLM_INSTALL_RAGEL)
 			CACHE STRING "CMake package directory for ragel")
 	endif()
 
+	# Once installed, ragel-config.cmake looks for the colm package in colm's
+	# package directory, found relative to its own. The two can be set apart.
+	# A prefix typed as a PATH or STRING on the command line can be relative,
+	# and file(RELATIVE_PATH) wants full paths. The path between two
+	# directories under the prefix doesn't depend on what a relative prefix
+	# is taken relative to.
+	get_filename_component(_prefix "${CMAKE_INSTALL_PREFIX}" ABSOLUTE)
+	set(_ragel_cmakedir "${CMAKE_INSTALL_CMAKEDIR_RAGEL}")
+	set(_colm_cmakedir "${CMAKE_INSTALL_CMAKEDIR}")
+	foreach(_var _ragel_cmakedir _colm_cmakedir)
+		if(NOT IS_ABSOLUTE "${${_var}}")
+			set(${_var} "${_prefix}/${${_var}}")
+		endif()
+	endforeach()
+	file(RELATIVE_PATH COLM_CMAKEDIR_FROM_RAGEL
+		"${_ragel_cmakedir}" "${_colm_cmakedir}")
+
 	configure_file(ragel-config.cmake.in
 		"${PROJECT_BINARY_DIR}/${_PACKAGE_NAME}-config.cmake" @ONLY)
 
@@ -155,11 +175,15 @@ if(COLM_INSTALL_RAGEL)
 		NAMESPACE ${_PACKAGE_NAME}::
 		FILE "${PROJECT_BINARY_DIR}/${_PACKAGE_NAME}-targets.cmake")
 
+	# A minor release of ragel can change the code generated for an existing
+	# specification (7.1.0 did), and the package carries libfsm's headers,
+	# whose API has no stability promise. As for colm, only the requested
+	# major and minor version is accepted.
 	include(CMakePackageConfigHelpers)
 	write_basic_package_version_file(
 		"${PROJECT_BINARY_DIR}/${_PACKAGE_NAME}-config-version.cmake"
 		VERSION ${RAGEL_VERSION_NUMERIC}
-		COMPATIBILITY AnyNewerVersion)
+		COMPATIBILITY SameMinorVersion)
 
 	install(FILES
 		"${PROJECT_BINARY_DIR}/${_PACKAGE_NAME}-config.cmake"

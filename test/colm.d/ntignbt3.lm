@@ -1,0 +1,69 @@
+#
+# Undoing sends to a parser of comments, where a parse_stop on cmt makes the
+# comment's states reduce as they shift, with no lookahead token. Undoing a
+# send backs the inner parser up by a count of steps, and here that count
+# stops partway into a comment. The stack and the accumulated ignores must
+# agree there, or the inner parse is lost.
+#
+
+lex
+	ignore /[ ]+/
+	literal `( `) `:
+	token cid /[a-z]+/
+end
+
+def cn [cid `)]
+def cmt [`( cid `: cn]
+def cmts [cmt*]
+parse_stop C: cmt[ '(a: b)' ]
+global P: parser<cmts> = new parser<cmts>()
+
+lex
+	ignore /[ \t]+/
+	token id2 /[a-z]+/
+	literal `! `;
+	token NL /'\n'/
+end
+
+# The parser first takes A1. At the ; it backs up over every item2, undoing
+# its send, and takes A2, which sends the same text again.
+def A1 [] { print( "A1\n" ) }
+def A2 [] { print( "A2\n" ) }
+def item2 [id2] { send P [' d) (e: '] }
+def two [A1 item2* `! NL] | [A2 item2* `; NL]
+
+send P ['(c: ']
+parse Two: two[ stdin ]
+send P ['f)'] eos
+if Two
+	print( ^Two )
+else
+	print( 'error: ', error, '\n' )
+print( ^( P->tree ), '\n' )
+##### IN #####
+a !
+##### EXP #####
+A1
+a !
+(c:  d) (e: f)
+##### IN #####
+a ;
+##### EXP #####
+A1
+A2
+a ;
+(c:  d) (e: f)
+##### IN #####
+a b ;
+##### EXP #####
+A1
+A2
+a b ;
+(c:  d) (e:  d) (e: f)
+##### IN #####
+a b ?
+##### EXP #####
+A1
+A2
+error: <stdin>:1:5: parse error
+(c: f)

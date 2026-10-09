@@ -66,7 +66,7 @@ struct colm_struct *colm_struct_new( program_t *prg, int id )
 	return s;
 }
 
-struct struct_el_info *colm_sel_info( program_t *prg, int id )
+static struct struct_el_info *colm_sel_info( program_t *prg, int id )
 {
 	return &prg->rtd->sel_info[id - prg->rtd->num_lang_els];
 }
@@ -89,7 +89,7 @@ void colm_struct_delete( program_t *prg, tree_t **sp, struct colm_struct *el )
 	free( el );
 }
 
-void colm_parser_destroy( program_t *prg, tree_t **sp, struct colm_struct *s )
+static void colm_parser_destroy( program_t *prg, tree_t **sp, struct colm_struct *s )
 {
 	struct colm_parser *parser = (struct colm_parser*) s;
 
@@ -119,19 +119,6 @@ parser_t *colm_parser_new( program_t *prg, struct generic_info *gi, int stop_id,
 	parser->pda_run = pda_run;
 
 	return parser;
-}
-
-void colm_map_destroy( program_t *prg, tree_t **sp, struct colm_struct *s )
-{
-	struct colm_map *map = (struct colm_map*) s;
-
-	map_el_t *el = map->head;
-	while ( el != 0 ) {
-		map_el_t *next = el->next;
-		colm_tree_downref( prg, sp, el->key );
-		//mapElFree( prg, el );
-		el = next;
-	}
 }
 
 map_t *colm_map_new( struct colm_program *prg )

@@ -405,6 +405,7 @@ typedef unsigned char uchar;
 #define FN_VMAP_INSERT_BKT       0x3d
 #define FN_VMAP_REMOVE_WC        0x27
 #define FN_VMAP_REMOVE_WV        0x28
+#define FN_VMAP_REMOVE_BKT       0x3f
 
 #define FN_VLIST_PUSH_TAIL_WV    0x2a
 #define FN_VLIST_PUSH_TAIL_WC    0x2b
@@ -648,9 +649,6 @@ head_t *make_literal( struct colm_program *prg, long litoffset );
 head_t *int_to_str( struct colm_program *prg, word_t i );
 
 void colm_execute( struct colm_program *prg, execution_t *exec, code_t *code );
-void reduction_execution( execution_t *exec, tree_t **sp );
-void generation_execution( execution_t *exec, tree_t **sp );
-void reverse_execution( execution_t *exec, tree_t **sp, struct rt_code_vect *all_rev );
 
 kid_t *alloc_attrs( struct colm_program *prg, long length );
 void free_attrs( struct colm_program *prg, kid_t *attrs );
@@ -664,7 +662,6 @@ void colm_transfer_reverse_code( struct pda_run *pda_run, parse_tree_t *tree );
 
 void split_ref( struct colm_program *prg, tree_t ***sp, ref_t *from_ref );
 
-void alloc_global( struct colm_program *prg );
 tree_t **colm_execute_code( struct colm_program *prg,
 	execution_t *exec, tree_t **sp, code_t *instr );
 code_t *colm_pop_reverse_code( struct rt_code_vect *all_rev );

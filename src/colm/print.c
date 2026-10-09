@@ -89,17 +89,17 @@ void str_collect_clear( str_collect_t *collect )
 
 #define INT_SZ 32
 
-void print_str( struct colm_print_args *print_args, head_t *str )
+static void print_str( struct colm_print_args *print_args, head_t *str )
 {
 	print_args->out( print_args, str->data, str->length );
 }
 
-void append_collect( struct colm_print_args *args, const char *data, int length )
+static void append_collect( struct colm_print_args *args, const char *data, int length )
 {
 	str_collect_append( (str_collect_t*) args->arg, data, length );
 }
 
-void append_file( struct colm_print_args *args, const char *data, int length )
+static void append_file( struct colm_print_args *args, const char *data, int length )
 {
 	struct stream_impl_data *impl = (struct stream_impl_data*) args->arg;
 	fwrite( data, 1, length, impl->file );
@@ -198,7 +198,7 @@ enum VisitType
 
 #define TF_TERM_SEEN 0x1
 
-void print_kid( program_t *prg, tree_t **sp, struct colm_print_args *print_args, kid_t *kid )
+static void print_kid( program_t *prg, tree_t **sp, struct colm_print_args *print_args, kid_t *kid )
 {
 	enum ReturnType rt;
 	kid_t *parent = 0;
@@ -734,22 +734,6 @@ void colm_postfix_tree_collect( program_t *prg, tree_t **sp,
 
 	colm_print_tree_args( prg, sp, &print_args, tree );
 }
-
-#if 0
-void colm_postfix_tree_file( program_t *prg, tree_t **sp, struct stream_impl *impl,
-		tree_t *tree, int trim )
-{
-	struct colm_print_args print_args = {
-			impl, false, false, false, &append_file, 
-			&postfix_open, &postfix_term, &postfix_close
-	};
-
-	colm_print_tree_args( prg, sp, &print_args, tree );
-
-	//struct stream_impl *impl = (struct stream_impl*) args->arg;
-	fflush( impl->file );
-}
-#endif
 
 void colm_print_tree_collect_xml( program_t *prg, tree_t **sp,
 		str_collect_t *collect, tree_t *tree, int trim )

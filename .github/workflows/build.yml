@@ -151,14 +151,186 @@ jobs:
           test "$soname" = "libcolm.so.$numeric"
 
       # Compile and run a colm program against the installed runtime, and a
-      # ragel example with the installed ragel.
+      # ragel example with the installed ragel. Each output is assigned
+      # before the test so that -e sees the program's exit status.
       - name: run installed colm and ragel
         run: |
           set -eux
           mkdir smoke
           echo 'print "hello from colm\n"' > smoke/hello.lm
           inst/bin/colm -o smoke/hello smoke/hello.lm
-          test "$(smoke/hello)" = "hello from colm"
+          out=$(smoke/hello)
+          test "$out" = "hello from colm"
           inst/bin/ragel -o smoke/atoi.cpp examples/atoi.rl
           c++ -o smoke/atoi smoke/atoi.cpp
-          test "$(echo -1234 | smoke/atoi)" = "-1234"
+          out=$(echo -1234 | smoke/atoi)
+          test "$out" = "-1234"
+
+      # The colm and ragel package version files accept a request only for
+      # the installed major and minor version (SameMinorVersion). Each
+      # request configures a project of its own, against the version numbers
+      # in configure.ac. When the minor version is 0 there is no older minor
+      # to ask for, so an older major stands in for it.
+      - name: check package version policy
+        run: |
+          set -eu
+          mkdir pkgver
+          cat > pkgver/CMakeLists.txt <<'EOF'
+          cmake_minimum_required(VERSION 3.16)
+          project(pkgver NONE)
+          find_package(${PKG} ${REQ} QUIET)
+          if(${PKG}_FOUND)
+            set(got found)
+          else()
+            set(got missing)
+          endif()
+          if(NOT got STREQUAL WANT)
+            message(FATAL_ERROR "find_package(${PKG} ${REQ}): ${got}, want ${WANT}")
+          endif()
+          EOF
+          n=0
+          check() {
+            n=$((n + 1))
+            cmake -S pkgver -B pkgver/build$n -DCMAKE_PREFIX_PATH="$PWD/inst" \
+              -DPKG="$1" -DREQ="$2" -DWANT="$3" > /dev/null
+            echo "find_package($(echo $1 ${2//;/ })): $3"
+          }
+          for pkg in colm ragel; do
+            var=$(echo $pkg | tr a-z A-Z)_VERSION
+            version=$(sed -n "s/^$var=\"\(.*\)\"$/\1/p" configure.ac)
+            numeric=$(echo "$version" | grep -oE '^[0-9]+(\.[0-9]+)*')
+            major=${numeric%%.*}
+            minor=$(echo "$numeric" | cut -d. -f2)
+            check $pkg "" found
+            check $pkg $major.$minor found
+            check $pkg "$numeric;EXACT" found
+            check $pkg "$major.$minor...<$major.$((minor + 1))" found
+            check $pkg "$major.$minor...<$((major + 1))" missing
+            if [ "$minor" -gt 0 ]; then
+              check $pkg $major.$((minor - 1)) missing
+              check $pkg $major missing
+            elif [ "$major" -gt 0 ]; then
+              check $pkg $((major - 1)).0 missing
+            fi
+          done
+
+      # A project that finds both packages at their own major and minor
+      # version, builds a colm program through colm::colm and colm::libcolm
+      # and a ragel example through ragel::ragel, and runs them.
+      - name: build a project against the installed packages
+        run: |
+          set -eux
+          colm=$(sed -n 's/^COLM_VERSION="\([0-9]*\.[0-9]*\).*"$/\1/p' configure.ac)
+          ragel=$(sed -n 's/^RAGEL_VERSION="\([0-9]*\.[0-9]*\).*"$/\1/p' configure.ac)
+          mkdir consumer
+          echo 'print "hello from colm\n"' > consumer/hello.lm
+          cat > consumer/main.c <<'EOF'
+          #include <colm/colm.h>
+
+          int main( int argc, const char **argv )
+          {
+            struct colm_program *prg = colm_new_program( &colm_object );
+            colm_run_program( prg, argc, argv );
+            return colm_delete_program( prg );
+          }
+          EOF
+          cat > consumer/CMakeLists.txt <<'EOF'
+          cmake_minimum_required(VERSION 3.16)
+          project(consumer C CXX)
+          find_package(colm ${COLM} REQUIRED)
+          find_package(ragel ${RAGEL} REQUIRED)
+          add_custom_command(OUTPUT hello.c
+            COMMAND colm::colm -c -o hello.c "${CMAKE_SOURCE_DIR}/hello.lm"
+            DEPENDS hello.lm)
+          add_executable(hello main.c hello.c)
+          target_link_libraries(hello PRIVATE colm::libcolm)
+          add_custom_command(OUTPUT atoi.cpp
+            COMMAND ragel::ragel -o atoi.cpp "${ATOI}"
+            DEPENDS "${ATOI}")
+          add_executable(atoi atoi.cpp)
+          EOF
+          cmake -S consumer -B consumer/build -DCMAKE_PREFIX_PATH="$PWD/inst" \
+            -DCOLM="$colm" -DRAGEL="$ragel" -DATOI="$PWD/examples/atoi.rl"
+          cmake --build consumer/build
+          out=$(consumer/build/hello)
+          test "$out" = "hello from colm"
+          out=$(echo -1234 | consumer/build/atoi)
+          test "$out" = "-1234"
+
+      # The libcolm soname carries the whole colm version, so libragel needs
+      # exactly the colm it was built against. A copy of the installed colm
+      # package, one minor version up, stands in for another colm installed
+      # elsewhere. find_package(ragel) has to pass over it when it comes
+      # first on the search path, and refuse it when the project has already
+      # loaded it. Found through ragel_DIR alone, in the install or in the
+      # build tree, ragel has to find the colm beside it. The last case
+      # reconfigures the build tree, so it comes after the build tree case:
+      # it sets colm's and ragel's package directories apart, gives a
+      # relative prefix typed as a STRING, which CMake keeps as given, and
+      # installs under another prefix. Each case configures a project of its
+      # own, and nothing is built, so the copied library keeps its old
+      # soname.
+      - name: check ragel loads the colm it was built against
+        run: |
+          set -eu
+          version=$(sed -n 's/^COLM_VERSION="\(.*\)"$/\1/p' configure.ac)
+          numeric=$(echo "$version" | grep -oE '^[0-9]+(\.[0-9]+)*')
+          major=${numeric%%.*}
+          minor=$(echo "$numeric" | cut -d. -f2)
+          other=$major.$((minor + 1)).0
+          mkdir -p other/bin other/lib/cmake
+          cp inst/bin/colm other/bin/
+          cp -r inst/lib/cmake/colm other/lib/cmake/
+          if [ "${{ matrix.shared }}" = ON ]; then
+            cp inst/lib/libcolm.so.$numeric other/lib/libcolm.so.$other
+          else
+            cp inst/lib/libcolm.a other/lib/
+          fi
+          sed -i "s/${numeric//./\\.}/$other/g" other/lib/cmake/colm/*.cmake
+          mkdir ragelcolm
+          cat > ragelcolm/CMakeLists.txt <<'EOF'
+          cmake_minimum_required(VERSION 3.16)
+          project(ragelcolm NONE)
+          if(PRELOAD)
+            find_package(colm ${PRELOAD} EXACT REQUIRED)
+          endif()
+          find_package(ragel QUIET)
+          if(ragel_FOUND)
+            get_target_property(libcolm colm::libcolm LOCATION)
+            get_filename_component(got "${libcolm}" DIRECTORY)
+          else()
+            set(got "${ragel_NOT_FOUND_MESSAGE}")
+          endif()
+          if(NOT got STREQUAL WANT)
+            message(FATAL_ERROR "got: ${got}\nwant: ${WANT}")
+          endif()
+          EOF
+          cmake -S ragelcolm -B ragelcolm/build1 \
+            -DCMAKE_PREFIX_PATH="$PWD/other;$PWD/inst" \
+            -DWANT="$PWD/inst/lib" > /dev/null
+          echo "colm $other first on the search path: passed over"
+          cmake -S ragelcolm -B ragelcolm/build2 \
+            -DCMAKE_PREFIX_PATH="$PWD/inst;$PWD/other" -DPRELOAD=$other \
+            -DWANT="ragel was built against colm $numeric, but colm $other is already loaded" \
+            > /dev/null
+          echo "colm $other already loaded: refused"
+          cmake -S ragelcolm -B ragelcolm/build3 \
+            -Dragel_DIR="$PWD/inst/lib/cmake/ragel" \
+            -DWANT="$PWD/inst/lib" > /dev/null
+          echo "ragel_DIR alone: colm beside ragel found"
+          cmake -S ragelcolm -B ragelcolm/build4 \
+            -Dragel_DIR="$PWD/inst/lib/cmake/ragel" -DCMAKE_PREFIX_PATH="$PWD/other" \
+            -DWANT="$PWD/inst/lib" > /dev/null
+          echo "ragel_DIR, colm $other on the search path: colm beside ragel found"
+          cmake -S ragelcolm -B ragelcolm/build5 \
+            -Dragel_DIR="$PWD/build" -DCMAKE_PREFIX_PATH="$PWD/other" \
+            -DWANT="$PWD/build/src/colm" > /dev/null
+          echo "build tree ragel_DIR, colm $other on the search path: colm beside ragel found"
+          cmake -S . -B build -DCMAKE_INSTALL_PREFIX:STRING=alt \
+            -DCMAKE_INSTALL_CMAKEDIR=share/cmake/colm \
+            -DCMAKE_INSTALL_CMAKEDIR_RAGEL=lib/cmake/ragel-7 > /dev/null
+          cmake --install build --prefix "$PWD/alt" > /dev/null
+          cmake -S ragelcolm -B ragelcolm/build6 \
+            -Dragel_DIR="$PWD/alt/lib/cmake/ragel-7" -DCMAKE_PREFIX_PATH="$PWD/other" \
+            -DWANT="$PWD/alt/lib" > /dev/null
+          echo "package directories set apart, ragel_DIR: colm beside ragel found"

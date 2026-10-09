@@ -902,7 +902,7 @@ tree_t *split_tree( program_t *prg, tree_t *tree )
 
 /* We can't make recursive calls here since the tree we are freeing may be
  * very large. Need the VM stack. */
-void tree_free_rec( program_t *prg, tree_t **sp, tree_t *tree )
+static void tree_free_rec( program_t *prg, tree_t **sp, tree_t *tree )
 {
 	tree_t **top = vm_ptop();
 
@@ -962,64 +962,6 @@ void colm_tree_downref( program_t *prg, tree_t **sp, tree_t *tree )
 		tree->refs -= 1;
 		if ( tree->refs == 0 )
 			tree_free_rec( prg, sp, tree );
-	}
-}
-
-/* We can't make recursive calls here since the tree we are freeing may be
- * very large. Need the VM stack. */
-void object_free_rec( program_t *prg, tree_t **sp, tree_t *tree )
-{
-	tree_t **top = vm_ptop();
-
-free_tree:
-
-	switch ( tree->id ) {
-	case LEL_ID_STR: {
-		str_t *str = (str_t*) tree;
-		string_free( prg, str->value );
-		tree_free( prg, tree );
-		break;
-	}
-	case LEL_ID_PTR: {
-		tree_free( prg, tree );
-		break;
-	}
-	default: { 
-		if ( tree->id != LEL_ID_IGNORE )
-			string_free( prg, tree->tokdata );
-
-		/* Attributes and grammar-based children. */
-		kid_t *child = tree->child;
-		while ( child != 0 ) {
-			kid_t *next = child->next;
-			vm_push_tree( child->tree );
-			kid_free( prg, child );
-			child = next;
-		}
-
-		tree_free( prg, tree );
-		break;
-	}}
-
-	/* Any trees to downref? */
-	while ( sp != top ) {
-		tree = vm_pop_tree();
-		if ( tree != 0 ) {
-			assert( tree->refs > 0 );
-			tree->refs -= 1;
-			if ( tree->refs == 0 )
-				goto free_tree;
-		}
-	}
-}
-
-void object_downref( program_t *prg, tree_t **sp, tree_t *tree )
-{
-	if ( tree != 0 ) {
-		assert( tree->refs > 0 );
-		tree->refs -= 1;
-		if ( tree->refs == 0 )
-			object_free_rec( prg, sp, tree );
 	}
 }
 
@@ -1417,37 +1359,6 @@ tree_t *set_list_mem( list_t *list, half_t field, tree_t *value )
 	return existing;
 }
 
-struct tree_pair map_remove( program_t *prg, map_t *map, tree_t *key )
-{
-	map_el_t *map_el = map_impl_find( prg, map, key );
-	struct tree_pair result = { 0, 0 };
-	if ( map_el != 0 ) {
-		map_detach( prg, map, map_el );
-		result.key = map_el->key;
-		//mapElFree( prg, mapEl );
-	}
-
-	return result;
-}
-
-#if 0
-tree_t *map_unstore( program_t *prg, map_t *map, tree_t *key, tree_t *existing )
-{
-	tree_t *stored = 0;
-	if ( existing == 0 ) {
-		map_el_t *map_el = map_detach_by_key( prg, map, key );
-		// stored = mapEl->tree;
-		map_el_free( prg, map_el );
-	}
-	else {
-		map_el_t *map_el = map_impl_find( prg, map, key );
-		// stored = mapEl->tree;
-		//mapEl->tree = existing;
-	}
-	return stored;
-}
-#endif
-
 tree_t *map_find( program_t *prg, map_t *map, tree_t *key )
 {
 //	map_el_t *mapEl = mapImplFind( prg, map, key );
@@ -1534,60 +1445,6 @@ tree_t *get_list_mem_split( program_t *prg, list_t *list, word_t field )
 	}
 	return sv;
 }
-
-
-#if 0
-int map_insert( program_t *prg, map_t *map, tree_t *key, tree_t *element )
-{
-	map_el_t *map_el = map_insert_key( prg, map, key, 0 );
-
-	if ( map_el != 0 ) {
-		//mapEl->tree = element;
-		return true;
-	}
-
-	return false;
-}
-#endif
-
-#if 0
-void map_unremove( program_t *prg, map_t *map, tree_t *key, tree_t *element )
-{
-	map_el_t *map_el = map_insert_key( prg, map, key, 0 );
-	assert( map_el != 0 );
-	//mapEl->tree = element;
-}
-#endif
-
-#if 0
-tree_t *map_uninsert( program_t *prg, map_t *map, tree_t *key )
-{
-	map_el_t *el = map_detach_by_key( prg, map, key );
-//	tree_t *val = el->tree;
-	map_el_free( prg, el );
-//	return val;
-	return 0;
-}
-#endif
-
-#if 0
-tree_t *map_store( program_t *prg, map_t *map, tree_t *key, tree_t *element )
-{
-	tree_t *old_tree = 0;
-	map_el_t *el_in_tree = 0;
-	map_el_t *map_el = map_insert_key( prg, map, key, &el_in_tree );
-
-//	if ( mapEl != 0 )
-//		mapEl->tree = element;
-//	else {
-//		/* Element with key exists. Overwriting the value. */
-//		oldTree = elInTree->tree;
-//		elInTree->tree = element;
-//	}
-
-	return old_tree;
-}
-#endif
 
 static tree_t *tree_search_kid( program_t *prg, kid_t *kid, long id )
 {

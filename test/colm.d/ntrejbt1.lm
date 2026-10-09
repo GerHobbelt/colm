@@ -1,0 +1,85 @@
+#
+# Backtracking from a reduction that its action rejects. A parse_stop on cmt
+# makes the comment's states reduce as they shift, with no lookahead token, so
+# the rejected nonterminal goes on the stack and the parser backs up over it
+# as it would over any other. The right ignore of the token under it must go
+# back to the input after the nonterminal's own tokens, not before them.
+#
+
+lex
+	ignore /[ \n]+/
+	token id /[a-z]+/
+	literal `( `) `: `; `!
+end
+
+global Mode: str = ''
+
+# Rejected after an ia, which sends the parser back to take the comments
+# again as ib.
+def cn
+	[id `)]
+	{
+		if ( Mode == 'a' )
+			reject
+	}
+
+def cmt
+	[`( id `: cn]
+
+def ia
+	[cmt]
+	{
+		Mode = 'a'
+	}
+
+def ib
+	[cmt]
+	{
+		Mode = 'b'
+	}
+
+def start
+	[ia* `;]
+|	[ib* `;]
+
+# Only here so that cmt is a parse_stop target. Its states then reduce as
+# they shift, in every parser.
+parse_stop C: cmt[ '(a: b)' ]
+
+parse S: start[ stdin ]
+if S
+	print( 'ok: ', S )
+else
+	print( 'error: ', error, '\n' )
+##### IN #####
+(c: d) ;
+##### EXP #####
+ok: (c: d) ;
+##### IN #####
+(c: d) (e: f) ;
+##### EXP #####
+ok: (c: d) (e: f) ;
+##### IN #####
+(c: d) (e:  f) ;
+##### EXP #####
+ok: (c: d) (e:  f) ;
+##### IN #####
+(c: d) ( e : f ) ;
+##### EXP #####
+ok: (c: d) ( e : f ) ;
+##### IN #####
+(c: d) (e: f) (g: h) ;
+##### EXP #####
+ok: (c: d) (e: f) (g: h) ;
+##### IN #####
+(c: d)
+(e:
+f) ;
+##### EXP #####
+ok: (c: d)
+(e:
+f) ;
+##### IN #####
+(c: d) (e: f) !
+##### EXP #####
+error: <stdin>:1:15: parse error
