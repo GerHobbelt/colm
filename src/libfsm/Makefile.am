@@ -9,7 +9,7 @@
 #
 # The library is assembled from two convenience libraries: libfsmgraph, the
 # state machine construction library, and libfsmgen, the reduction and code
-# generation half. Colm builds its token scanners on libfsmgraph and links it
+# generation half. Colm builds its token scanners on both and links them
 # statically, so the colm binary never depends on an installed libfsm.
 #
 noinst_LTLIBRARIES = libfsmgraph.la libfsmgen.la

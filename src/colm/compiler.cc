@@ -30,7 +30,6 @@
 #include <assert.h>
 #include <iostream>
 
-#include "redbuild.h"
 #include "pdacodegen.h"
 #include "fsmcodegen.h"
 #include "colm.h"
@@ -51,8 +50,9 @@ void operator<<( ostream &out, exit_object & )
 /*
  * The scanner alphabet. The parsing machinery uses char data throughout, so
  * this is fixed at compile time; changing it requires changing colm_alph_t
- * as well. Keys are compared as signed values, so characters with the high
- * bit set come out negative, exactly as the char type delivers them.
+ * as well. It is unsigned, so keys run 0..255 and the characters of a
+ * pattern are read through unsigned char to agree with the runtime, where
+ * the input is unsigned char too.
  */
 const AlphType colmAlphType = { "unsigned", "char", false, 0, UCHAR_MAX, sizeof(unsigned char) };
 
@@ -116,23 +116,19 @@ Key makeFsmKeyNum( char *str, const InputLoc &loc, Compiler *pd )
 }
 
 /* Make an fsm int format (what the fsm graph uses) from a single character.
- * Performs proper conversion depending on signed/unsigned property of the
- * alphabet. */
+ * The alphabet is unsigned, so a character with the high bit set becomes a
+ * key in 128..255 rather than a negative one. */
 Key makeFsmKeyChar( char c, Compiler *pd )
 {
-	/* Copy from a char type. */
-	return Key( c );
+	return Key( (unsigned char)c );
 }
 
 /* Make an fsm key array in int format (what the fsm graph uses) from a string
- * of characters. Performs proper conversion depending on signed/unsigned
- * property of the alphabet. */
+ * of characters, converting each as makeFsmKeyChar does. */
 void makeFsmKeyArray( Key *result, char *data, int len, Compiler *pd )
 {
-	/* Copy from a char star type. */
-	char *src = data;
 	for ( int i = 0; i < len; i++ )
-		result[i] = Key(src[i]);
+		result[i] = makeFsmKeyChar( data[i], pd );
 }
 
 /* Like makeFsmKeyArray except the result has only unique keys. They ordering
@@ -140,10 +136,8 @@ void makeFsmKeyArray( Key *result, char *data, int len, Compiler *pd )
 void makeFsmUniqueKeyArray( KeySet &result, char *data, int len, 
 		bool caseInsensitive, Compiler *pd )
 {
-	/* Copy from a char star type. */
-	char *src = data;
 	for ( int si = 0; si < len; si++ ) {
-		Key key( src[si] );
+		Key key = makeFsmKeyChar( data[si], pd );
 		result.insert( key );
 		if ( caseInsensitive ) {
 			if ( key.isLower() )
@@ -174,10 +168,9 @@ FsmAp *makeBuiltin( BuiltinMachine builtin, Compiler *pd )
 		break;
 	}
 	case BT_Extend: {
-		/* Ascii extended characters. This is the full byte range. Dependent
-		 * on signed, vs no signed. If the alphabet is one byte then just use
-		 * dot fsm. */
-		retFsm = FsmAp::rangeFsm( ctx, -128, 127 );
+		/* Ascii extended characters. This is the full byte range, the same
+		 * machine as any. */
+		retFsm = FsmAp::rangeFsm( ctx, 0, 255 );
 		break;
 	}
 	case BT_Alpha: {
@@ -329,6 +322,7 @@ Compiler::Compiler( )
 	nextFrameId(0),
 	nextParserId(0),
 	revertOn(true),
+	reducer(0),
 	predValue(0),
 	nextMatchEndNum(0),
 	argvTypeRef(0),
@@ -347,6 +341,7 @@ Compiler::~Compiler()
 	while ( actionList.head != 0 )
 		delete LexAction::cast( actionList.detachFirst() );
 
+	delete reducer;
 	delete fsmCtx;
 	delete fsmGbl;
 
@@ -417,7 +412,7 @@ void Compiler::initGraphDict( )
  * finished. */
 void Compiler::initKeyOps( )
 {
-	fsmCtx->keyOps->isSigned = true;
+	fsmCtx->keyOps->isSigned = colmAlphType.isSigned;
 	fsmCtx->keyOps->minKey = Key( (long)colmAlphType.minVal );
 	fsmCtx->keyOps->maxKey = Key( (long)colmAlphType.maxVal );
 
@@ -617,23 +612,8 @@ FsmAp *Compiler::makeScanner()
 
 	analyzeGraph( fsmGraph );
 
-	/* Decide if an error state is necessary.
-	 *  1. There is an error transition
-	 *  2. There is a gap in the transitions
-	 *  3. The longest match operator requires it. */
-	if ( fsmCtx->lmRequiresErrorState || fsmGraph->hasErrorTrans() )
-		fsmGraph->errState = fsmGraph->addState();
-
-	/* State numbers need to be assigned such that all final states have a
-	 * larger state id number than all non-final states. This enables the
-	 * first_final mechanism to function correctly. We also want states to be
-	 * ordered in a predictable fashion. So we first apply a depth-first
-	 * search, then do a stable sort by final state status, then assign
-	 * numbers. */
-
-	fsmGraph->depthFirstOrdering();
-	fsmGraph->sortStatesByFinal();
-	fsmGraph->setStateNumbers( 0 );
+	/* Add the error state if one is needed and number the states. */
+	fsmCtx->prepareReduction( fsmGraph );
 
 	return fsmGraph;
 }
@@ -858,9 +838,12 @@ void Compiler::initEmptyScanner( RegionSet *regionSet, TokenRegion *reg )
 		LexJoin *join = LexJoin::cons( LexExpression::cons( BT_Any ) );
 
 		TokenDef *tokenDef = TokenDef::cons( name, String(), false, false,
-				join, 0, internal, nextTokenId++, rootNamespace, 
-				regionSet, 0, 0 );
-			
+				join, 0, internal, rootNamespace, regionSet, 0, 0 );
+
+		/* The definition no longer takes an id, but keep skipping one so
+		 * the scanner's token ids are unchanged. */
+		nextTokenId++;
+
 		TokenInstance *tokenInstance = TokenInstance::cons( tokenDef,
 				join, internal, nextTokenId++,
 				rootNamespace, reg );
@@ -1031,7 +1014,8 @@ void Compiler::writeHostCall()
 
 void Compiler::generateOutput( long activeRealm, bool includeCommit )
 {
-	FsmCodeGen *fsmGen = new FsmCodeGen( *outStream, redFsm, fsmTables );
+	FsmCodeGen *fsmGen = new FsmCodeGen( reducer, *outStream, fsmTables );
+	fsmGen->genAnalysis();
 
 	PdaCodeGen *pdaGen = new PdaCodeGen( *outStream );
 
@@ -1118,8 +1102,8 @@ void Compiler::compile()
 	compileByteCode();
 
 	/* Make the reduced scanner. */
-	RedFsmBuild reduce( this, fsmGraph );
-	redFsm = reduce.reduceMachine();
+	reducer = new LexReducer( this, fsmGraph );
+	reducer->reduce();
 
 	BstSet<LangEl*> parserEls;
 	collectParserEls( parserEls );
@@ -1127,7 +1111,7 @@ void Compiler::compile()
 	makeParser( parserEls );
 
 	/* Make the scanner tables. */
-	fsmTables = redFsm->makeFsmTables();
+	fsmTables = reducer->makeFsmTables();
 
 	/* Now that all parsers are built, make the global runtimeData. */
 	makeRuntimeData();

@@ -56,7 +56,7 @@ extern const char *objectName;
 extern bool hostAdapters;
 
 /* Forwards. */
-struct RedFsm;
+struct LexReducer;
 struct LangEl;
 struct Compiler;
 struct PdaCodeGen;
@@ -942,7 +942,7 @@ struct Compiler
 
 	bool revertOn;
 
-	RedFsm *redFsm;
+	LexReducer *reducer;
 
 	PdaGraph *pdaGraph;
 	struct pda_tables *pdaTables;

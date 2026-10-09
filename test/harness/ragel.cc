@@ -9,9 +9,13 @@
  * once per code generation flag, compiled or interpreted, executed, and its
  * output compared against the text after the ##### OUTPUT ##### header.
  *
+ * A graphviz case is instead run through every ragel binary with -V, and the
+ * dot written to standard out is compared against the OUTPUT section. The
+ * case holds no host code, so each binary must produce the same graph.
+ *
  * Directives:
  *
- *   @LANG:               indep, or the host language
+ *   @LANG:               indep, graphviz, or the host language
  *   @PROHIBIT_LANGUAGES: indep only: languages not to translate into
  *   @PROHIBIT_FLAGS:     generation flags not to test, added to the
  *                        language's own list
@@ -27,7 +31,6 @@
 
 struct LangOpts
 {
-	std::string langOpt;
 	std::string suffix;
 	bool interpreted;
 	std::string compiler;
@@ -39,7 +42,7 @@ struct LangOpts
 
 static const char *indepLangs[] = {
 	"c", "cg", "cv", "asm", "d", "csharp", "go", "java", "ruby",
-	"ocaml", "rust", "crack", "julia", "zig"
+	"ocaml", "rust", "crack", "julia", "zig", "js"
 };
 static const int numIndepLangs = sizeof(indepLangs) / sizeof(indepLangs[0]);
 
@@ -48,6 +51,27 @@ static const char *defaultGenflags[] = {
 	"-n", "-m", "-e", "--string-tables"
 };
 static const int numDefaultGenflags = sizeof(defaultGenflags) / sizeof(defaultGenflags[0]);
+
+/* The ragel binary for each host language, under the name --lang selects it
+ * by. The generic ragel stands for c, and ragel-c for cg. */
+static void hostBinaries( const Config &config,
+		std::vector< std::pair<std::string, std::string> > &bins )
+{
+	bins.push_back( std::make_pair( "c", config.ragelBin ) );
+	bins.push_back( std::make_pair( "cg", config.ragelC ) );
+	bins.push_back( std::make_pair( "asm", config.ragelAsm ) );
+	bins.push_back( std::make_pair( "d", config.ragelD ) );
+	bins.push_back( std::make_pair( "csharp", config.ragelCsharp ) );
+	bins.push_back( std::make_pair( "go", config.ragelGo ) );
+	bins.push_back( std::make_pair( "java", config.ragelJava ) );
+	bins.push_back( std::make_pair( "ruby", config.ragelRuby ) );
+	bins.push_back( std::make_pair( "ocaml", config.ragelOcaml ) );
+	bins.push_back( std::make_pair( "rust", config.ragelRust ) );
+	bins.push_back( std::make_pair( "crack", config.ragelCrack ) );
+	bins.push_back( std::make_pair( "julia", config.ragelJulia ) );
+	bins.push_back( std::make_pair( "zig", config.ragelZig ) );
+	bins.push_back( std::make_pair( "js", config.ragelJs ) );
+}
 
 static Words objcFlags;
 static bool objcFlagsLoaded = false;
@@ -63,34 +87,34 @@ static bool langOpts( const Config &config, const std::string &src,
 	lo.libs.clear();
 
 	if ( lang == "c" ) {
-		lo.langOpt = "-C"; lo.suffix = "c"; lo.compiler = config.cc;
+		lo.suffix = "c"; lo.compiler = config.cc;
 		lo.hostRagel.push_back( config.ragelBin );
 		lo.flags = splitWords( cflags );
 		lo.prohibit = "";
 	}
 	else if ( lang == "cg" ) {
 		/* ragel-c, goto based. */
-		lo.langOpt = "-C"; lo.suffix = "c"; lo.compiler = config.cc;
+		lo.suffix = "c"; lo.compiler = config.cc;
 		lo.hostRagel.push_back( config.ragelC );
 		lo.flags = splitWords( cflags );
 		lo.prohibit = "--string-tables";
 	}
 	else if ( lang == "cv" ) {
 		/* ragel-c, var based. */
-		lo.langOpt = "-C"; lo.suffix = "c"; lo.compiler = config.cc;
+		lo.suffix = "c"; lo.compiler = config.cc;
 		lo.hostRagel.push_back( config.ragelC );
 		lo.hostRagel.push_back( "--var-backend" );
 		lo.flags = splitWords( cflags );
 		lo.prohibit = "-G0 -G1 -G2 --string-tables";
 	}
 	else if ( lang == "c++" ) {
-		lo.langOpt = "-C"; lo.suffix = "cpp"; lo.compiler = config.cxx;
+		lo.suffix = "cpp"; lo.compiler = config.cxx;
 		lo.hostRagel.push_back( config.ragelBin );
 		lo.flags = splitWords( cflags );
 		lo.prohibit = "";
 	}
 	else if ( lang == "obj-c" ) {
-		lo.langOpt = "-C"; lo.suffix = "m";
+		lo.suffix = "m";
 		lo.compiler = config.gnustepConfig.empty() ? "" : config.cc;
 		lo.hostRagel.push_back( config.ragelBin );
 		if ( !config.gnustepConfig.empty() ) {
@@ -110,69 +134,75 @@ static bool langOpts( const Config &config, const std::string &src,
 		lo.prohibit = "";
 	}
 	else if ( lang == "d" ) {
-		lo.langOpt = "-D"; lo.suffix = "d"; lo.compiler = config.dBin;
+		lo.suffix = "d"; lo.compiler = config.dBin;
 		lo.hostRagel.push_back( config.ragelD );
 		lo.flags = splitWords( "-Wall -O3" );
 		lo.prohibit = "--string-tables";
 	}
 	else if ( lang == "java" ) {
-		lo.langOpt = "-J"; lo.suffix = "java"; lo.compiler = config.javacBin;
+		lo.suffix = "java"; lo.compiler = config.javacBin;
 		lo.hostRagel.push_back( config.ragelJava );
 		lo.prohibit = "-G0 -G1 -G2 --string-tables";
 	}
 	else if ( lang == "ruby" ) {
-		lo.langOpt = "-R"; lo.suffix = "rb"; lo.interpreted = true;
+		lo.suffix = "rb"; lo.interpreted = true;
 		lo.compiler = config.rubyBin;
 		lo.hostRagel.push_back( config.ragelRuby );
 		lo.prohibit = "-G0 -G1 -G2 --string-tables";
 	}
 	else if ( lang == "csharp" ) {
-		lo.langOpt = "-A"; lo.suffix = "cs"; lo.compiler = config.csharpBin;
+		lo.suffix = "cs"; lo.compiler = config.csharpBin;
 		lo.hostRagel.push_back( config.ragelCsharp );
 		lo.prohibit = "-G2 --string-tables";
 	}
 	else if ( lang == "go" ) {
-		lo.langOpt = "-Z"; lo.suffix = "go"; lo.compiler = config.goBin;
+		lo.suffix = "go"; lo.compiler = config.goBin;
 		lo.hostRagel.push_back( config.ragelGo );
 		lo.flags.push_back( "build" );
 		lo.prohibit = "--string-tables";
 	}
 	else if ( lang == "ocaml" ) {
-		lo.langOpt = "-O"; lo.suffix = "ml"; lo.interpreted = true;
+		lo.suffix = "ml"; lo.interpreted = true;
 		lo.compiler = config.ocamlBin;
 		lo.hostRagel.push_back( config.ragelOcaml );
 		lo.prohibit = "-G0 -G1 -G2 --string-tables";
 	}
 	else if ( lang == "asm" ) {
-		lo.langOpt = "--asm"; lo.suffix = "s"; lo.compiler = config.asmBin;
+		lo.suffix = "s"; lo.compiler = config.asmBin;
 		lo.hostRagel.push_back( config.ragelAsm );
 		lo.flags.push_back( "-no-pie" );
 		lo.prohibit = "-T0 -T1 -F0 -F1 -W0 -W1 -G0 -G1 --string-tables";
 	}
 	else if ( lang == "rust" ) {
-		lo.langOpt = "-U"; lo.suffix = "rs"; lo.compiler = config.rustBin;
+		lo.suffix = "rs"; lo.compiler = config.rustBin;
 		lo.hostRagel.push_back( config.ragelRust );
 		lo.flags = splitWords( "-A non_upper_case_globals -A dead_code "
 				"-A unused_variables -A unused_assignments -A unused_mut -A unused_parens" );
 		lo.prohibit = "-G0 -G1 -G2 --string-tables";
 	}
 	else if ( lang == "zig" ) {
-		lo.langOpt = "-B"; lo.suffix = "zig"; lo.compiler = config.zigBin;
+		lo.suffix = "zig"; lo.compiler = config.zigBin;
 		lo.hostRagel.push_back( config.ragelZig );
 		lo.flags.push_back( "build-exe" );
 		lo.prohibit = "--string-tables";
 	}
 	else if ( lang == "crack" ) {
-		lo.langOpt = "-K"; lo.suffix = "crk"; lo.interpreted = true;
+		lo.suffix = "crk"; lo.interpreted = true;
 		lo.compiler = config.crackBin;
 		lo.hostRagel.push_back( config.ragelCrack );
 		lo.prohibit = "-G0 -G1 -G2 --string-tables";
 	}
 	else if ( lang == "julia" ) {
-		lo.langOpt = "-Y"; lo.suffix = "jl"; lo.interpreted = true;
+		lo.suffix = "jl"; lo.interpreted = true;
 		lo.compiler = config.juliaBin;
 		lo.hostRagel.push_back( config.ragelJulia );
 		lo.prohibit = "-G0 -G1 -G2 --string-tables";
+	}
+	else if ( lang == "js" ) {
+		lo.suffix = "js"; lo.interpreted = true;
+		lo.compiler = config.nodeBin;
+		lo.hostRagel.push_back( config.ragelJs );
+		lo.prohibit = "-G0 -G1 -G2";
 	}
 	else {
 		return false;
@@ -315,6 +345,10 @@ static void runOptions( const RagelCase &rc, const std::string &lang,
 			argv.push_back( config.juliaBin );
 			argv.push_back( code );
 		}
+		else if ( lang == "js" ) {
+			argv.push_back( config.nodeBin );
+			argv.push_back( code );
+		}
 		else {
 			argv.push_back( "./" + binary );
 		}
@@ -328,6 +362,38 @@ static void runOptions( const RagelCase &rc, const std::string &lang,
 
 		job->artifacts.push_back( joinPath( rc.wk, stem + ".*" ) );
 		job->artifacts.push_back( joinPath( rc.wk, stem + "$*" ) );
+	}
+}
+
+/* The dot from -V, from every binary. */
+static void runGraphviz( const RagelCase &rc, const std::string &translated,
+		const std::string &root, int depIdx, JobList &jobs )
+{
+	const Config &config = *rc.config;
+	const char *suite = "ragel.d";
+
+	std::vector< std::pair<std::string, std::string> > bins;
+	hostBinaries( config, bins );
+
+	for ( size_t b = 0; b < bins.size(); b++ ) {
+		const std::string &lang = bins[b].first;
+		if ( !langSelected( config, lang ) )
+			continue;
+
+		std::string stem = root + "_" + lang;
+		Job *job = new Job( suite, stem );
+		job->reportPath = joinPath( rc.wk, stem + ".diff" );
+		if ( depIdx >= 0 )
+			job->deps.push_back( depIdx );
+		jobs.append( job );
+
+		Words argv;
+		argv.push_back( bins[b].second );
+		argv.push_back( "-V" );
+		argv.push_back( translated );
+		job->steps.push_back( Step::exec( Step::Run, argv, rc.build )
+				.capture( CaptureOutput ).exit( 0 ) );
+		job->steps.push_back( Step::compare( rc.expected, "" ) );
 	}
 }
 
@@ -442,7 +508,10 @@ void enumerateRagel( const Config &config, const Selection &sel, JobList &jobs )
 				depIdx = jobs.length() - 1;
 			}
 
-			runOptions( rc, lang, translated, lroot, depIdx, jobs );
+			if ( lang == "graphviz" )
+				runGraphviz( rc, translated, lroot, depIdx, jobs );
+			else
+				runOptions( rc, lang, translated, lroot, depIdx, jobs );
 		}
 	}
 }

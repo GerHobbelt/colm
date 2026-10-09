@@ -64,6 +64,9 @@ EXTRA_DIST = \
 	generate1.lm \
 	generate2.lm \
 	heredoc.lm \
+	highbyte1.lm \
+	highbyte2.lm \
+	highbyte3.lm \
 	ifblock1.lm \
 	ignore1.lm \
 	ignore2.lm \
@@ -73,6 +76,7 @@ EXTRA_DIST = \
 	include1.lm \
 	indent.lm \
 	inpush1.lm \
+	inpushbt1.lm \
 	island.lm \
 	lhs1.lm \
 	liftattrs.lm \
@@ -164,6 +168,8 @@ EXTRA_DIST = \
 	undolist1.lm \
 	undomap1.lm \
 	undomap2.lm \
+	undosplit1.lm \
+	undosplit2.lm \
 	utf8.lm \
 	void1.lm \
 	while1.lm \
@@ -176,6 +182,7 @@ EXTRA_DIST = \
 	streamseq1b.in \
 	streamseq1c.in \
 	travs2.in \
+	undosplit2.in \
 	include1a.lmi \
 	redef1.lm \
 	redef2.lm \
