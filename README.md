@@ -238,8 +238,10 @@ The autotools build remains the reference build. Known differences:
   therefore cannot serve as the `--with-colm` target of an autotools build.
 - Libtool builds both a static and a shared library and versions libcolm and
   libfsm with `-release` (`libcolm-<version>.so`). CMake builds one flavour,
-  selected by `BUILD_SHARED_LIBS`, and versions all three with a soname
-  (`libcolm.so.0`).
+  selected by `BUILD_SHARED_LIBS`, and versions all three with a soname. The
+  libcolm soname carries the whole version (`libcolm.so.<version>`), so like
+  the libtool name it changes every release; libfsm and libragel carry only a
+  major version (`libfsm.so.1`).
 - `--enable-pool-malloc`, `--with-ragel-kelbt`, `--with-colm` and the
   large-file-support checks have no cmake equivalent.
 

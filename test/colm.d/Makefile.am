@@ -5,6 +5,7 @@ EXTRA_DIST = \
 	accumbt1.lm \
 	accumbt2.lm \
 	accumbt3.lm \
+	actlong1.lm \
 	argv1.lm \
 	argv2.lm \
 	backtrack1.lm \
@@ -110,6 +111,8 @@ EXTRA_DIST = \
 	namespace1.lm \
 	nestedcomm.lm \
 	new1.lm \
+	ntignbt1.lm \
+	ntignbt2.lm \
 	open1.lm \
 	open2.lm \
 	order1.lm \
@@ -144,6 +147,7 @@ EXTRA_DIST = \
 	scan1.lm \
 	scope1.lm \
 	send1.lm \
+	sendignbt1.lm \
 	sendstream.lm \
 	sprintf.lm \
 	stds1.lm \

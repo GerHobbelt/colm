@@ -1,0 +1,57 @@
+#
+# A token with a generation action that matches more than a run_buf holds.
+# Before the action runs, the scanner copies the match into the parser's
+# consume buffer, taking a new one when the current one is full. The new
+# buffer must be big enough for the whole match.
+#
+
+lex
+	token id /[a-z]+/ {
+		input->push( make_token( typeid<id>, input->pull( match_length ) ) )
+	}
+	ignore /[ \n]+/
+end
+
+def start
+	[id*]
+
+void lengths( S: start )
+{
+	if S {
+		for T: id in S
+			print( T.data.length, '\n' )
+	}
+	else
+		print( error, '\n' )
+}
+
+# 8192 letters, the size of a run_buf.
+A: str = 'a'
+I: int = 13
+while ( I ) {
+	A = A + A
+	I = I - 1
+}
+
+# Exactly fills a new buffer.
+parse S1: start[ A ]
+lengths( S1 )
+
+# Each argument to parse is appended as its own input buffer, so these
+# matches span two and three of them.
+parse S2: start[ A "a" ]
+lengths( S2 )
+
+parse S3: start[ A A A ]
+lengths( S3 )
+
+# A long match after a short one, then a short one after it.
+parse S4: start[ "x " A A " y" ]
+lengths( S4 )
+##### EXP #####
+8192
+8193
+24576
+1
+16384
+1

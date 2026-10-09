@@ -1,0 +1,71 @@
+#
+# Backtracking over a nonterminal that was reduced with no lookahead token.
+# The right ignore of the token under it must go back to the input after the
+# nonterminal's own tokens, not before them.
+#
+
+lex
+	ignore /[ \n]+/
+	token id /[a-z]+/
+	literal `( `) `: `; `!
+end
+
+def cn
+	[id `)]
+
+def cmt
+	[`( id `: cn]
+
+# Each comment is first taken as an ia. At the ! the parser backs up over
+# them and takes them again as ib.
+def ia
+	[cmt]
+
+def ib
+	[cmt]
+
+def start
+	[ia* `;]
+|	[ib* `!]
+
+# Only here so that cmt is a parse_stop target. Its states then reduce as
+# they shift, in every parser.
+parse_stop C: cmt[ '(a: b)' ]
+
+parse S: start[ stdin ]
+if S
+	print( 'ok: ', S )
+else
+	print( 'error: ', error, '\n' )
+##### IN #####
+(c: d) (e: f) ;
+##### EXP #####
+ok: (c: d) (e: f) ;
+##### IN #####
+(c: d) (e: f) !
+##### EXP #####
+ok: (c: d) (e: f) !
+##### IN #####
+(c: d) (e:  f) !
+##### EXP #####
+ok: (c: d) (e:  f) !
+##### IN #####
+(c: d) (e: f) (g: h) !
+##### EXP #####
+ok: (c: d) (e: f) (g: h) !
+##### IN #####
+(c: d) ( e : f ) !
+##### EXP #####
+ok: (c: d) ( e : f ) !
+##### IN #####
+(c: d)
+(e:
+f) !
+##### EXP #####
+ok: (c: d)
+(e:
+f) !
+##### IN #####
+(c: d) (e: f) ?
+##### EXP #####
+error: <stdin>:1:15: parse error
