@@ -1,0 +1,78 @@
+#
+# The append branch of detach_right_ignore, reached through its call after
+# an unreduce. As in regignbt1, the whitespace after a is split between a's
+# right ignore and b's left ignore, and the right ignore must go on the end
+# of accum_ignore.
+#
+# flat* is tried first, so b, the token after a, causes a to reduce to flat.
+# When the parser backs up over b, b's left ignore goes to accum_ignore, but
+# a is under the flat and its right ignore stays attached. Then the parser
+# unreduces the flat, a is on top of the stack again, and detach_right_ignore
+# takes the right ignore off a and appends it. In regignbt1 the sequence is
+# tried first, so a is a terminal on the stack when b is backed over.
+#
+# The spaces at the ends of the IN and EXP lines are those right ignores, so
+# keep them. The last run ends in ! and needs no backing up.
+#
+
+lex
+	token a /'a'/
+	ignore /[ ]+/
+	ignore /'#' [^\n]*/
+end
+
+lex
+	token b /'b'/
+	literal `!
+	ignore /[ \n]+/
+end
+
+def flat
+	[a] | [b]
+
+# Unless the input ends in !, flat* fails at the end of the input. The parser
+# backs up to the first b, unreducing the flat under it, and shifts b for the
+# sequence instead.
+def start
+	[flat* `!]
+|	[a b a b]
+
+parse S: start[ stdin ]
+if S {
+	if match S [a b a b]
+		print( 'seq: [', S, ']\n' )
+	else
+		print( 'flat: [', S, ']\n' )
+}
+else
+	print( 'error: ', error, '\n' )
+##### IN #####
+a  
+  b a b
+##### EXP #####
+seq: [a  
+  b a b
+]
+##### IN #####
+a # c
+  b a b
+##### EXP #####
+seq: [a # c
+  b a b
+]
+##### IN #####
+a 
+ b a 
+ b
+##### EXP #####
+seq: [a 
+ b a 
+ b
+]
+##### IN #####
+a  
+  b a b !
+##### EXP #####
+flat: [a  
+  b a b !
+]
