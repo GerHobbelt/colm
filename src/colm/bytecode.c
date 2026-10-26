@@ -323,6 +323,36 @@ static void undo_pull( program_t *prg, input_t *input, tree_t *str )
 	undo_stream_pull( prg, impl, data, length );
 }
 
+/* The stream counterpart of colm_stream_pull, which pulls from an input. A
+ * stream is never pulled from for a parser, so there is no pda_run. */
+static head_t *stream_impl_pull( program_t *prg, struct stream_impl *si, long length )
+{
+	head_t *head = init_str_space( length );
+	alph_t *dest = (alph_t*)head->data;
+
+	si->funcs->get_data( prg, si, dest, length );
+	location_t *loc = location_allocate( prg );
+	si->funcs->consume_data( prg, si, length, loc );
+	head->location = loc;
+
+	return head;
+}
+
+static tree_t *stream_pull_stream_bc( program_t *prg, stream_t *stream, tree_t *length )
+{
+	long len = ((long)length);
+	head_t *tokdata = stream_impl_pull( prg, stream_to_impl( stream ), len );
+	return construct_string( prg, tokdata );
+}
+
+static void undo_pull_stream( program_t *prg, stream_t *stream, tree_t *str )
+{
+	struct stream_impl *si = stream_to_impl( stream );
+	const char *data = string_data( ( (str_t*)str )->value );
+	long length = string_length( ( (str_t*)str )->value );
+	si->funcs->undo_consume_data( prg, si, colm_alph_from_cstr( data ), length );
+}
+
 static void input_push_text( struct colm_program *prg, struct input_impl *is,
 		struct colm_location *loc, const char *data, long length )
 {
@@ -572,6 +602,26 @@ static code_t *pcr_call( program_t *prg, execution_t *exec, tree_t ***psp, code_
 		vm_pushn( fi->frame_size );
 		memset( vm_ptop(), 0, sizeof(word_t) * fi->frame_size );
 	}
+
+	*psp = sp;
+	return instr;
+}
+
+/* Pop what pcr_call pushed under the code's frame, restoring the code that
+ * called the parser. Returns the instruction to go back to. */
+static code_t *pcr_return( program_t *prg, execution_t *exec, tree_t ***psp )
+{
+	tree_t **sp = *psp;
+
+	code_t *instr = vm_pop_type(code_t*);
+
+	exec->WV =         vm_pop_type(word_t);
+	exec->parser =     vm_pop_parser();
+	exec->pcr =        vm_pop_type(word_t);
+	exec->steps =      vm_pop_type(word_t);
+	exec->frame_id =   vm_pop_type(long);
+	exec->iframe_ptr = vm_pop_type(tree_t**);
+	exec->frame_ptr =  vm_pop_type(tree_t**);
 
 	*psp = sp;
 	return instr;
@@ -2748,15 +2798,7 @@ again:
 				vm_popn( fi->frame_size );
 			}
 
-			instr = vm_pop_type(code_t*);
-
-			exec->WV =         vm_pop_type(word_t);
-			exec->parser =     vm_pop_parser();
-			exec->pcr =        vm_pop_type(word_t);
-			exec->steps =      vm_pop_type(word_t);
-			exec->frame_id =   vm_pop_type(long);
-			exec->iframe_ptr = vm_pop_type(tree_t**);
-			exec->frame_ptr =  vm_pop_type(tree_t**);
+			instr = pcr_return( prg, exec, &sp );
 
 			assert( instr != 0 );
 			break;
@@ -2782,6 +2824,12 @@ again:
 			if ( exec->pcr != PCR_DONE )
 				instr = pcr_call( prg, exec, &sp, instr, parser );
 			else {
+				/* Skip the unwind code. It is for an exit in a parser action
+				 * (see FN_EXIT). */
+				short unwind_len;
+				read_half( unwind_len );
+				instr += unwind_len;
+
 				if ( exec->WV ) {
 					rcode_unit_start( exec );
 
@@ -2791,9 +2839,6 @@ again:
 					rcode_code( exec, IN_PARSE_FRAG_BKT );
 					rcode_unit_term( exec );
 				}
-
-				if ( prg->induce_exit )
-					goto out;
 			}
 			break;
 		}
@@ -2868,6 +2913,44 @@ again:
 			colm_tree_downref( prg, sp, string );
 			break;
 		}
+		case IN_STREAM_PULL_WV: {
+			debug( prg, REALM_BYTECODE, "IN_STREAM_PULL_WV\n" );
+
+			stream_t *stream = vm_pop_stream();
+			tree_t *len = vm_pop_tree();
+			tree_t *string = stream_pull_stream_bc( prg, stream, len );
+			colm_tree_upref( prg, string );
+			vm_push_tree( string );
+
+			/* Single unit. */
+			colm_tree_upref( prg, string );
+			rcode_code( exec, IN_STREAM_PULL_BKT );
+			rcode_word( exec, (word_t) string );
+			rcode_unit_term( exec );
+			break;
+		}
+		case IN_STREAM_PULL_WC: {
+			debug( prg, REALM_BYTECODE, "IN_STREAM_PULL_WC\n" );
+
+			stream_t *stream = vm_pop_stream();
+			tree_t *len = vm_pop_tree();
+			tree_t *string = stream_pull_stream_bc( prg, stream, len );
+			colm_tree_upref( prg, string );
+			vm_push_tree( string );
+			break;
+		}
+		case IN_STREAM_PULL_BKT: {
+			tree_t *string;
+			read_tree( string );
+
+			stream_t *stream = vm_pop_stream();
+
+			debug( prg, REALM_BYTECODE, "IN_STREAM_PULL_BKT\n" );
+
+			undo_pull_stream( prg, stream, string );
+			colm_tree_downref( prg, sp, string );
+			break;
+		}
 		case IN_INPUT_PUSH_WV: {
 			debug( prg, REALM_BYTECODE, "IN_INPUT_PUSH_WV\n" );
 
@@ -2884,6 +2967,17 @@ again:
 			colm_tree_downref( prg, sp, tree );
 			break;
 		}
+		case IN_INPUT_PUSH_WC: {
+			debug( prg, REALM_BYTECODE, "IN_INPUT_PUSH_WC\n" );
+
+			input_t *input = vm_pop_input();
+			tree_t *tree = vm_pop_tree();
+			input_push( prg, sp, input_to_impl( input ), tree, false );
+			vm_push_tree( 0 );
+
+			colm_tree_downref( prg, sp, tree );
+			break;
+		}
 		case IN_INPUT_PUSH_IGNORE_WV: {
 			debug( prg, REALM_BYTECODE, "IN_INPUT_PUSH_IGNORE_WV\n" );
 
@@ -2896,6 +2990,17 @@ again:
 			rcode_code( exec, IN_INPUT_PUSH_BKT );
 			rcode_word( exec, len );
 			rcode_unit_term( exec );
+
+			colm_tree_downref( prg, sp, tree );
+			break;
+		}
+		case IN_INPUT_PUSH_IGNORE_WC: {
+			debug( prg, REALM_BYTECODE, "IN_INPUT_PUSH_IGNORE_WC\n" );
+
+			input_t *input = vm_pop_input();
+			tree_t *tree = vm_pop_tree();
+			input_push( prg, sp, input_to_impl( input ), tree, true );
+			vm_push_tree( 0 );
 
 			colm_tree_downref( prg, sp, tree );
 			break;
@@ -2921,6 +3026,15 @@ again:
 			/* Single unit end. */
 			rcode_code( exec, IN_INPUT_PUSH_STREAM_BKT );
 			rcode_unit_term( exec );
+			break;
+		}
+		case IN_INPUT_PUSH_STREAM_WC: {
+			debug( prg, REALM_BYTECODE, "IN_INPUT_PUSH_STREAM_WC\n" );
+
+			input_t *input = vm_pop_input();
+			stream_t *to_push = vm_pop_stream();
+			input_push_stream( prg, sp, input_to_impl( input ), to_push );
+			vm_push_tree( 0 );
 			break;
 		}
 		case IN_INPUT_PUSH_STREAM_BKT: {
@@ -4742,24 +4856,56 @@ again:
 					if ( unwind_len > 0 )
 						sp = colm_execute_code( prg, exec, sp, instr );
 
+					/* Only functions have commit code. A frame without is a
+					 * parser action's, which pcr_call pushed. */
+					int action = fi->codeWC == 0;
+
+					if ( action ) {
+						/* Drop any reverse code unit the action began and
+						 * didn't finish. The parser makes reverse code from
+						 * whole units only. */
+						exec->parser->pda_run->rcode_collect.tab_len -=
+								exec->rcode_unit_len;
+						exec->rcode_unit_len = 0;
+					}
+
 					downref_locals( prg, &sp, exec, fi->locals, fi->locals_len );
 					vm_popn( fi->frame_size );
 
-					/* Call layout. */
-					exec->frame_id = vm_pop_type(long);
-					exec->frame_ptr = vm_pop_type(tree_t**);
-					instr = vm_pop_type(code_t*);
+					if ( action ) {
+						/* Back to the IN_PARSE_FRAG_W that called the
+						 * action, which left the parser on the stack. */
+						instr = pcr_return( prg, exec, &sp );
+						parser_t *parser = vm_pop_parser();
 
-					tree_t *ret_val = vm_pop_tree();
-					vm_pop_value();
+						/* Let the parser finish up after the action. Seeing
+						 * induce_exit, it stops without running another. */
+						exec->pcr = colm_parse_frag( prg, sp,
+								parser->pda_run, parser->input,
+								exec->pcr );
+						assert( exec->pcr == PCR_DONE );
 
-					/* The IN_PREP_ARGS stack data. */
-					vm_popn( fi->arg_size );
-					vm_pop_value();
+						/* The parse site's unwind code follows the
+						 * instruction. */
+						instr += SIZEOF_CODE;
+					}
+					else {
+						/* Call layout. */
+						exec->frame_id = vm_pop_type(long);
+						exec->frame_ptr = vm_pop_type(tree_t**);
+						instr = vm_pop_type(code_t*);
 
-					if ( fi->ret_tree ) {
-						/* Problem here. */
-						colm_tree_downref( prg, sp, ret_val );
+						tree_t *ret_val = vm_pop_tree();
+						vm_pop_value();
+
+						/* The IN_PREP_ARGS stack data. */
+						vm_popn( fi->arg_size );
+						vm_pop_value();
+
+						if ( fi->ret_tree ) {
+							/* Problem here. */
+							colm_tree_downref( prg, sp, ret_val );
+						}
 					}
 
 					read_half( unwind_len );
@@ -4888,6 +5034,15 @@ again:
 			read_tree( string );
 
 			debug( prg, REALM_BYTECODE, "IN_INPUT_PULL_BKT\n" );
+
+			colm_tree_downref( prg, sp, string );
+			break;
+		}
+		case IN_STREAM_PULL_BKT: {
+			tree_t *string;
+			read_tree( string );
+
+			debug( prg, REALM_BYTECODE, "IN_STREAM_PULL_BKT\n" );
 
 			colm_tree_downref( prg, sp, string );
 			break;
