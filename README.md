@@ -104,7 +104,8 @@ usage: colm [options] file
 general:
    -h, -H, -?, --help   print this usage and exit
    -v --version         print version information and exit
-   -b <ident>           use <ident> as name of C object encapulaing the program
+   -b <ident>           use <ident> as name of C object encapsulating
+                        the program
    -o <file>            if -c given, write C parse object to <file>,
                         otherwise write binary to <file>
    -p <file>            write C parse object to <file>
@@ -119,9 +120,16 @@ general:
    -l                   activate logging
    -r                   run output program and replace process
    -c                   compile only (don't produce binary)
-   -V                   print dot format (graphiz)
+   -V                   print dot format (graphviz)
+   --ebnf               print EBNF for railroad diagram
    -d                   print verbose debug information
-
+   -B <path>
+       Run Colm from the build directory. Use this when building from source
+       and using the resulting binary without installing it. Colm will attempt
+       to detect when it is run from the build directory. This flag lets the
+       user be explicit about it. The detection method is specific to the OS
+       and can fail. The path given should be the root of the build directory,
+       eg what would be returned by ABS_TOP_BUILDDIR (directory where src is).
 ```
 
 
@@ -306,8 +314,9 @@ $ make check
 Test suites are under `test/` with subdirectories for each component (`colm.d`, `ragel.d`, `aapl.d`, etc.).
 One more, `manual`, runs the colm manual's example programs,
 `doc/colm/code/NAME.lm`, with `NAME.in` on stdin if there is one, and compares
-their output with `NAME.exp`. The chapters include those files, so a new example
-needs its `.exp` (and `.in`) there too, listed in `doc/colm/Makefile.am` and
+their output with `NAME.exp`. `NAME.args`, if there is one, holds the program's
+arguments. The chapters include those files, so a new example needs its `.exp`
+(and `.in` and `.args`) there too, listed in `doc/colm/Makefile.am` and
 `doc/colm/CMakeLists.txt`.
 
 

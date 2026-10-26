@@ -36,12 +36,16 @@ set(MANUAL_PAGES
 	3_05_reduction 8_05_contributing)
 
 # The example programs, with their output (.exp) and input (.in), which the
-# pages include. Every page is rebuilt when one of them changes, which is
-# simpler than tracking which page includes which.
+# pages include, and the arguments they run with (.args). Every page is
+# rebuilt when one of them changes, which is simpler than tracking which page
+# includes which.
 set(MANUAL_CODE
 	code/assign.lm           code/assign.exp           code/assign.in
+	code/expr_cast.lm        code/expr_cast.exp        code/expr_cast.in
+	code/expr_ops.lm         code/expr_ops.exp
 	code/figure_44.lm        code/figure_44.exp
 	code/fizzbuzz.lm         code/fizzbuzz.exp
+	code/flow_primes.lm      code/flow_primes.exp
 	code/hello_world.lm      code/hello_world.exp
 	code/hello_world_ext.lm  code/hello_world_ext.exp
 	code/lex_basics.lm       code/lex_basics.exp       code/lex_basics.in
@@ -52,9 +56,20 @@ set(MANUAL_CODE
 	code/lex_rl.lm           code/lex_rl.exp           code/lex_rl.in
 	code/lex_skip.lm         code/lex_skip.exp         code/lex_skip.in
 	code/nested_scope.lm     code/nested_scope.exp
+	code/parse_commit.lm     code/parse_commit.exp     code/parse_commit.in
+	code/parse_def.lm        code/parse_def.exp        code/parse_def.in
+	code/parse_order.lm      code/parse_order.exp      code/parse_order.in
+	code/parse_prec.lm       code/parse_prec.exp
+	code/parse_redef.lm      code/parse_redef.exp      code/parse_redef.in
+	code/parse_reject.lm     code/parse_reject.exp     code/parse_reject.in
+	code/parse_reparse.lm    code/parse_reparse.exp    code/parse_reparse.in
+	code/parse_stop.lm       code/parse_stop.exp       code/parse_stop.in
 	code/poker.lm            code/poker.exp
+	code/prog_args.lm        code/prog_args.exp        code/prog_args.args
 	code/reference.lm        code/reference.exp
-	code/scope.lm            code/scope.exp)
+	code/scope.lm            code/scope.exp
+	code/stmt_print.lm       code/stmt_print.exp
+	code/var_scope.lm        code/var_scope.exp)
 list(TRANSFORM MANUAL_CODE PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/")
 
 set(MANUAL_HTML)
